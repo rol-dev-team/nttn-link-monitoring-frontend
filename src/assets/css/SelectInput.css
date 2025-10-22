@@ -1,0 +1,8 @@
+/* .css-13cymwt-control{
+    max-height: 150px !important;
+    overflow-y: scroll !important;
+} */
+.rack-id-select__control {
+    max-height: 150px !important;
+    overflow-y: scroll !important;
+}

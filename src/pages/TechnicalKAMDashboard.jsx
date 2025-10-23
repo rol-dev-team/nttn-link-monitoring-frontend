@@ -1,47 +1,57 @@
 // // src/pages/TechnicalKAMDashboard.jsx
 
-// import React, { useState, useCallback, useMemo, useEffect } from 'react';
-// import DataTable from '../components/table/DataTable'; // Your reusable DataTable
-// import Button from '../components/ui/Button';
+// import React, { useState, useCallback, useMemo, useEffect } from "react";
+// import DataTable from "../components/table/DataTable";
+// import Button from "../components/ui/Button";
 // import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
-// import { useToast } from '../hooks/useToast'; 
-
-// // Import the new form component (will be defined next)
-// import ExportButton from '../components/ui/ExportButton';
-// import { FaFileExcel } from 'react-icons/fa';
-// import TechnicalKAMForm from '../components/TechnicalKAMForm'; 
+// import { useToast } from "../hooks/useToast";
+// import ExportButton from "../components/ui/ExportButton";
+// import { FaFileExcel } from "react-icons/fa";
+// import TechnicalKAMForm from "../components/TechnicalKAMForm";
+// // 🔑 NEW: Import the Filter Drawer Component
+// import TechnicalKAMFilterDrawer from "../components/filter/TechnicalKAMFilterDrawer";
+// import {
+//     fetchTechnicalKam,
+//     fetchTechnicalKams,
+//     updateTechnicalKam,
+// } from "../services/partner-link/technicalKam";
 
 // // ================================================================
-// // MOCK DATA & API SIMULATION
+// // MOCK DATA & API SIMULATION (UNCHANGED)
 // // ================================================================
 
-// // Mock database for KAMs
 // let MOCK_KAMS_DB = [
 //     {
 //         id: 101,
 //         name: "A. Karim",
 //         designation: "Senior Network Engineer",
 //         cell_number: "01712345678",
-//         status: "Active", // Example of an active KAM
+//         status: "Active",
 //     },
 //     {
 //         id: 102,
 //         name: "F. Hoque",
 //         designation: "Principal Architect",
 //         cell_number: "01823456789",
-//         status: "Active", // Example of an active KAM
+//         status: "Active",
 //     },
 //     {
 //         id: 103,
 //         name: "S. Begum",
 //         designation: "Technical Lead",
 //         cell_number: "01934567890",
-//         status: "Inactive", // Example of an inactive KAM
+//         status: "Inactive",
+//     },
+//     {
+//         id: 104,
+//         name: "R. Islam",
+//         designation: "Senior Network Engineer",
+//         cell_number: "01755555555",
+//         status: "Inactive",
 //     },
 // ];
-// let nextId = 104;
+// let nextId = 105;
 
-// // Mock API Functions
 // const api = {
 //     listKams: () => Promise.resolve(MOCK_KAMS_DB),
 //     createKam: (data) => {
@@ -50,7 +60,7 @@
 //         return Promise.resolve(newKam);
 //     },
 //     updateKam: (id, data) => {
-//         const index = MOCK_KAMS_DB.findIndex(a => a.id === id);
+//         const index = MOCK_KAMS_DB.findIndex((a) => a.id === id);
 //         if (index > -1) {
 //             MOCK_KAMS_DB[index] = { ...MOCK_KAMS_DB[index], ...data };
 //             return Promise.resolve(MOCK_KAMS_DB[index]);
@@ -59,12 +69,12 @@
 //     },
 //     deleteKam: (id) => {
 //         const initialLength = MOCK_KAMS_DB.length;
-//         MOCK_KAMS_DB = MOCK_KAMS_DB.filter(a => a.id !== id);
+//         MOCK_KAMS_DB = MOCK_KAMS_DB.filter((a) => a.id !== id);
 //         if (MOCK_KAMS_DB.length < initialLength) {
 //             return Promise.resolve({ success: true });
 //         }
 //         return Promise.reject(new Error("KAM not found."));
-//     }
+//     },
 // };
 
 // /**
@@ -74,9 +84,12 @@
 //     const { addToast } = useToast();
 //     const [kams, setKams] = useState([]);
 //     const [loading, setLoading] = useState(true);
-//     const [viewMode, setViewMode] = useState('table'); // 'table' or 'form'
+//     const [viewMode, setViewMode] = useState("table");
 //     const [isEditMode, setIsEditMode] = useState(false);
 //     const [editingKam, setEditingKam] = useState(null);
+
+//     // 🔑 NEW STATE: Holds the filter payload from the drawer
+//     const [activeFilters, setActiveFilters] = useState({});
 
 //     // --- Data Fetching ---
 //     const fetchKams = useCallback(async () => {
@@ -86,7 +99,7 @@
 //             setKams(data);
 //         } catch (err) {
 //             console.error(err);
-//             addToast('Failed to fetch KAMs', 'error');
+//             addToast("Failed to fetch KAMs", "error");
 //         } finally {
 //             setLoading(false);
 //         }
@@ -96,22 +109,59 @@
 //         fetchKams();
 //     }, [fetchKams]);
 
-//     // --- View and Action Handlers ---
+//     // 🔑 NEW: Central Filter Logic (Client-Side) 🔑
+//     const filteredKams = useMemo(() => {
+//         const filters = activeFilters;
+//         if (Object.keys(filters).length === 0) {
+//             return kams;
+//         }
+
+//         return kams.filter((kam) => {
+//             let matches = true;
+
+//             // 1. Designation Filter
+//             if (
+//                 filters.designation &&
+//                 kam.designation !== filters.designation
+//             ) {
+//                 matches = false;
+//             }
+
+//             // 2. Status Filter
+//             if (filters.status && kam.status !== filters.status) {
+//                 matches = false;
+//             }
+
+//             return matches;
+//         });
+//     }, [kams, activeFilters]);
+
+//     // 🔑 NEW: Filter Handler (called by the FilterDrawer)
+//     const handleApplyFilters = useCallback((filters) => {
+//         setActiveFilters(filters);
+//     }, []);
+
+//     // --- View and Action Handlers (UNCHANGED) ---
 //     const openNewForm = () => {
 //         setIsEditMode(false);
 //         setEditingKam(null);
-//         setViewMode('form');
+//         setViewMode("form");
 //     };
 
 //     const handleEdit = (kam) => {
 //         setIsEditMode(true);
 //         setEditingKam(kam);
-//         setViewMode('form');
+//         setViewMode("form");
 //     };
 
 //     const handleDelete = async (kamId) => {
-//         if (!window.confirm("Are you sure you want to delete this Technical KAM?")) return;
-        
+//         if (
+//             !window.confirm(
+//                 "Are you sure you want to delete this Technical KAM?"
+//             )
+//         )
+//             return;
+
 //         try {
 //             await api.deleteKam(kamId);
 //             addToast("KAM deleted successfully.", "success");
@@ -122,8 +172,8 @@
 //             fetchKams();
 //         }
 //     };
-    
-//     // --- Form Submission Handler ---
+
+//     // --- Form Submission Handler (UNCHANGED) ---
 //     const handleFormSubmit = async (values, { resetForm }) => {
 //         try {
 //             console.log("Submitting KAM details for API:", values);
@@ -139,67 +189,75 @@
 //         } finally {
 //             fetchKams();
 //             resetForm();
-//             setViewMode('table');
+//             setViewMode("table");
 //         }
 //     };
 
-//     // --- DataTable Columns ---
-//     const kamColumns = useMemo(() => [
-//     { key: 'name', header: 'Name' },
-//     { key: 'designation', header: 'Designation' },
-//     { key: 'cell_number', header: 'Cell Number' },
-//     { 
-//         key: 'status', 
-//         header: 'Status',
-//         // --- Custom Render for Status ---
-//         render: (status) => {
-//             const is_active = status === 'Active';
-            
-//             // Define Tailwind classes for active and inactive states
-//             const baseClasses = "inline-flex items-center rounded-full px-3 py-0.5 text-xs font-medium";
-            
-//             const colorClasses = is_active
-//                 ? "bg-green-100 text-green-800" // Green for Active
-//                 : "bg-red-100 text-red-800";   // Red for Inactive
+//     // --- DataTable Columns (UNCHANGED) ---
+//     const kamColumns = useMemo(
+//         () => [
+//             { key: "id", header: "ID" },
+//             { key: "name", header: "Name" },
+//             { key: "designation", header: "Designation" },
+//             { key: "cell_number", header: "Cell Number" },
+//             {
+//                 key: "status",
+//                 header: "Status",
+//                 render: (status) => {
+//                     const is_active = status === "Active";
 
-//             return (
-//                 <span className={`${baseClasses} ${colorClasses}`}>
-//                     {status}
-//                 </span>
-//             );
-//         }
-//     },
-//     {
-//         key: 'actions',
-//         header: 'Actions',
-//         render: (_, row) => (
-//             <div className="flex justify-start gap-2">
-//                 <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
-//                     <Pencil className="h-4 w-4 text-indigo-500 hover:text-indigo-700" />
-//                 </Button>
-//                 {/* <Button variant="icon" size="sm" onClick={() => handleDelete(row.id)} title="Delete">
+//                     const baseClasses =
+//                         "inline-flex items-center rounded-full px-3 py-0.5 text-xs font-medium";
+
+//                     const colorClasses = is_active
+//                         ? "bg-green-100 text-green-800"
+//                         : "bg-red-100 text-red-800";
+
+//                     return (
+//                         <span className={`${baseClasses} ${colorClasses}`}>
+//                             {status}
+//                         </span>
+//                     );
+//                 },
+//             },
+//             {
+//                 key: "actions",
+//                 header: "Actions",
+//                 render: (_, row) => (
+//                     <div className="flex justify-start gap-2">
+//                         <Button
+//                             variant="icon"
+//                             size="sm"
+//                             onClick={() => handleEdit(row)}
+//                             title="Edit"
+//                         >
+//                             <Pencil className="h-4 w-4 text-indigo-500 hover:text-indigo-700" />
+//                         </Button>
+//                         {/* <Button variant="icon" size="sm" onClick={() => handleDelete(row.id)} title="Delete">
 //                     <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
 //                 </Button> */}
-//             </div>
-//         )
-//     }
-// ], [handleEdit, handleDelete]);
+//                     </div>
+//                 ),
+//             },
+//         ],
+//         [handleEdit, handleDelete]
+//     );
 
-//     // --- Conditional Render: FORM VIEW ---
-//     if (viewMode === 'form') {
+//     // --- Conditional Render: FORM VIEW (UNCHANGED) ---
+//     if (viewMode === "form") {
 //         return (
 //             <TechnicalKAMForm
 //                 initialValues={editingKam}
 //                 isEditMode={isEditMode}
 //                 onSubmit={handleFormSubmit}
-//                 onCancel={() => setViewMode('table')}
+//                 onCancel={() => setViewMode("table")}
 //             />
 //         );
 //     }
 
-//     // --- Conditional Render: TABLE VIEW ---
+//     // --- Conditional Render: TABLE VIEW (Updated to use filteredKams and filterComponent) ---
 //     return (
-//         <div className='p-4 lg:p-6 '>
+//         <div className="p-4 lg:p-6 ">
 //             <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-200">
 //                 <div>
 //                     <h1 className="text-3xl font-extrabold text-gray-900">
@@ -209,23 +267,25 @@
 //                         View and manage the Technical KAM.
 //                     </p>
 //                 </div>
-//                 <div className='px-6 flex gap-2'>
-//                     <ExportButton 
-//                         data={kams} 
-//                         columns={kamColumns} 
-//                         fileName="technical_kams_export" 
-//                         intent="primary" 
-//                         leftIcon={FaFileExcel} 
+//                 <div className="px-6 flex gap-2">
+//                     <ExportButton
+//                         data={filteredKams} // 🔑 Export the filtered data
+//                         columns={kamColumns}
+//                         fileName="technical_kams_export"
+//                         intent="primary"
+//                         leftIcon={FaFileExcel}
 //                         className="text-white-500  bg-green-700 hover:bg-green-800 border-none"
 //                     >
 //                         Export
 //                     </ExportButton>
-//                     <Button intent="primary" onClick={openNewForm} leftIcon={Plus}>
+//                     <Button
+//                         intent="primary"
+//                         onClick={openNewForm}
+//                         leftIcon={Plus}
+//                     >
 //                         Add KAM
 //                     </Button>
 //                 </div>
-                
-                
 //             </header>
 
 //             {loading ? (
@@ -235,91 +295,42 @@
 //             ) : (
 //                 <DataTable
 //                     title="KAM Records"
-//                     data={kams}
+//                     data={filteredKams} // 🔑 Pass the filtered data to the table
 //                     columns={kamColumns}
 //                     searchable={true}
-//                     showId={true} // Assuming ID is useful here
+//                     // showId={true}
 //                     selection={false}
+//                     // 🔑 NEW PROP: Integrate the Filter Drawer
+//                     filterComponent={
+//                         <TechnicalKAMFilterDrawer
+//                             onApply={handleApplyFilters}
+//                             activeFilters={activeFilters}
+//                         />
+//                     }
 //                 />
 //             )}
 //         </div>
 //     );
 // }
 
-
 // src/pages/TechnicalKAMDashboard.jsx
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import DataTable from '../components/table/DataTable';
-import Button from '../components/ui/Button';
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import DataTable from "../components/table/DataTable";
+import Button from "../components/ui/Button";
 import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
-import { useToast } from '../hooks/useToast'; 
-import ExportButton from '../components/ui/ExportButton';
-import { FaFileExcel } from 'react-icons/fa';
-import TechnicalKAMForm from '../components/TechnicalKAMForm'; 
-// 🔑 NEW: Import the Filter Drawer Component
-import TechnicalKAMFilterDrawer from '../components/filter/TechnicalKAMFilterDrawer'; 
-
-// ================================================================
-// MOCK DATA & API SIMULATION (UNCHANGED)
-// ================================================================
-
-let MOCK_KAMS_DB = [
-    {
-        id: 101,
-        name: "A. Karim",
-        designation: "Senior Network Engineer",
-        cell_number: "01712345678",
-        status: "Active",
-    },
-    {
-        id: 102,
-        name: "F. Hoque",
-        designation: "Principal Architect",
-        cell_number: "01823456789",
-        status: "Active",
-    },
-    {
-        id: 103,
-        name: "S. Begum",
-        designation: "Technical Lead",
-        cell_number: "01934567890",
-        status: "Inactive",
-    },
-    {
-        id: 104,
-        name: "R. Islam",
-        designation: "Senior Network Engineer",
-        cell_number: "01755555555",
-        status: "Inactive",
-    },
-];
-let nextId = 105;
-
-const api = {
-    listKams: () => Promise.resolve(MOCK_KAMS_DB),
-    createKam: (data) => {
-        const newKam = { id: nextId++, ...data };
-        MOCK_KAMS_DB.push(newKam);
-        return Promise.resolve(newKam);
-    },
-    updateKam: (id, data) => {
-        const index = MOCK_KAMS_DB.findIndex(a => a.id === id);
-        if (index > -1) {
-            MOCK_KAMS_DB[index] = { ...MOCK_KAMS_DB[index], ...data };
-            return Promise.resolve(MOCK_KAMS_DB[index]);
-        }
-        return Promise.reject(new Error("KAM not found."));
-    },
-    deleteKam: (id) => {
-        const initialLength = MOCK_KAMS_DB.length;
-        MOCK_KAMS_DB = MOCK_KAMS_DB.filter(a => a.id !== id);
-        if (MOCK_KAMS_DB.length < initialLength) {
-            return Promise.resolve({ success: true });
-        }
-        return Promise.reject(new Error("KAM not found."));
-    }
-};
+import { useToast } from "../hooks/useToast";
+import ExportButton from "../components/ui/ExportButton";
+import { FaFileExcel } from "react-icons/fa";
+import TechnicalKAMForm from "../components/TechnicalKAMForm";
+import TechnicalKAMFilterDrawer from "../components/filter/TechnicalKAMFilterDrawer";
+import {
+    fetchTechnicalKam,
+    fetchTechnicalKams,
+    updateTechnicalKam,
+    createTechnicalKam,
+    deleteTechnicalKam,
+} from "../services/partner-link/technicalKam";
 
 /**
  * Technical KAM dashboard component with Table view and Form modal.
@@ -328,22 +339,20 @@ export default function TechnicalKAMDashboard() {
     const { addToast } = useToast();
     const [kams, setKams] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('table');
+    const [viewMode, setViewMode] = useState("table");
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingKam, setEditingKam] = useState(null);
-
-    // 🔑 NEW STATE: Holds the filter payload from the drawer
     const [activeFilters, setActiveFilters] = useState({});
 
     // --- Data Fetching ---
     const fetchKams = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await api.listKams();
-            setKams(data);
+            const response = await fetchTechnicalKams();
+            setKams(response.data);
         } catch (err) {
             console.error(err);
-            addToast('Failed to fetch KAMs', 'error');
+            addToast("Failed to fetch KAMs", "error");
         } finally {
             setLoading(false);
         }
@@ -353,138 +362,185 @@ export default function TechnicalKAMDashboard() {
         fetchKams();
     }, [fetchKams]);
 
-    // 🔑 NEW: Central Filter Logic (Client-Side) 🔑
+    // 🔑 Central Filter Logic (Client-Side)
     const filteredKams = useMemo(() => {
         const filters = activeFilters;
         if (Object.keys(filters).length === 0) {
             return kams;
         }
 
-        return kams.filter(kam => {
+        return kams.filter((kam) => {
             let matches = true;
 
             // 1. Designation Filter
-            if (filters.designation && kam.designation !== filters.designation) {
+            if (
+                filters.designation &&
+                kam.designation !== filters.designation
+            ) {
                 matches = false;
             }
-            
+
             // 2. Status Filter
             if (filters.status && kam.status !== filters.status) {
                 matches = false;
             }
-            
+
             return matches;
         });
     }, [kams, activeFilters]);
 
-    // 🔑 NEW: Filter Handler (called by the FilterDrawer)
+    // 🔑 Filter Handler (called by the FilterDrawer)
     const handleApplyFilters = useCallback((filters) => {
         setActiveFilters(filters);
     }, []);
 
-    // --- View and Action Handlers (UNCHANGED) ---
+    // --- View and Action Handlers ---
     const openNewForm = () => {
         setIsEditMode(false);
         setEditingKam(null);
-        setViewMode('form');
+        setViewMode("form");
     };
 
-    const handleEdit = (kam) => {
-        setIsEditMode(true);
-        setEditingKam(kam);
-        setViewMode('form');
+    const handleEdit = async (kam) => {
+        try {
+            setIsEditMode(true);
+            // Fetch the latest data for editing
+            const response = await fetchTechnicalKam(kam.id);
+            setEditingKam(response.data);
+            setViewMode("form");
+        } catch (err) {
+            console.error(err);
+            addToast("Failed to fetch KAM details", "error");
+        }
     };
 
     const handleDelete = async (kamId) => {
-        if (!window.confirm("Are you sure you want to delete this Technical KAM?")) return;
-        
+        if (
+            !window.confirm(
+                "Are you sure you want to delete this Technical KAM?"
+            )
+        )
+            return;
+
         try {
-            await api.deleteKam(kamId);
+            await deleteTechnicalKam(kamId);
             addToast("KAM deleted successfully.", "success");
+            fetchKams();
         } catch (err) {
             addToast("Failed to delete KAM.", "error");
             console.error("Delete failed:", err);
-        } finally {
-            fetchKams();
         }
     };
-    
-    // --- Form Submission Handler (UNCHANGED) ---
+
+    // --- Form Submission Handler (UPDATED for API compatibility) ---
     const handleFormSubmit = async (values, { resetForm }) => {
         try {
             console.log("Submitting KAM details for API:", values);
+
+            // Transform data to match backend API expectations
+            const apiPayload = {
+                name: values.name,
+                designation: values.designation,
+                mobile_no: values.cell_number, // Map cell_number to mobile_no
+                status: values.status.toLowerCase(), // Convert to lowercase for backend
+            };
+
             if (isEditMode) {
-                await api.updateKam(editingKam.id, values);
+                await updateTechnicalKam(editingKam.id, apiPayload);
                 addToast("KAM updated successfully.", "success");
             } else {
-                await api.createKam(values);
+                await createTechnicalKam(apiPayload);
                 addToast("KAM created successfully.", "success");
             }
-        } catch (err) {
-            addToast(err.message || "Save failed.", "error");
-        } finally {
+
             fetchKams();
             resetForm();
-            setViewMode('table');
+            setViewMode("table");
+        } catch (err) {
+            const errorMessage =
+                err.response?.data?.message || err.message || "Save failed.";
+            addToast(errorMessage, "error");
         }
     };
 
-    // --- DataTable Columns (UNCHANGED) ---
-    const kamColumns = useMemo(() => [
-    { key: 'id', header: 'ID' },
-    { key: 'name', header: 'Name' },
-    { key: 'designation', header: 'Designation' },
-    { key: 'cell_number', header: 'Cell Number' },
-    { 
-        key: 'status', 
-        header: 'Status',
-        render: (status) => {
-            const is_active = status === 'Active';
-            
-            const baseClasses = "inline-flex items-center rounded-full px-3 py-0.5 text-xs font-medium";
-            
-            const colorClasses = is_active
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800";
+    // --- DataTable Columns (UPDATED to use mobile_no from API) ---
+    const kamColumns = useMemo(
+        () => [
+            { key: "id", header: "ID" },
+            { key: "name", header: "Name" },
+            { key: "designation", header: "Designation" },
+            {
+                key: "mobile_no",
+                header: "Mobile Number",
+                render: (mobile_no) => mobile_no || "N/A",
+            },
+            {
+                key: "status",
+                header: "Status",
+                render: (status) => {
+                    // Convert backend status to display format
+                    const displayStatus =
+                        status === "active" ? "Active" : "Inactive";
+                    const isActive = status === "active";
 
-            return (
-                <span className={`${baseClasses} ${colorClasses}`}>
-                    {status}
-                </span>
-            );
-        }
-    },
-    {
-        key: 'actions',
-        header: 'Actions',
-        render: (_, row) => (
-            <div className="flex justify-start gap-2">
-                <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
-                    <Pencil className="h-4 w-4 text-indigo-500 hover:text-indigo-700" />
-                </Button>
-                {/* <Button variant="icon" size="sm" onClick={() => handleDelete(row.id)} title="Delete">
-                    <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                </Button> */}
-            </div>
-        )
-    }
-], [handleEdit, handleDelete]);
+                    const baseClasses =
+                        "inline-flex items-center rounded-full px-3 py-0.5 text-xs font-medium";
 
-    // --- Conditional Render: FORM VIEW (UNCHANGED) ---
-    if (viewMode === 'form') {
+                    const colorClasses = isActive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800";
+
+                    return (
+                        <span className={`${baseClasses} ${colorClasses}`}>
+                            {displayStatus}
+                        </span>
+                    );
+                },
+            },
+            {
+                key: "actions",
+                header: "Actions",
+                render: (_, row) => (
+                    <div className="flex justify-start gap-2">
+                        <Button
+                            variant="icon"
+                            size="sm"
+                            onClick={() => handleEdit(row)}
+                            title="Edit"
+                        >
+                            <Pencil className="h-4 w-4 text-indigo-500 hover:text-indigo-700" />
+                        </Button>
+                        {/* Uncomment if you want delete functionality */}
+                        {/* <Button 
+                            variant="icon" 
+                            size="sm" 
+                            onClick={() => handleDelete(row.id)} 
+                            title="Delete"
+                        >
+                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                        </Button> */}
+                    </div>
+                ),
+            },
+        ],
+        [handleEdit, handleDelete]
+    );
+
+    // --- Conditional Render: FORM VIEW ---
+    if (viewMode === "form") {
         return (
             <TechnicalKAMForm
                 initialValues={editingKam}
                 isEditMode={isEditMode}
                 onSubmit={handleFormSubmit}
-                onCancel={() => setViewMode('table')}
+                onCancel={() => setViewMode("table")}
             />
         );
     }
 
-    // --- Conditional Render: TABLE VIEW (Updated to use filteredKams and filterComponent) ---
+    // --- Conditional Render: TABLE VIEW ---
     return (
-        <div className='p-4 lg:p-6 '>
+        <div className="p-4 lg:p-6 ">
             <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-200">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900">
@@ -494,23 +550,25 @@ export default function TechnicalKAMDashboard() {
                         View and manage the Technical KAM.
                     </p>
                 </div>
-                <div className='px-6 flex gap-2'>
-                    <ExportButton 
-                        data={filteredKams} // 🔑 Export the filtered data
-                        columns={kamColumns} 
-                        fileName="technical_kams_export" 
-                        intent="primary" 
-                        leftIcon={FaFileExcel} 
+                <div className="px-6 flex gap-2">
+                    <ExportButton
+                        data={filteredKams}
+                        columns={kamColumns}
+                        fileName="technical_kams_export"
+                        intent="primary"
+                        leftIcon={FaFileExcel}
                         className="text-white-500  bg-green-700 hover:bg-green-800 border-none"
                     >
                         Export
                     </ExportButton>
-                    <Button intent="primary" onClick={openNewForm} leftIcon={Plus}>
+                    <Button
+                        intent="primary"
+                        onClick={openNewForm}
+                        leftIcon={Plus}
+                    >
                         Add KAM
                     </Button>
                 </div>
-                
-                
             </header>
 
             {loading ? (
@@ -520,15 +578,13 @@ export default function TechnicalKAMDashboard() {
             ) : (
                 <DataTable
                     title="KAM Records"
-                    data={filteredKams} // 🔑 Pass the filtered data to the table
+                    data={filteredKams}
                     columns={kamColumns}
                     searchable={true}
-                    // showId={true} 
                     selection={false}
-                    // 🔑 NEW PROP: Integrate the Filter Drawer
                     filterComponent={
-                        <TechnicalKAMFilterDrawer 
-                            onApply={handleApplyFilters} 
+                        <TechnicalKAMFilterDrawer
+                            onApply={handleApplyFilters}
                             activeFilters={activeFilters}
                         />
                     }

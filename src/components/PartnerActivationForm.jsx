@@ -1,723 +1,15 @@
-// // src/components/config/PartnerActivationForm.jsx
-
-// import React, { useState, useCallback, useMemo } from "react";
-// import { Formik, Form, FieldArray, useFormikContext, Field } from "formik";
-// import * as Yup from "yup";
-// import { ArrowLeft, Trash2, PlusCircle } from "lucide-react";
-// // Assuming these are your custom components/hooks
-// import TextInputField from "./fields/TextInputField"; 
-// import SelectField from "./fields/SelectField"; 
-// import Button from "./ui/Button";
-// import { useToast } from "../hooks/useToast"; // Still used internally for toast messages on array manipulation
-// import DataTable from "./table/DataTable";
-
-// // ================================================================
-// // MOCK DATA (UNCHANGED)
-// // ================================================================
-// const MOCK_NTTN_OPTIONS = [
-//     { label: "NTTN-LINK-001", value: "NTTN-LINK-001" },
-//     { label: "NTTN-LINK-002 (Test)", value: "NTTN-LINK-002" },
-//     { label: "NTTN-LINK-003 (Live)", value: "NTTN-LINK-003" },
-// ];
-
-// const MOCK_STATUS_OPTIONS = [
-//     { label: "Active", value: "active" },
-//     { label: "Inactive", value: "inactive" },
-// ];
-
-// const MOCK_PARTNER_DATA = {
-//     "NTTN-LINK-001": {
-//         nttn_provider: "Summit",
-//         partner_name: "ABC Entity",
-//         sbu: "Race Online",
-//         aggregator: "Khaja",
-//         business_kam: "XYZ",
-//         purchased_capacity: "100 Mb",
-//     },
-//     "NTTN-LINK-002": {
-//         nttn_provider: "Fiber@Home",
-//         partner_name: "Beta ISP",
-//         sbu: "MetroNet",
-//         aggregator: "Rahim",
-//         business_kam: "PQR",
-//         purchased_capacity: "50 Mb",
-//     },
-//     "NTTN-LINK-003": {
-//         nttn_provider: "Summit",
-//         partner_name: "Gamma Telecom",
-//         sbu: "Linkup",
-//         aggregator: "Karim",
-//         business_kam: "LMN",
-//         purchased_capacity: "500 Mb",
-//     },
-// };
-
-// const MOCK_VALID_VALUES = {
-//     nttn_link_id: "NTTN-LINK-001",
-//     nttn_vlan: "101", 
-//     int_peering_ip: "10.10.10.1/30",
-//     ggc_peering_ip: "192.0.2.1/30",
-//     fna_peering_ip: "203.0.113.1/30",
-//     bdix_peering_ip: "172.16.0.1/30",
-//     mcdn_peering_ip: "10.20.20.1/30",
-//     asn: "AS65001",
-//     nas_ip: "10.10.10.254",
-//     nat_ip: "10.10.10.250",
-//     int_vlan: "10", 
-//     ggn_vlan: "20", 
-//     fna_vlan: "30", 
-//     bdix_vlan: "40", 
-//     mcdn_vlan: "50", 
-//     connected_sw_name: "SW-CORE-01",
-//     chr_server: "CHR-SERVER-A",
-//     sw_port: "Gi1/0/1",
-//     nic_no: "NIC-007",
-    
-//     // Array Data
-//     drop_devices: [{device_ip: "10.1.1.1", usage_vlan: "201", connected_port: "G0/1/1"}, 
-//                    {device_ip: "10.1.1.2", usage_vlan: "202", connected_port: "G0/1/2"}], 
-//     interface_configs: [{interface_name: "Eth0/1", status: "active", note: "Primary link"}, 
-//                         {interface_name: "Eth0/2", status: "inactive", note: "Backup link"}], 
-    
-//     // Temporary fields
-//     new_device_ip: "",
-//     new_usage_vlan: "",
-//     new_connected_port: "",
-//     new_interface_name: "",
-//     new_status: "",
-//     new_note: "",
-// };
-
-
-// // ================================================================
-// // 1. Validation Schemas (UNCHANGED)
-// // ================================================================
-// const DropDeviceSchema = Yup.object().shape({
-//     device_ip: Yup.string().max(50).required("IP is required"),
-//     usage_vlan: Yup.string().max(50).required("VLAN is required"),
-//     connected_port: Yup.string().max(50).required("Port is required"),
-// });
-
-// const InterfaceConfigSchema = Yup.object().shape({
-//     interface_name: Yup.string().max(50).required("Interface Name is required"),
-//     status: Yup.string().oneOf(MOCK_STATUS_OPTIONS.map(o => o.value), "Invalid status").required("Status is required"),
-//     note: Yup.string().max(255).notRequired(), 
-// });
-
-
-// const ActivationPlanSchema = Yup.object().shape({
-//     nttn_link_id: Yup.string().required("Partner Name / NTTN Link ID is required"), 
-//     nttn_vlan: Yup.string().max(10).required("NTTN VLAN is required"),
-//     int_peering_ip: Yup.string().max(50).required("IP is required"),
-//     ggc_peering_ip: Yup.string().max(50).required("IP is required"),
-//     fna_peering_ip: Yup.string().max(50).required("IP is required"),
-//     bdix_peering_ip: Yup.string().max(50).required("IP is required"),
-//     mcdn_peering_ip: Yup.string().max(50).required("IP is required"),
-//     asn: Yup.string().max(20).required("ASN is required"),
-//     nas_ip: Yup.string().max(50).required("IP is required"),
-//     nat_ip: Yup.string().max(50).required("NAT IP is required"),
-//     int_vlan: Yup.string().max(10).required("VLAN is required"),
-//     ggn_vlan: Yup.string().max(10).required("VLAN is required"),
-//     fna_vlan: Yup.string().max(10).required("VLAN is required"),
-//     bdix_vlan: Yup.string().max(10).required("VLAN is required"),
-//     mcdn_vlan: Yup.string().max(10).required("VLAN is required"),
-//     connected_sw_name: Yup.string().max(50).required("SW Name is required"),
-//     chr_server: Yup.string().max(50).required("Server is required"),
-//     sw_port: Yup.string().max(20).required("SW Port is required"),
-//     nic_no: Yup.string().max(20).required("NIC No is required"),
-    
-//     // Array fields
-//     drop_devices: Yup.array().of(DropDeviceSchema),
-//     interface_configs: Yup.array().of(InterfaceConfigSchema),
-// });
-
-// // ================================================================
-// // 2. Initial Values Helper
-// // ================================================================
-// const getInitialValues = (initialData) => ({
-//     // Core fields (pulled from initialData if editing)
-//     nttn_link_id: initialData?.nttn_link_id || "",
-//     nttn_vlan: initialData?.nttn_vlan || "",
-//     int_peering_ip: initialData?.int_peering_ip || "",
-//     ggc_peering_ip: initialData?.ggc_peering_ip || "",
-//     fna_peering_ip: initialData?.fna_peering_ip || "",
-//     bdix_peering_ip: initialData?.bdix_peering_ip || "",
-//     mcdn_peering_ip: initialData?.mcdn_peering_ip || "",
-//     asn: initialData?.asn || "",
-//     nas_ip: initialData?.nas_ip || "",
-//     nat_ip: initialData?.nat_ip || "",
-//     int_vlan: initialData?.int_vlan || "",
-//     ggn_vlan: initialData?.ggn_vlan || "",
-//     fna_vlan: initialData?.fna_vlan || "",
-//     bdix_vlan: initialData?.bdix_vlan || "",
-//     mcdn_vlan: initialData?.mcdn_vlan || "",
-//     connected_sw_name: initialData?.connected_sw_name || "",
-//     chr_server: initialData?.chr_server || "",
-//     sw_port: initialData?.sw_port || "",
-//     nic_no: initialData?.nic_no || "",
-    
-//     // Array fields (pulled from initialData if editing)
-//     drop_devices: initialData?.drop_devices || [],
-//     interface_configs: initialData?.interface_configs || [],
-
-//     // Temporary fields (always reset to empty for the add row feature)
-//     new_device_ip: "",
-//     new_usage_vlan: "",
-//     new_connected_port: "",
-//     new_interface_name: "",
-//     new_status: "",
-//     new_note: "",
-// });
-
-
-// // ================================================================
-// // Helper Components (UNCHANGED)
-// // ================================================================
-// const PartnerDetailDisplayField = ({ label, value }) => (
-//     <div className="flex flex-col space-y-1">
-//         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</span>
-//         <span className="text-base font-semibold text-gray-800">{value || 'N/A'}</span>
-//     </div>
-// );
-
-// const FieldWrapper = ({ name, placeholder, formik }) => (
-//     <div className="space-y-1">
-//         <TextInputField name={name} placeholder={placeholder} formik={formik} />
-//         {formik.touched[name] && formik.errors[name] && (
-//             <p className="text-red-500 text-sm ml-1">{formik.errors[name]}</p>
-//         )}
-//     </div>
-// );
-
-// const DebugFormikState = () => {
-//     const formik = useFormikContext();
-//     return (
-//         <Button
-//             type="button"
-//             intent="secondary"
-//             size="sm"
-//             onClick={() => {
-//                 console.log('--- FORMIK DEBUG STATE ---');
-//                 console.log('isValid:', formik.isValid);
-//                 console.log('Errors:', formik.errors);
-//                 console.log('Touched:', formik.touched);
-//                 console.log('Values:', JSON.stringify(formik.values, null, 2)); 
-//                 console.log('--------------------------');
-//             }}
-//             className="w-full md:w-auto"
-//         >
-//             Debug Form State
-//         </Button>
-//     );
-// };
-
-// const FillFormWithMockData = ({ addToast }) => {
-//     const formik = useFormikContext();
-
-//     const handleFill = () => {
-//         formik.setValues(MOCK_VALID_VALUES);
-//         const touched = Object.keys(MOCK_VALID_VALUES).reduce((acc, key) => {
-//             if (!key.startsWith('new_')) { 
-//                 acc[key] = true;
-//             }
-//             return acc;
-//         }, {});
-//         formik.setTouched(touched);
-        
-//         addToast("Form fields auto-filled with valid mock data.", "info");
-//         console.log("Form auto-filled with valid data.");
-//     };
-
-//     return (
-//         <Button
-//             type="button"
-//             intent="tertiary" 
-//             size="sm"
-//             onClick={handleFill}
-//             className="w-full md:w-auto"
-//         >
-//             Auto-Fill Valid Data
-//         </Button>
-//     );
-// };
-
-
-// // ================================================================
-// // Interface Configuration Tabular Section (UNCHANGED)
-// // ================================================================
-// const InterfaceConfigSection = ({ addToast }) => {
-//     const { values, setFieldValue, setFieldTouched, errors, touched } = useFormikContext();
-//     const interfaceConfigs = values.interface_configs || [];
-
-//     const INTERFACE_COLUMNS = useMemo(() => ([
-//         { key: 'interface_name', header: 'Interface Name' }, 
-//         { key: 'status', header: 'Status' },
-//         { key: 'note', header: 'Note' },
-//         {
-//             key: 'actions',
-//             header: 'Actions',
-//             align: 'center',
-//             width: '5rem',
-//             isSortable: false,
-//             render: (v, row, index) => (
-//                 <button 
-//                     type="button" 
-//                     onClick={() => {
-//                         const newConfigs = [...interfaceConfigs];
-//                         newConfigs.splice(index, 1);
-//                         setFieldValue('interface_configs', newConfigs);
-//                         addToast(`Removed interface: ${row.interface_name}`, "warning");
-//                     }} 
-//                     className="btn btn-ghost btn-xs text-red-500 hover:text-red-700" 
-//                     title="Remove Interface"
-//                 >
-//                     <Trash2 className="h-4 w-4" />
-//                 </button>
-//             ),
-//         },
-//     ]), [interfaceConfigs, setFieldValue, addToast]);
-
-//     const handleAddInterface = useCallback(() => {
-//         const newEntry = {
-//             interface_name: values.new_interface_name,
-//             status: values.new_status,
-//             note: values.new_note,
-//         };
-
-//         InterfaceConfigSchema.validate(newEntry, { abortEarly: false })
-//             .then(() => {
-//                 setFieldValue('interface_configs', [...interfaceConfigs, newEntry]);
-//                 setFieldValue('new_interface_name', '');
-//                 setFieldValue('new_status', '');
-//                 setFieldValue('new_note', '');
-//                 addToast("Interface added successfully!", "success");
-//             })
-//             .catch(validationErrors => {
-//                 validationErrors.inner.forEach(err => {
-//                     if (err.path === 'interface_name') setFieldTouched('new_interface_name', true);
-//                     if (err.path === 'status') setFieldTouched('new_status', true);
-//                     if (err.path === 'note') setFieldTouched('new_note', true);
-//                 });
-//                 addToast("Please fill in all required fields for the new interface.", "error");
-//             });
-
-//     }, [values, interfaceConfigs, setFieldValue, setFieldTouched, addToast]);
-
-//     return (
-//         <FieldArray name="interface_configs">
-//             {() => (
-//                 <div className="md:col-span-3 space-y-6">
-//                     <h3 className="text-2xl font-semibold text-gray-800">Interface Configuration</h3>
-                    
-//                     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
-                        
-//                         {/* Interface Name */}
-//                         <Field name="new_interface_name">
-//                             {({ field }) => (
-//                                 <TextInputField
-//                                     {...field}
-//                                     placeholder="Interface Name"
-//                                     formik={{ values, errors, touched, setFieldTouched, setFieldValue }}
-//                                     className="mb-0"
-//                                     name="new_interface_name"
-//                                 />
-//                             )}
-//                         </Field>
-
-//                         {/* Status Dropdown */}
-//                         <Field name="new_status">
-//                             {({ field }) => (
-//                                 <SelectField
-//                                     {...field}
-//                                     name="new_status"
-//                                     options={MOCK_STATUS_OPTIONS}
-//                                     placeholder="Status"
-//                                     formik={{ values, errors, touched, setFieldTouched, setFieldValue }}
-//                                     className="mb-0"
-//                                 />
-//                             )}
-//                         </Field>
-
-//                         {/* Note */}
-//                         <Field name="new_note">
-//                             {({ field }) => (
-//                                 <TextInputField
-//                                     {...field}
-//                                     placeholder="Note (Optional)"
-//                                     formik={{ values, errors, touched, setFieldTouched, setFieldValue }}
-//                                     className="mb-0"
-//                                     name="new_note"
-//                                 />
-//                             )}
-//                         </Field>
-
-//                         <div className="flex items-center pt-1 md:pt-0">
-//                             <Button 
-//                                 type="button" 
-//                                 onClick={handleAddInterface}
-//                                 intent="primary"
-//                                 size="sm"
-//                                 leftIcon={PlusCircle}
-//                                 className="w-full md:w-auto"
-//                             >
-//                                 Add Interface
-//                             </Button>
-//                         </div>
-//                     </div>
-
-//                     {interfaceConfigs.length > 0 && (
-//                         <div className="pt-6 border-t border-gray-200">
-//                             <DataTable
-//                                 data={interfaceConfigs}
-//                                 columns={INTERFACE_COLUMNS}
-//                                 searchable={false}
-//                                 selection={false}
-//                                 initialPageSize={5}
-//                                 pageSizeOptions={[5, 10, 25]}
-//                                 stickyHeader={false}
-//                                 title={`Interface List (${interfaceConfigs.length})`}
-//                             />
-//                         </div>
-//                     )}
-//                 </div>
-//             )}
-//         </FieldArray>
-//     );
-// };
-
-
-// // ================================================================
-// // Drop Device Table & Add Row Logic (UNCHANGED)
-// // ================================================================
-
-// const DropDeviceSection = ({ addToast }) => {
-//     const { values, setFieldValue, setFieldTouched, errors, touched } = useFormikContext();
-//     const dropDevices = values.drop_devices || [];
-
-//     const DROP_DEVICE_COLUMNS = useMemo(() => ([
-//         { key: 'device_ip', header: 'Device IP' }, 
-//         { key: 'usage_vlan', header: 'Usage VLAN' },
-//         { key: 'connected_port', header: 'Connected Port' },
-//         {
-//             key: 'actions',
-//             header: 'Actions',
-//             align: 'center',
-//             width: '5rem',
-//             isSortable: false,
-//             render: (v, row, index) => (
-//                 <button 
-//                     type="button" 
-//                     onClick={() => {
-//                         const newDevices = [...dropDevices];
-//                         newDevices.splice(index, 1);
-//                         setFieldValue('drop_devices', newDevices);
-//                         addToast(`Removed device: ${row.device_ip}`, "warning");
-//                     }} 
-//                     className="btn btn-ghost btn-xs text-red-500 hover:text-red-700" 
-//                     title="Remove Device"
-//                 >
-//                     <Trash2 className="h-4 w-4" />
-//                 </button>
-//             ),
-//         },
-//     ]), [dropDevices, setFieldValue, addToast]);
-
-//     const handleAddRow = useCallback(() => {
-//         const newEntry = {
-//             device_ip: values.new_device_ip,
-//             usage_vlan: values.new_usage_vlan,
-//             connected_port: values.new_connected_port,
-//         };
-
-//         DropDeviceSchema.validate(newEntry, { abortEarly: false })
-//             .then(() => {
-//                 setFieldValue('drop_devices', [...dropDevices, newEntry]);
-//                 setFieldValue('new_device_ip', '');
-//                 setFieldValue('new_usage_vlan', '');
-//                 setFieldValue('new_connected_port', '');
-//                 addToast("Device added successfully!", "success");
-//             })
-//             .catch(validationErrors => {
-//                 validationErrors.inner.forEach(err => {
-//                     if (err.path === 'device_ip') setFieldTouched('new_device_ip', true);
-//                     if (err.path === 'usage_vlan') setFieldTouched('new_usage_vlan', true);
-//                     if (err.path === 'connected_port') setFieldTouched('new_connected_port', true);
-//                 });
-//                 addToast("Please fill in all required fields for the new device.", "error");
-//             });
-
-//     }, [values, dropDevices, setFieldValue, setFieldTouched, addToast]);
-
-//     return (
-//         <FieldArray name="drop_devices">
-//             {() => (
-//                 <div className="md:col-span-3 space-y-6">
-//                     <h3 className="text-2xl font-semibold text-gray-800">Drop Device</h3>
-                    
-//                     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
-                        
-//                         <Field name="new_device_ip">
-//                             {({ field }) => (
-//                                 <TextInputField
-//                                     {...field}
-//                                     placeholder="Device IP"
-//                                     formik={{ values, errors, touched, setFieldTouched, setFieldValue }}
-//                                     className="mb-0"
-//                                     name="new_device_ip"
-//                                 />
-//                             )}
-//                         </Field>
-
-//                         <Field name="new_usage_vlan">
-//                             {({ field }) => (
-//                                 <TextInputField
-//                                     {...field}
-//                                     placeholder="Usage VLAN"
-//                                     formik={{ values, errors, touched, setFieldTouched, setFieldValue }}
-//                                     className="mb-0"
-//                                     name="new_usage_vlan"
-//                                 />
-//                             )}
-//                         </Field>
-
-//                         <Field name="new_connected_port">
-//                             {({ field }) => (
-//                                 <TextInputField
-//                                     {...field}
-//                                     placeholder="Connected Port"
-//                                     formik={{ values, errors, touched, setFieldTouched, setFieldValue }}
-//                                     className="mb-0"
-//                                     name="new_connected_port"
-//                                 />
-//                             )}
-//                         </Field>
-
-//                         <div className="flex items-center pt-1 md:pt-0">
-//                             <Button 
-//                                 type="button" 
-//                                 onClick={handleAddRow}
-//                                 intent="primary"
-//                                 size="sm"
-//                                 leftIcon={PlusCircle}
-//                                 className="w-full md:w-auto"
-//                             >
-//                                 Add Device
-//                             </Button>
-//                         </div>
-//                     </div>
-
-//                     {dropDevices.length > 0 && (
-//                         <div className="pt-6 border-t border-gray-200">
-//                             <DataTable
-//                                 data={dropDevices}
-//                                 columns={DROP_DEVICE_COLUMNS}
-//                                 searchable={false}
-//                                 selection={false}
-//                                 initialPageSize={5}
-//                                 pageSizeOptions={[5, 10, 25]}
-//                                 stickyHeader={false}
-//                                 title={`Device List (${dropDevices.length})`}
-//                             />
-//                         </div>
-//                     )}
-//                 </div>
-//             )}
-//         </FieldArray>
-//     );
-// };
-
-
-// // ================================================================
-// // 3. Main Component - PartnerActivationForm
-// // ================================================================
-// export default function PartnerActivationForm({ initialValues, isEditMode, onSubmit, onCancel }) {
-//     const { addToast } = useToast(); 
-
-//     const formTitle = isEditMode ? "Edit Activation Plan Configuration" : "Activation Plan Configuration";
-
-//     return (
-//         <div className="w-full h-full p-4 lg:p-6">
-//             <header className="mb-10 pb-6 border-b border-gray-200 flex items-start justify-between">
-//                 <div>
-//                     {/* Back Button */}
-//                     {/* <Button 
-//                         variant="ghost" 
-//                         leftIcon={ArrowLeft} 
-//                         onClick={onCancel} 
-//                         className="mb-4 -ml-4 text-lg font-semibold"
-//                         type="button"
-//                     >
-                        
-//                     </Button> */}
-//                     <h1 className="text-3xl font-extrabold text-gray-900">
-//                         <Button 
-//                         variant="ghost" 
-//                         leftIcon={ArrowLeft} 
-//                         onClick={onCancel} 
-//                         className="-ml-4 text-lg font-semibold"
-//                         type="button"
-//                     >
-                        
-//                     </Button>
-//                         {formTitle}
-//                     </h1>
-//                     <p className="text-sm text-gray-500 ml-10">
-//                         {isEditMode ? "Modify the technical parameters and devices for this partner link." : "Configure technical parameters and associated drop devices for a new partner link."}
-//                     </p>
-//                 </div>
-//             </header>
-
-//             <Formik
-//                 initialValues={getInitialValues(initialValues)}
-//                 validationSchema={ActivationPlanSchema}
-//                 onSubmit={onSubmit} // Submission handled by parent
-//                 enableReinitialize={true} // Essential for proper edit mode data loading
-//             >
-//                 {(formik) => {
-//                     const selectedLinkID = formik.values.nttn_link_id;
-//                     const partnerDetails = selectedLinkID ? MOCK_PARTNER_DATA[selectedLinkID] : {}; 
-
-//                     return (
-//                         <Form className="grid grid-cols-1 md:grid-cols-3 gap-x-14 gap-y-6">
-                            
-                           
-                            
-//                             {/* Row 1: NTTN Link ID Dropdown */}
-//                             <div className="">
-//                                 <SelectField
-//                                     name="nttn_link_id"
-//                                     options={MOCK_NTTN_OPTIONS}
-//                                     placeholder="Select Partner Name / Link ID"
-//                                     className={"-mb-2"}
-//                                 />
-                                
-//                             </div>
-                            
-
-//                             {/* Row 2: Partner Details Display Box (3-column layout) */}
-//                              {/* Partner Details Section */}
-                             
-//                             <div className="md:col-span-3">
-//                             <hr className="border-gray-200 my-7" />
-//                                 <h3 className="text-2xl font-semibold text-gray-800 -mt-2">
-//                                     Partner Information
-//                                 </h3>
-//                             </div>
-//                             <div className="md:col-span-3 mb-4">
-//                                 <div 
-//                                     className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6 p-6 bg-white border border-gray-200 rounded-xl"
-//                                 >
-//                                     <div className="space-y-4 pr-5 border-r border-gray-100">
-//                                         <PartnerDetailDisplayField label="NTTN Provider" value={partnerDetails.nttn_provider} />
-//                                         <PartnerDetailDisplayField label="Aggregator" value={partnerDetails.aggregator} />
-//                                     </div>
-//                                     <div className="space-y-4 px-5 border-r border-gray-100">
-//                                         <PartnerDetailDisplayField label="Partner Name" value={partnerDetails.partner_name} />
-//                                         <PartnerDetailDisplayField label="Business KAM" value={partnerDetails.business_kam} />
-//                                     </div>
-//                                     <div className="space-y-4 pl-5">
-//                                         <PartnerDetailDisplayField label="SBU" value={partnerDetails.sbu} />
-//                                         <PartnerDetailDisplayField label="Purchased Capacity" value={partnerDetails.purchased_capacity} />
-//                                     </div>
-//                                 </div>
-//                             </div>
-                            
-//                             {/* --- Core Configuration Fields --- */}
-//                             <div className="md:col-span-3">
-//                                 <h3 className="text-2xl font-semibold text-gray-800 mb-4 pt-4 border-t border-gray-200">
-//                                     Technical Configuration
-//                                 </h3>
-//                             </div>
-
-//                             {/* Column 1: IPs */}
-//                             <div className="space-y-6">
-//                                 <FieldWrapper name="int_peering_ip" placeholder="INT Peering IP" formik={formik} />
-//                                 <FieldWrapper name="ggc_peering_ip" placeholder="GGC Peering IP" formik={formik} /> 
-//                                 <FieldWrapper name="fna_peering_ip" placeholder="FNA Peering IP" formik={formik} />
-//                                 <FieldWrapper name="bdix_peering_ip" placeholder="BDIX Peering IP" formik={formik} />
-//                                 <FieldWrapper name="mcdn_peering_ip" placeholder="MCDN Peering IP" formik={formik} />
-//                                 <FieldWrapper name="asn" placeholder="ASN" formik={formik} />
-//                             </div>
-                            
-//                             {/* Column 2: VLANs */}
-//                             <div className="space-y-6">
-//                                 <FieldWrapper name="nttn_vlan" placeholder="NTTN VLAN " formik={formik} />
-//                                 <FieldWrapper name="int_vlan" placeholder="INT VLAN " formik={formik} />
-//                                 <FieldWrapper name="ggn_vlan" placeholder="GGN VLAN " formik={formik} />
-//                                 <FieldWrapper name="fna_vlan" placeholder="FNA VLAN " formik={formik} />
-//                                 <FieldWrapper name="bdix_vlan" placeholder="BDIX VLAN " formik={formik} />
-//                                 <FieldWrapper name="mcdn_vlan" placeholder="MCDN VLAN " formik={formik} />
-//                             </div>
-
-//                             {/* Column 3: Remaining IPs and Misc */}
-//                             <div className="space-y-6">
-//                                 <FieldWrapper name="nas_ip" placeholder="NAS IP" formik={formik} />
-//                                 <FieldWrapper name="nat_ip" placeholder="NAT IP" formik={formik} />
-//                                 <FieldWrapper name="connected_sw_name" placeholder="Connected SW Name" formik={formik} />
-//                                 <FieldWrapper name="chr_server" placeholder="CHR Server" formik={formik} />
-//                                 <FieldWrapper name="sw_port" placeholder="SW Port" formik={formik} />
-//                                 <FieldWrapper name="nic_no" placeholder="NIC No" formik={formik} />
-//                             </div>
-
-
-//                             {/* ------------------------------------------------------------------ */}
-//                             {/* Interface Configuration Tabular Feature */}
-//                             {/* ------------------------------------------------------------------ */}
-//                             <div className="md:col-span-3 pt-6 border-t border-gray-200 mt-6">
-//                                 <InterfaceConfigSection addToast={addToast} />
-//                             </div>
-
-
-//                             {/* --- Drop Device Tabular Feature --- */}
-//                             <div className="md:col-span-3 pt-6 border-t border-gray-200 mt-6">
-//                                 <DropDeviceSection addToast={addToast} />
-//                             </div>
-
-//                             {/* --- Actions --- */}
-//                             <div className="md:col-span-3 flex justify-end gap-4 pt-6 border-t border-gray-200 mt-6">
-//                                 <FillFormWithMockData addToast={addToast} />
-//                                 <DebugFormikState />
-                                
-//                                 <Button
-//                                     type="button"
-//                                     intent="secondary"
-//                                     onClick={onCancel}
-//                                 >
-//                                     Cancel
-//                                 </Button>
-//                                 <Button
-//                                     type="submit"
-//                                     intent="primary"
-//                                     loading={formik.isSubmitting}
-//                                     loadingText={isEditMode ? "Updating Plan..." : "Saving Plan..."}
-//                                     disabled={formik.isSubmitting || !formik.isValid}
-//                                 >
-//                                     {isEditMode ? "Update" : "Save"}
-//                                 </Button>
-//                             </div>
-//                         </Form>
-//                     );
-//                 }}
-//             </Formik>
-//         </div>
-//     );
-// }
-// src/components/config/PartnerActivationForm.jsx
-
-import React, { useState, useCallback, useMemo } from "react";
+// src/components/PartnerActivationForm.jsx
+import React, { useCallback, useMemo } from "react";
 import { Formik, Form, FieldArray, useFormikContext, Field } from "formik";
 import * as Yup from "yup";
 import { ArrowLeft, Trash2, PlusCircle } from "lucide-react";
-// Assuming these are your custom components/hooks
-import TextInputField from "./fields/TextInputField"; 
-import SelectField from "./fields/SelectField"; 
+import TextInputField from "./fields/TextInputField";
+import SelectField from "./fields/SelectField";
 import Button from "./ui/Button";
-import { useToast } from "../hooks/useToast"; // Still used internally for toast messages on array manipulation
+import { useToast } from "../hooks/useToast";
 import DataTable from "./table/DataTable";
 
-// ================================================================
-// MOCK DATA (MODIFIED)
-// ================================================================
+// Mock Data
 const MOCK_NTTN_OPTIONS = [
     { label: "NTTN-LINK-001", value: "NTTN-LINK-001" },
     { label: "NTTN-LINK-002 (Test)", value: "NTTN-LINK-002" },
@@ -756,62 +48,22 @@ const MOCK_PARTNER_DATA = {
     },
 };
 
-const MOCK_VALID_VALUES = {
-    nttn_link_id: "NTTN-LINK-001",
-    nttn_vlan: "101", 
-    int_peering_ip: "10.10.10.1/30",
-    ggc_peering_ip: "192.0.2.1/30",
-    fna_peering_ip: "203.0.113.1/30",
-    bdix_peering_ip: "172.16.0.1/30",
-    mcdn_peering_ip: "10.20.20.1/30",
-    asn: "AS65001",
-    nas_ip: "10.10.10.254",
-    nat_ip: "10.10.10.250",
-    int_vlan: "10", 
-    ggn_vlan: "20", 
-    fna_vlan: "30", 
-    bdix_vlan: "40", 
-    mcdn_vlan: "50", 
-    connected_sw_name: "SW-CORE-01",
-    chr_server: "CHR-SERVER-A",
-    sw_port: "Gi1/0/1",
-    nic_no: "NIC-007",
-    
-    // New Standalone Fields
-    status: "active", // MOVED HERE
-    note: "Primary activation.", // MOVED HERE
-    
-    // Array Data (SIMPLIFIED)
-    drop_devices: [{device_ip: "10.1.1.1", usage_vlan: "201", connected_port: "G0/1/1"}, 
-                   {device_ip: "10.1.1.2", usage_vlan: "202", connected_port: "G0/1/2"}], 
-    interface_configs: [{interface_name: "Eth0/1"}, // SIMPLIFIED
-                        {interface_name: "Eth0/2"}], // SIMPLIFIED
-    
-    // Temporary fields
-    new_device_ip: "",
-    new_usage_vlan: "",
-    new_connected_port: "",
-    new_interface_name: "",
-};
-
-
-// ================================================================
-// 1. Validation Schemas (MODIFIED)
-// ================================================================
+// Validation Schemas
 const DropDeviceSchema = Yup.object().shape({
     device_ip: Yup.string().max(50).required("IP is required"),
     usage_vlan: Yup.string().max(50).required("VLAN is required"),
     connected_port: Yup.string().max(50).required("Port is required"),
 });
 
-// SIMPLIFIED SCHEMA
 const InterfaceConfigSchema = Yup.object().shape({
     interface_name: Yup.string().max(50).required("Interface Name is required"),
 });
 
-
 const ActivationPlanSchema = Yup.object().shape({
-    nttn_link_id: Yup.string().required("Partner Name / NTTN Link ID is required"), 
+    // Frontend field names (will be mapped to backend names in dashboard)
+    nttn_link_id: Yup.string().required(
+        "Partner Name / NTTN Link ID is required"
+    ),
     nttn_vlan: Yup.string().max(10).required("NTTN VLAN is required"),
     int_peering_ip: Yup.string().max(50).required("IP is required"),
     ggc_peering_ip: Yup.string().max(50).required("IP is required"),
@@ -819,7 +71,7 @@ const ActivationPlanSchema = Yup.object().shape({
     bdix_peering_ip: Yup.string().max(50).required("IP is required"),
     mcdn_peering_ip: Yup.string().max(50).required("IP is required"),
     asn: Yup.string().max(20).required("ASN is required"),
-    nas_ip: Yup.string().max(50).required("IP is required"),
+    nas_ip: Yup.string().max(50).required("NAS IP is required"),
     nat_ip: Yup.string().max(50).required("NAT IP is required"),
     int_vlan: Yup.string().max(10).required("VLAN is required"),
     ggn_vlan: Yup.string().max(10).required("VLAN is required"),
@@ -830,170 +82,152 @@ const ActivationPlanSchema = Yup.object().shape({
     chr_server: Yup.string().max(50).required("Server is required"),
     sw_port: Yup.string().max(20).required("SW Port is required"),
     nic_no: Yup.string().max(20).required("NIC No is required"),
-    
-    // NEW STANDALONE FIELDS
-    status: Yup.string().oneOf(MOCK_STATUS_OPTIONS.map(o => o.value), "Invalid status").required("Status is required"),
-    note: Yup.string().max(255).notRequired(), 
-
-    // Array fields
+    status: Yup.string()
+        .oneOf(
+            MOCK_STATUS_OPTIONS.map((o) => o.value),
+            "Invalid status"
+        )
+        .required("Status is required"),
+    note: Yup.string().max(255).notRequired(),
     drop_devices: Yup.array().of(DropDeviceSchema),
     interface_configs: Yup.array().of(InterfaceConfigSchema),
 });
 
-// ================================================================
-// 2. Initial Values Helper (MODIFIED)
-// ================================================================
-const getInitialValues = (initialData) => ({
-    // Core fields
-    nttn_link_id: initialData?.nttn_link_id || "",
-    nttn_vlan: initialData?.nttn_vlan || "",
-    int_peering_ip: initialData?.int_peering_ip || "",
-    ggc_peering_ip: initialData?.ggc_peering_ip || "",
-    fna_peering_ip: initialData?.fna_peering_ip || "",
-    bdix_peering_ip: initialData?.bdix_peering_ip || "",
-    mcdn_peering_ip: initialData?.mcdn_peering_ip || "",
-    asn: initialData?.asn || "",
-    nas_ip: initialData?.nas_ip || "",
-    nat_ip: initialData?.nat_ip || "",
-    int_vlan: initialData?.int_vlan || "",
-    ggn_vlan: initialData?.ggn_vlan || "",
-    fna_vlan: initialData?.fna_vlan || "",
-    bdix_vlan: initialData?.bdix_vlan || "",
-    mcdn_vlan: initialData?.mcdn_vlan || "",
-    connected_sw_name: initialData?.connected_sw_name || "",
-    chr_server: initialData?.chr_server || "",
-    sw_port: initialData?.sw_port || "",
-    nic_no: initialData?.nic_no || "",
-    
-    // NEW STANDALONE FIELDS
-    status: initialData?.status || MOCK_STATUS_OPTIONS[0].value, // Default to 'active'
-    note: initialData?.note || "",
+// Initial Values Helper - Map backend data to frontend field names for editing
+const getInitialValues = (initialData) => {
+    if (initialData) {
+        // Map backend field names to frontend field names for editing
+        return {
+            nttn_link_id: initialData.work_order_id || "",
+            nttn_vlan: initialData.nttn_vlan || "",
+            int_peering_ip: initialData.int_routing_ip || "",
+            ggc_peering_ip: initialData.ggc_routing_ip || "",
+            fna_peering_ip: initialData.fna_routing_ip || "",
+            bdix_peering_ip: initialData.bcdx_routing_ip || "",
+            mcdn_peering_ip: initialData.mcdn_routing_ip || "",
+            asn: initialData.asn?.toString() || "",
+            nas_ip: initialData.nas_ip || "",
+            nat_ip: initialData.nat_ip || "",
+            int_vlan: initialData.int_vlan || "",
+            ggn_vlan: initialData.ggn_vlan || "",
+            fna_vlan: initialData.fna_vlan || "",
+            bdix_vlan: initialData.bcdx_vlan || "",
+            mcdn_vlan: initialData.mcdn_vlan || "",
+            connected_sw_name: initialData.connected_ws_name || "",
+            chr_server: initialData.chr_server || "",
+            sw_port: initialData.sw_port?.toString() || "",
+            nic_no: initialData.nic_no || "",
+            status: initialData.status || MOCK_STATUS_OPTIONS[0].value,
+            note: initialData.note || "",
+            drop_devices: initialData.drop_devices || [],
+            interface_configs: initialData.interface_configs || [],
+            new_device_ip: "",
+            new_usage_vlan: "",
+            new_connected_port: "",
+            new_interface_name: "",
+        };
+    }
 
-    // Array fields
-    drop_devices: initialData?.drop_devices || [],
-    interface_configs: initialData?.interface_configs || [],
+    // Default values for new form
+    return {
+        nttn_link_id: "",
+        nttn_vlan: "",
+        int_peering_ip: "",
+        ggc_peering_ip: "",
+        fna_peering_ip: "",
+        bdix_peering_ip: "",
+        mcdn_peering_ip: "",
+        asn: "",
+        nas_ip: "",
+        nat_ip: "",
+        int_vlan: "",
+        ggn_vlan: "",
+        fna_vlan: "",
+        bdix_vlan: "",
+        mcdn_vlan: "",
+        connected_sw_name: "",
+        chr_server: "",
+        sw_port: "",
+        nic_no: "",
+        status: MOCK_STATUS_OPTIONS[0].value,
+        note: "",
+        drop_devices: [],
+        interface_configs: [],
+        new_device_ip: "",
+        new_usage_vlan: "",
+        new_connected_port: "",
+        new_interface_name: "",
+    };
+};
 
-    // Temporary fields
-    new_device_ip: "",
-    new_usage_vlan: "",
-    new_connected_port: "",
-    new_interface_name: "",
-});
-
-
-// ================================================================
-// Helper Components (MODIFIED - SelectFieldWrapper Added)
-// ================================================================
+// Helper Components
 const PartnerDetailDisplayField = ({ label, value }) => (
     <div className="flex flex-col space-y-1">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</span>
-        <span className="text-base font-semibold text-gray-800">{value || 'N/A'}</span>
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {label}
+        </span>
+        <span className="text-base font-semibold text-gray-800">
+            {value || "N/A"}
+        </span>
     </div>
 );
 
 const FieldWrapper = ({ name, placeholder, formik }) => (
     <div className="space-y-1">
-        {/* Pass all formik props down to TextInputField */}
         <TextInputField name={name} placeholder={placeholder} formik={formik} />
-        
     </div>
 );
 
-// NEW HELPER: Handles SelectField validation display
 const SelectFieldWrapper = ({ name, placeholder, options, formik }) => (
     <div className="space-y-1">
-        <SelectField name={name} placeholder={placeholder} options={options} formik={formik} />
+        <SelectField
+            name={name}
+            placeholder={placeholder}
+            options={options}
+            formik={formik}
+        />
         {formik.touched[name] && formik.errors[name] && (
             <p className="text-red-500 text-sm ml-1">{formik.errors[name]}</p>
         )}
     </div>
 );
 
-const DebugFormikState = () => {
-    const formik = useFormikContext();
-    return (
-        <Button
-            type="button"
-            intent="secondary"
-            size="sm"
-            onClick={() => {
-                console.log('--- FORMIK DEBUG STATE ---');
-                console.log('isValid:', formik.isValid);
-                console.log('Errors:', formik.errors);
-                console.log('Touched:', formik.touched);
-                console.log('Values:', JSON.stringify(formik.values, null, 2)); 
-                console.log('--------------------------');
-            }}
-            className="w-full md:w-auto"
-        >
-            Debug Form State
-        </Button>
-    );
-};
-
-const FillFormWithMockData = ({ addToast }) => {
-    const formik = useFormikContext();
-
-    const handleFill = () => {
-        formik.setValues(MOCK_VALID_VALUES);
-        const touched = Object.keys(MOCK_VALID_VALUES).reduce((acc, key) => {
-            if (!key.startsWith('new_')) { 
-                acc[key] = true;
-            }
-            return acc;
-        }, {});
-        formik.setTouched(touched);
-        
-        addToast("Form fields auto-filled with valid mock data.", "info");
-        console.log("Form auto-filled with valid data.");
-    };
-
-    return (
-        <Button
-            type="button"
-            intent="tertiary" 
-            size="sm"
-            onClick={handleFill}
-            className="w-full md:w-auto"
-        >
-            Auto-Fill Valid Data
-        </Button>
-    );
-};
-
-
-// ================================================================
-// Interface Configuration Tabular Section (MODIFIED)
-// ================================================================
+// Interface Configuration Section
 const InterfaceConfigSection = ({ addToast }) => {
     const { values, setFieldValue, setFieldTouched } = useFormikContext();
     const interfaceConfigs = values.interface_configs || [];
 
-    const INTERFACE_COLUMNS = useMemo(() => ([
-        { key: 'interface_name', header: 'Interface Name' }, 
-        {
-            key: 'actions',
-            header: 'Actions',
-            align: 'center',
-            width: '5rem',
-            isSortable: false,
-            render: (v, row, index) => (
-                <button 
-                    type="button" 
-                    onClick={() => {
-                        const newConfigs = [...interfaceConfigs];
-                        newConfigs.splice(index, 1);
-                        setFieldValue('interface_configs', newConfigs);
-                        addToast(`Removed interface: ${row.interface_name}`, "warning");
-                    }} 
-                    className="btn btn-ghost btn-xs text-red-500 hover:text-red-700" 
-                    title="Remove Interface"
-                >
-                    <Trash2 className="h-4 w-4" />
-                </button>
-            ),
-        },
-    ]), [interfaceConfigs, setFieldValue, addToast]);
+    const INTERFACE_COLUMNS = useMemo(
+        () => [
+            { key: "interface_name", header: "Interface Name" },
+            {
+                key: "actions",
+                header: "Actions",
+                align: "center",
+                width: "5rem",
+                isSortable: false,
+                render: (v, row, index) => (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const newConfigs = [...interfaceConfigs];
+                            newConfigs.splice(index, 1);
+                            setFieldValue("interface_configs", newConfigs);
+                            addToast(
+                                `Removed interface: ${row.interface_name}`,
+                                "warning"
+                            );
+                        }}
+                        className="btn btn-ghost btn-xs text-red-500 hover:text-red-700"
+                        title="Remove Interface"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+                ),
+            },
+        ],
+        [interfaceConfigs, setFieldValue, addToast]
+    );
 
     const handleAddInterface = useCallback(() => {
         const newEntry = {
@@ -1002,28 +236,31 @@ const InterfaceConfigSection = ({ addToast }) => {
 
         InterfaceConfigSchema.validate(newEntry, { abortEarly: false })
             .then(() => {
-                setFieldValue('interface_configs', [...interfaceConfigs, newEntry]);
-                setFieldValue('new_interface_name', '');
+                setFieldValue("interface_configs", [
+                    ...interfaceConfigs,
+                    newEntry,
+                ]);
+                setFieldValue("new_interface_name", "");
                 addToast("Interface added successfully!", "success");
             })
-            .catch(validationErrors => {
-                validationErrors.inner.forEach(err => {
-                    if (err.path === 'interface_name') setFieldTouched('new_interface_name', true);
+            .catch((validationErrors) => {
+                validationErrors.inner.forEach((err) => {
+                    if (err.path === "interface_name")
+                        setFieldTouched("new_interface_name", true);
                 });
                 addToast("Please fill in the Interface Name.", "error");
             });
-
     }, [values, interfaceConfigs, setFieldValue, setFieldTouched, addToast]);
 
     return (
         <FieldArray name="interface_configs">
             {() => (
                 <div className="md:col-span-3 space-y-6">
-                    <h3 className="text-2xl font-semibold text-gray-800">Interface Configuration</h3>
-                    
+                    <h3 className="text-2xl font-semibold text-gray-800">
+                        Interface Configuration
+                    </h3>
+
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
-                        
-                        {/* Interface Name */}
                         <Field name="new_interface_name">
                             {({ field, form }) => (
                                 <TextInputField
@@ -1037,8 +274,8 @@ const InterfaceConfigSection = ({ addToast }) => {
                         </Field>
 
                         <div className="flex items-center pt-1 md:pt-0">
-                            <Button 
-                                type="button" 
+                            <Button
+                                type="button"
                                 onClick={handleAddInterface}
                                 intent="primary"
                                 size="sm"
@@ -1070,42 +307,44 @@ const InterfaceConfigSection = ({ addToast }) => {
     );
 };
 
-
-// ================================================================
-// Drop Device Table & Add Row Logic (UNCHANGED)
-// ================================================================
-
+// Drop Device Section
 const DropDeviceSection = ({ addToast }) => {
     const { values, setFieldValue, setFieldTouched } = useFormikContext();
     const dropDevices = values.drop_devices || [];
 
-    const DROP_DEVICE_COLUMNS = useMemo(() => ([
-        { key: 'device_ip', header: 'Device IP' }, 
-        { key: 'usage_vlan', header: 'Usage VLAN' },
-        { key: 'connected_port', header: 'Connected Port' },
-        {
-            key: 'actions',
-            header: 'Actions',
-            align: 'center',
-            width: '5rem',
-            isSortable: false,
-            render: (v, row, index) => (
-                <button 
-                    type="button" 
-                    onClick={() => {
-                        const newDevices = [...dropDevices];
-                        newDevices.splice(index, 1);
-                        setFieldValue('drop_devices', newDevices);
-                        addToast(`Removed device: ${row.device_ip}`, "warning");
-                    }} 
-                    className="btn btn-ghost btn-xs text-red-500 hover:text-red-700" 
-                    title="Remove Device"
-                >
-                    <Trash2 className="h-4 w-4" />
-                </button>
-            ),
-        },
-    ]), [dropDevices, setFieldValue, addToast]);
+    const DROP_DEVICE_COLUMNS = useMemo(
+        () => [
+            { key: "device_ip", header: "Device IP" },
+            { key: "usage_vlan", header: "Usage VLAN" },
+            { key: "connected_port", header: "Connected Port" },
+            {
+                key: "actions",
+                header: "Actions",
+                align: "center",
+                width: "5rem",
+                isSortable: false,
+                render: (v, row, index) => (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const newDevices = [...dropDevices];
+                            newDevices.splice(index, 1);
+                            setFieldValue("drop_devices", newDevices);
+                            addToast(
+                                `Removed device: ${row.device_ip}`,
+                                "warning"
+                            );
+                        }}
+                        className="btn btn-ghost btn-xs text-red-500 hover:text-red-700"
+                        title="Remove Device"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+                ),
+            },
+        ],
+        [dropDevices, setFieldValue, addToast]
+    );
 
     const handleAddRow = useCallback(() => {
         const newEntry = {
@@ -1116,31 +355,37 @@ const DropDeviceSection = ({ addToast }) => {
 
         DropDeviceSchema.validate(newEntry, { abortEarly: false })
             .then(() => {
-                setFieldValue('drop_devices', [...dropDevices, newEntry]);
-                setFieldValue('new_device_ip', '');
-                setFieldValue('new_usage_vlan', '');
-                setFieldValue('new_connected_port', '');
+                setFieldValue("drop_devices", [...dropDevices, newEntry]);
+                setFieldValue("new_device_ip", "");
+                setFieldValue("new_usage_vlan", "");
+                setFieldValue("new_connected_port", "");
                 addToast("Device added successfully!", "success");
             })
-            .catch(validationErrors => {
-                validationErrors.inner.forEach(err => {
-                    if (err.path === 'device_ip') setFieldTouched('new_device_ip', true);
-                    if (err.path === 'usage_vlan') setFieldTouched('new_usage_vlan', true);
-                    if (err.path === 'connected_port') setFieldTouched('new_connected_port', true);
+            .catch((validationErrors) => {
+                validationErrors.inner.forEach((err) => {
+                    if (err.path === "device_ip")
+                        setFieldTouched("new_device_ip", true);
+                    if (err.path === "usage_vlan")
+                        setFieldTouched("new_usage_vlan", true);
+                    if (err.path === "connected_port")
+                        setFieldTouched("new_connected_port", true);
                 });
-                addToast("Please fill in all required fields for the new device.", "error");
+                addToast(
+                    "Please fill in all required fields for the new device.",
+                    "error"
+                );
             });
-
     }, [values, dropDevices, setFieldValue, setFieldTouched, addToast]);
 
     return (
         <FieldArray name="drop_devices">
             {() => (
                 <div className="md:col-span-3 space-y-6">
-                    <h3 className="text-2xl font-semibold text-gray-800">Drop Device Configuration</h3>
-                    
+                    <h3 className="text-2xl font-semibold text-gray-800">
+                        Drop Device Configuration
+                    </h3>
+
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
-                        
                         <Field name="new_device_ip">
                             {({ field, form }) => (
                                 <TextInputField
@@ -1178,8 +423,8 @@ const DropDeviceSection = ({ addToast }) => {
                         </Field>
 
                         <div className="flex items-center pt-1 md:pt-0">
-                            <Button 
-                                type="button" 
+                            <Button
+                                type="button"
                                 onClick={handleAddRow}
                                 intent="primary"
                                 size="sm"
@@ -1211,33 +456,36 @@ const DropDeviceSection = ({ addToast }) => {
     );
 };
 
-
-// ================================================================
-// 3. Main Component - PartnerActivationForm (CORRECTED LAYOUT)
-// ================================================================
-export default function PartnerActivationForm({ initialValues, isEditMode, onSubmit, onCancel }) {
-    const { addToast } = useToast(); 
-
-    const formTitle = isEditMode ? "Edit Activation Plan Configuration" : "Activation Plan Configuration";
+// Main Component
+export default function PartnerActivationForm({
+    initialValues,
+    isEditMode,
+    onSubmit,
+    onCancel,
+}) {
+    const { addToast } = useToast();
+    const formTitle = isEditMode
+        ? "Edit Activation Plan Configuration"
+        : "Activation Plan Configuration";
 
     return (
         <div className="w-full h-full p-4 lg:p-6">
             <header className="mb-10 pb-6 border-b border-gray-200 flex items-start justify-between">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900">
-                        <Button 
-                        variant="ghost" 
-                        leftIcon={ArrowLeft} 
-                        onClick={onCancel} 
-                        className="-ml-4 text-lg font-semibold"
-                        type="button"
-                    >
-                        
-                    </Button>
+                        <Button
+                            variant="ghost"
+                            leftIcon={ArrowLeft}
+                            onClick={onCancel}
+                            className="-ml-4 text-lg font-semibold"
+                            type="button"
+                        />
                         {formTitle}
                     </h1>
                     <p className="text-sm text-gray-500 ml-10">
-                        {isEditMode ? "Modify the technical parameters and devices for this partner link." : "Configure technical parameters and associated drop devices for a new partner link."}
+                        {isEditMode
+                            ? "Modify the technical parameters and devices for this partner link."
+                            : "Configure technical parameters and associated drop devices for a new partner link."}
                     </p>
                 </div>
             </header>
@@ -1245,17 +493,17 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
             <Formik
                 initialValues={getInitialValues(initialValues)}
                 validationSchema={ActivationPlanSchema}
-                onSubmit={onSubmit} // Submission handled by parent
-                enableReinitialize={true} // Essential for proper edit mode data loading
+                onSubmit={onSubmit}
+                enableReinitialize={true}
             >
                 {(formik) => {
                     const selectedLinkID = formik.values.nttn_link_id;
-                    const partnerDetails = selectedLinkID ? MOCK_PARTNER_DATA[selectedLinkID] : {}; 
+                    const partnerDetails = selectedLinkID
+                        ? MOCK_PARTNER_DATA[selectedLinkID]
+                        : {};
 
                     return (
                         <Form className="grid grid-cols-1 md:grid-cols-3 gap-x-14 gap-y-6">
-                            
-                            
                             {/* Row 1: NTTN Link ID Dropdown */}
                             <div className="">
                                 <SelectField
@@ -1264,39 +512,53 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
                                     placeholder="Select Partner Name / Link ID"
                                     className={"-mb-2"}
                                 />
-                                
                             </div>
-                            
 
-                            {/* Row 2: Partner Details Display Box (3-column layout) */}
-                             {/* Partner Details Section */}
-                             
+                            {/* Partner Details Section */}
                             <div className="md:col-span-3">
-                            <hr className="border-gray-200 my-7" />
+                                <hr className="border-gray-200 my-7" />
                                 <h3 className="text-2xl font-semibold text-gray-800 -mt-2">
                                     Partner Information
                                 </h3>
                             </div>
                             <div className="md:col-span-3 mb-4">
-                                <div 
-                                    className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6 p-6 bg-white border border-gray-200 rounded-xl"
-                                >
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6 p-6 bg-white border border-gray-200 rounded-xl">
                                     <div className="space-y-4 pr-5 border-r border-gray-100">
-                                        <PartnerDetailDisplayField label="NTTN Provider" value={partnerDetails.nttn_provider} />
-                                        <PartnerDetailDisplayField label="Aggregator" value={partnerDetails.aggregator} />
+                                        <PartnerDetailDisplayField
+                                            label="NTTN Provider"
+                                            value={partnerDetails.nttn_provider}
+                                        />
+                                        <PartnerDetailDisplayField
+                                            label="Aggregator"
+                                            value={partnerDetails.aggregator}
+                                        />
                                     </div>
                                     <div className="space-y-4 px-5 border-r border-gray-100">
-                                        <PartnerDetailDisplayField label="Partner Name" value={partnerDetails.partner_name} />
-                                        <PartnerDetailDisplayField label="Business KAM" value={partnerDetails.business_kam} />
+                                        <PartnerDetailDisplayField
+                                            label="Partner Name"
+                                            value={partnerDetails.partner_name}
+                                        />
+                                        <PartnerDetailDisplayField
+                                            label="Business KAM"
+                                            value={partnerDetails.business_kam}
+                                        />
                                     </div>
                                     <div className="space-y-4 pl-5">
-                                        <PartnerDetailDisplayField label="SBU" value={partnerDetails.sbu} />
-                                        <PartnerDetailDisplayField label="Purchased Capacity" value={partnerDetails.purchased_capacity} />
+                                        <PartnerDetailDisplayField
+                                            label="SBU"
+                                            value={partnerDetails.sbu}
+                                        />
+                                        <PartnerDetailDisplayField
+                                            label="Purchased Capacity"
+                                            value={
+                                                partnerDetails.purchased_capacity
+                                            }
+                                        />
                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* --- Core Configuration Fields Header --- */}
+
+                            {/* Technical Configuration */}
                             <div className="md:col-span-3">
                                 <h3 className="text-2xl font-semibold text-gray-800 mb-2 pt-4 border-t border-gray-200">
                                     Technical Configuration
@@ -1305,73 +567,137 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
 
                             {/* Column 1: IPs */}
                             <div className="space-y-6">
-                                <FieldWrapper name="int_peering_ip" placeholder="INT Peering IP" formik={formik} />
-                                <FieldWrapper name="ggc_peering_ip" placeholder="GGC Peering IP" formik={formik} /> 
-                                <FieldWrapper name="fna_peering_ip" placeholder="FNA Peering IP" formik={formik} />
-                                <FieldWrapper name="bdix_peering_ip" placeholder="BDIX Peering IP" formik={formik} />
-                                <FieldWrapper name="mcdn_peering_ip" placeholder="MCDN Peering IP" formik={formik} />
-                                <FieldWrapper name="asn" placeholder="ASN" formik={formik} />
+                                <FieldWrapper
+                                    name="int_peering_ip"
+                                    placeholder="INT Peering IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="ggc_peering_ip"
+                                    placeholder="GGC Peering IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="fna_peering_ip"
+                                    placeholder="FNA Peering IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="bdix_peering_ip"
+                                    placeholder="BDIX Peering IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="mcdn_peering_ip"
+                                    placeholder="MCDN Peering IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="asn"
+                                    placeholder="ASN"
+                                    formik={formik}
+                                />
                             </div>
-                            
+
                             {/* Column 2: VLANs */}
                             <div className="space-y-6">
-                                <FieldWrapper name="nttn_vlan" placeholder="NTTN VLAN " formik={formik} />
-                                <FieldWrapper name="int_vlan" placeholder="INT VLAN " formik={formik} />
-                                <FieldWrapper name="ggn_vlan" placeholder="GGN VLAN " formik={formik} />
-                                <FieldWrapper name="fna_vlan" placeholder="FNA VLAN " formik={formik} />
-                                <FieldWrapper name="bdix_vlan" placeholder="BDIX VLAN " formik={formik} />
-                                <FieldWrapper name="mcdn_vlan" placeholder="MCDN VLAN " formik={formik} />
+                                <FieldWrapper
+                                    name="nttn_vlan"
+                                    placeholder="NTTN VLAN "
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="int_vlan"
+                                    placeholder="INT VLAN "
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="ggn_vlan"
+                                    placeholder="GGN VLAN "
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="fna_vlan"
+                                    placeholder="FNA VLAN "
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="bdix_vlan"
+                                    placeholder="BDIX VLAN "
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="mcdn_vlan"
+                                    placeholder="MCDN VLAN "
+                                    formik={formik}
+                                />
                             </div>
 
-                            {/* Column 3: Remaining IPs and Misc (Corrected) */}
+                            {/* Column 3: Remaining IPs and Misc */}
                             <div className="space-y-6">
-                                <FieldWrapper name="nas_ip" placeholder="NAS IP" formik={formik} />
-                                <FieldWrapper name="nat_ip" placeholder="NAT IP" formik={formik} />
-                                <FieldWrapper name="connected_sw_name" placeholder="Connected SW Name" formik={formik} />
-                                <FieldWrapper name="chr_server" placeholder="CHR Server" formik={formik} />
-                                <FieldWrapper name="sw_port" placeholder="SW Port" formik={formik} />
-                                <FieldWrapper name="nic_no" placeholder="NIC No" formik={formik} />
+                                <FieldWrapper
+                                    name="nas_ip"
+                                    placeholder="NAS IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="nat_ip"
+                                    placeholder="NAT IP"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="connected_sw_name"
+                                    placeholder="Connected SW Name"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="chr_server"
+                                    placeholder="CHR Server"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="sw_port"
+                                    placeholder="SW Port"
+                                    formik={formik}
+                                />
+                                <FieldWrapper
+                                    name="nic_no"
+                                    placeholder="NIC No"
+                                    formik={formik}
+                                />
                             </div>
 
-                            {/* CORRECTED LAYOUT: NEW ROW for Status and Note */}
-                            {/* Uses md:col-span-3 to span the row, then a nested md:grid-cols-3 to assign widths */}
+                            {/* Status and Note */}
                             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-x-14 pt-2">
-                                {/* Status (Column 1 - implicitly 1/3) */}
                                 <div className="">
-                                    <SelectFieldWrapper 
-                                        name="status" 
-                                        placeholder="Status" 
+                                    <SelectFieldWrapper
+                                        name="status"
+                                        placeholder="Status"
                                         options={MOCK_STATUS_OPTIONS}
                                         formik={formik}
                                     />
                                 </div>
-                                
-                                {/* Note (Columns 2 & 3 - md:col-span-2) */}
                                 <div className="md:col-span-2">
-                                    <FieldWrapper name="note" placeholder="Note (Optional)" formik={formik} />
+                                    <FieldWrapper
+                                        name="note"
+                                        placeholder="Note (Optional)"
+                                        formik={formik}
+                                    />
                                 </div>
                             </div>
-                            {/* END NEW ROW */}
 
-
-                            {/* ------------------------------------------------------------------ */}
-                            {/* Interface Configuration Tabular Feature */}
-                            {/* ------------------------------------------------------------------ */}
+                            {/* Interface Configuration */}
                             <div className="md:col-span-3 pt-6 border-t border-gray-200 mt-6">
                                 <InterfaceConfigSection addToast={addToast} />
                             </div>
 
-
-                            {/* --- Drop Device Tabular Feature --- */}
+                            {/* Drop Device Configuration */}
                             <div className="md:col-span-3 pt-6 border-t border-gray-200 mt-6">
                                 <DropDeviceSection addToast={addToast} />
                             </div>
 
-                            {/* --- Actions --- */}
+                            {/* Actions */}
                             <div className="md:col-span-3 flex justify-end gap-4 pt-6 border-t border-gray-200 mt-6">
-                                <FillFormWithMockData addToast={addToast} />
-                                <DebugFormikState />
-                                
                                 <Button
                                     type="button"
                                     intent="secondary"
@@ -1383,8 +709,14 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
                                     type="submit"
                                     intent="primary"
                                     loading={formik.isSubmitting}
-                                    loadingText={isEditMode ? "Updating Plan..." : "Saving Plan..."}
-                                    disabled={formik.isSubmitting || !formik.isValid}
+                                    loadingText={
+                                        isEditMode
+                                            ? "Updating Plan..."
+                                            : "Saving Plan..."
+                                    }
+                                    disabled={
+                                        formik.isSubmitting || !formik.isValid
+                                    }
                                 >
                                     {isEditMode ? "Update" : "Save"}
                                 </Button>

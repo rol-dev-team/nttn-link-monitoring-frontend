@@ -24,12 +24,31 @@ jobs:
       run: npm install
 
 
-    - name: 5. Build Vite React App
+    - name: 4. Build Vite React App
       run: npm run build
-
+      
+    - name: 5. Clean Up Old Deployment (Delete dist)
+          uses: appleboy/ssh-action@v1.0.3 
+          with:
+            host: ${{ secrets.SERVER_HOST }}
+            username: ${{ secrets.SERVER_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            
+            script: |
+              TARGET_DIR="/var/www/html/nttn-monitoring-application/frontend"
+              DELETE_PATH="${TARGET_DIR}/dist"
+              
+              echo "Attempting to remove old dist folder at ${DELETE_PATH}"
+              
+              if [ -d "${DELETE_PATH}" ]; then
+                sudo rm -rf "${DELETE_PATH}" 
+                echo "Old dist folder deleted successfully."
+              else
+                echo "Old dist folder not found. Clean up skipped."
+              fi
 
     - name: 6. Deploy 'dist' folder to Server via SSH 
-      uses: appleboy/ssh-action@v1.0.3
+      uses: appleboy/scp-action@v0.1.7
 
       with:
         host: ${{ secrets.SERVER_HOST }}
@@ -42,3 +61,4 @@ jobs:
         script: |
           echo "Successfully deployed to /var/www/html/nttn-monitoring-application/frontend"
           sudo systemctl reload nginx
+          echo "Nginx has been reloaded. Deployment complete."

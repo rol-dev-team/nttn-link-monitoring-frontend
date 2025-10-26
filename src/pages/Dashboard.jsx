@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import {
+  ArrowUp, // Max Upload
+  ArrowDown,
   AlertTriangle, // Max Utilization Alert
   Minimize2, // Min Utilization Alert
   WifiOff, // NEW: ICMP Alert Icon (Representing connectivity issues)
@@ -12,6 +14,8 @@ import {
   CheckCircle, // Resolved Icon
   XCircle, // Cancel Icon
   AlertCircle, // Modal Icon
+  Clock, // NEW: Delay icon
+  Timer,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "chartjs-adapter-date-fns";
@@ -473,7 +477,7 @@ const PARTNER_COLUMNS = [
 export default function PartnerDashboard() {
   const navigate = useNavigate();
   const [initialLoading, setInitialLoading] = useState(true);
-  const [activeCard, setActiveCard] = useState(null); 
+  const [activeCard, setActiveCard] = useState(null);
   const [tableColumns, setTableColumns] = useState([]);
   const [tableData, setTableData] = useState([]);
 
@@ -486,43 +490,42 @@ export default function PartnerDashboard() {
   const [minMaxUtilizationSevenDays, setMinMaxUtilizationSevenDays] = useState(
     []
   );
- 
+
   const handleStatCardClick = (cardKey) => {
-        setActiveCard(cardKey);
+    setActiveCard(cardKey);
 
-        let dataToDisplay = [];
-        let columnsToDisplay = [];
+    let dataToDisplay = [];
+    let columnsToDisplay = [];
 
-        switch (cardKey) {
-            case "max_alert":
-                dataToDisplay = maxUtilizationAlert;
-                columnsToDisplay = MAX_ALERT_COLUMNS;
-                break;
-            case "min_alert":
-                dataToDisplay = minUtilizationAlert;
-                columnsToDisplay = MIN_ALERT_COLUMNS;
-                break;
-            case "icmp_alert":
-                dataToDisplay = icmpAlert;
-                columnsToDisplay = ICMP_ALERT_COLUMNS;
-                break;
-            case "partners":
-                dataToDisplay = partnerInfos;
-                columnsToDisplay = PARTNER_COLUMNS;
-                break;
-            case "aggregators":
-                dataToDisplay = aggregators;
-                columnsToDisplay = AGGREGATOR_COLUMNS;
-                break;
-            default:
-                dataToDisplay = [];
-                columnsToDisplay = PARTNER_COLUMNS; 
-        }
-        
-        setTableData(dataToDisplay);
-        setTableColumns(columnsToDisplay);
-    };
-  
+    switch (cardKey) {
+      case "max_alert":
+        dataToDisplay = maxUtilizationAlert;
+        columnsToDisplay = MAX_ALERT_COLUMNS;
+        break;
+      case "min_alert":
+        dataToDisplay = minUtilizationAlert;
+        columnsToDisplay = MIN_ALERT_COLUMNS;
+        break;
+      case "icmp_alert":
+        dataToDisplay = icmpAlert;
+        columnsToDisplay = ICMP_ALERT_COLUMNS;
+        break;
+      case "partners":
+        dataToDisplay = partnerInfos;
+        columnsToDisplay = PARTNER_COLUMNS;
+        break;
+      case "aggregators":
+        dataToDisplay = aggregators;
+        columnsToDisplay = AGGREGATOR_COLUMNS;
+        break;
+      default:
+        dataToDisplay = [];
+        columnsToDisplay = PARTNER_COLUMNS;
+    }
+
+    setTableData(dataToDisplay);
+    setTableColumns(columnsToDisplay);
+  };
 
   const fetchAllDashboardData = async () => {
     try {
@@ -742,35 +745,35 @@ export default function PartnerDashboard() {
     [activeCard]
   );
 
-//   const handleStatCardClick = useCallback(
-//     (type) => {
-//       setTableIsLoading(true);
-//       setActiveCard(type);
+  //   const handleStatCardClick = useCallback(
+  //     (type) => {
+  //       setTableIsLoading(true);
+  //       setActiveCard(type);
 
-//       const isAlertCard = ["max_alert", "min_alert", "icmp_alert"].includes(
-//         type
-//       );
-//       const initialActionFilter = isAlertCard ? "running" : null;
-//       setActionFilter(initialActionFilter);
+  //       const isAlertCard = ["max_alert", "min_alert", "icmp_alert"].includes(
+  //         type
+  //       );
+  //       const initialActionFilter = isAlertCard ? "running" : null;
+  //       setActionFilter(initialActionFilter);
 
-//       let columns = [];
-//       if (type === "max_alert" || type === "min_alert") {
-//         columns = getUtilizationColumns(handleRunPause, handleResolveClick);
-//       } else if (type === "icmp_alert") {
-//         columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
-//       } else if (type === "partners") {
-//         columns = PARTNER_COLUMNS;
-//       } else if (type === "aggregators") {
-//         columns = AGGREGATOR_COLUMNS;
-//       }
+  //       let columns = [];
+  //       if (type === "max_alert" || type === "min_alert") {
+  //         columns = getUtilizationColumns(handleRunPause, handleResolveClick);
+  //       } else if (type === "icmp_alert") {
+  //         columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
+  //       } else if (type === "partners") {
+  //         columns = PARTNER_COLUMNS;
+  //       } else if (type === "aggregators") {
+  //         columns = AGGREGATOR_COLUMNS;
+  //       }
 
-//       setTimeout(() => {
-//         setDynamicTableColumns(columns);
-//         setTableIsLoading(false);
-//       }, 300);
-//     },
-//     [handleRunPause, handleResolveClick]
-//   );
+  //       setTimeout(() => {
+  //         setDynamicTableColumns(columns);
+  //         setTableIsLoading(false);
+  //       }, 300);
+  //     },
+  //     [handleRunPause, handleResolveClick]
+  //   );
 
   const utilizationChartOptions = useMemo(
     () => ({
@@ -797,33 +800,62 @@ export default function PartnerDashboard() {
       </div>
 
       <div className='space-y-4'>
-        <div className='flex gap-4'>
+        <div className='grid grid-cols-4 gap-4'>
           {initialLoading ? (
             Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
           ) : (
             <>
-              {/* Max Utilization Alert */}
               <HealthStatCard
-                title='Max Utilization Alert'
+                title='Max Download Utilization Alert'
                 value={totalMetrics.maxAlertCount}
-                subLabel='Utilization threshold exceeded'
-                icon={AlertTriangle}
+                subLabel='Download Utilization threshold exceeded'
+                icon={ArrowDown}
                 iconBgClass='bg-red-100'
                 iconTextClass='text-red-600'
                 valueClass={
-                  activeCard === "max_alert"
+                  activeCard === "max_download_alert"
                     ? "text-red-700 underline"
                     : "text-red-600"
+                }
+                onClick={() => handleStatCardClick("max_download_alert")}
+              />
+
+              <HealthStatCard
+                title='Max Upload Utilization Alert'
+                value={totalMetrics.maxAlertCount}
+                subLabel='Upload Utilization threshold exceeded'
+                icon={ArrowUp}
+                iconBgClass='bg-red-100'
+                iconTextClass='text-red-600'
+                valueClass={
+                  activeCard === "max_upload_alert"
+                    ? "text-red-700 underline"
+                    : "text-red-600"
+                }
+                onClick={() => handleStatCardClick("max_upload_alert")}
+              />
+              {/* Max Utilization Alert */}
+              <HealthStatCard
+                title='Min Download Alert'
+                value={totalMetrics.maxAlertCount}
+                subLabel='Utilization threshold exceeded'
+                icon={ArrowDown}
+                iconBgClass='bg-blue-100'
+                iconTextClass='text-blue-600'
+                valueClass={
+                  activeCard === "max_alert"
+                    ? "text-blue-700 underline"
+                    : "text-blue-600"
                 }
                 onClick={() => handleStatCardClick("max_alert")}
               />
 
               {/* Min Utilization Alert */}
               <HealthStatCard
-                title='Min Utilization Alert'
+                title='Min Upload Alert'
                 value={totalMetrics.minAlertCount}
                 subLabel='Under utilization detected'
-                icon={Minimize2}
+                icon={ArrowUp}
                 iconBgClass='bg-cyan-100'
                 iconTextClass='text-cyan-600'
                 valueClass={
@@ -835,8 +867,23 @@ export default function PartnerDashboard() {
               />
 
               {/* ICMP Alert Card */}
+
               <HealthStatCard
-                title='ICMP Alerts'
+                title='ICMP Latency Alerts'
+                value={icmpAlert?.length}
+                subLabel='Network issues detected'
+                icon={Clock}
+                iconBgClass='bg-orange-100'
+                iconTextClass='text-orange-600'
+                valueClass={
+                  activeCard === "icmp_alert"
+                    ? "text-orange-700 underline"
+                    : "text-orange-600"
+                }
+                onClick={() => handleStatCardClick("icmp_alert")}
+              />
+              <HealthStatCard
+                title='ICMP Timeout Alerts'
                 value={icmpAlert?.length}
                 subLabel='Network issues detected'
                 icon={WifiOff}
@@ -951,16 +998,15 @@ export default function PartnerDashboard() {
         )}
       </div>
 
-
       <div>
         <DataTable
-            data={tableData}
-            columns={tableColumns}
-            selection={true}
-            onSelectionChange={() => {}}
-            initialPageSize={5}
-            rowKey='nttn_link_id'
-          />
+          data={tableData}
+          columns={tableColumns}
+          selection={true}
+          onSelectionChange={() => {}}
+          initialPageSize={5}
+          rowKey='nttn_link_id'
+        />
       </div>
 
       {/* Utilization Chart (UNCHANGED) */}

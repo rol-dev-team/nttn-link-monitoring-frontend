@@ -299,9 +299,9 @@ const NasInterface = () => {
                 const response = await fetchNasIps();
                 if (response.status) {
                     const options = response.data.map((item) => ({
-                        value: item.id, // activation_plan_id
+                        value: item.id.toString(), // Convert to string to match Yup validation
                         label: `NAS ${item.nas_ip} / Partner ${item.id}`,
-                        nas_ip: item.nas_ip, // Store nas_ip for reference if needed
+                        nas_ip: item.nas_ip,
                     }));
                     setNasIpOptions(options);
                 } else {
@@ -328,6 +328,7 @@ const NasInterface = () => {
         onSubmit: async (values) => {
             try {
                 setLoading(true);
+                console.log("Submitting values:", values); // Debug log
 
                 // Submit each interface configuration individually
                 const promises = values.interface_configs.map(
@@ -336,7 +337,7 @@ const NasInterface = () => {
                             activation_plan_id: values.activation_plan_id,
                             interface_name: interfaceConfig.interface_name,
                             interface_port:
-                                interfaceConfig.interface_port || "", // This will be set by backend
+                                interfaceConfig.interface_port || "",
                         })
                 );
 
@@ -372,11 +373,20 @@ const NasInterface = () => {
         },
     });
 
+    // Handle select change to store only the value
+    const handleActivationPlanChange = (selectedOption) => {
+        // Store only the value (string) not the entire object
+        formik.setFieldValue(
+            "activation_plan_id",
+            selectedOption ? selectedOption.value : ""
+        );
+    };
+
     // Add interface
     const handleAddInterface = useCallback(() => {
         const newInterface = {
             interface_name: formik.values.new_interface_name,
-            interface_port: "", // This will be populated by backend
+            interface_port: "",
             id: Date.now(),
         };
 
@@ -391,7 +401,7 @@ const NasInterface = () => {
             })
             .catch((err) => {
                 const msg =
-                    err?.errors?.[0] || "Please fill all fields correctly.";
+                    err.errors?.[0] || "Please fill all fields correctly.";
                 addToast(msg, "error");
             });
     }, [formik]);
@@ -406,6 +416,11 @@ const NasInterface = () => {
             addToast("Interface removed", "warning");
         },
         [formik]
+    );
+
+    // Get the selected option for display
+    const selectedNasIpOption = nasIpOptions.find(
+        (option) => option.value === formik.values.activation_plan_id
     );
 
     // Columns for form view (temporary interfaces)
@@ -521,6 +536,8 @@ const NasInterface = () => {
                     placeholder={
                         loading ? "Loading NAS IPs..." : "Select NAS IP..."
                     }
+                    onChange={handleActivationPlanChange} // Add custom onChange
+                    value={selectedNasIpOption} // Control the value display
                 />
                 {formik.errors.activation_plan_id &&
                     formik.touched.activation_plan_id && (

@@ -2,6 +2,30 @@ import axiosInstance from "./apiConfig";
 
 const DASHBOARD_BASE_PATH = "/dashboard";
 
+export const getDashboardSummary = async () => {
+  try {
+    const response = await axiosInstance.get(`${DASHBOARD_BASE_PATH}/summary`);
+    return response.data.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getDashboardDetails = async (type, page = 1) => {
+  try {
+    const response = await axiosInstance.get(`${DASHBOARD_BASE_PATH}/details`, {
+      params: {
+        type: type,
+        page: page,
+        per_page: 10,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getPartnerInfos = async () => {
   try {
     const response = await axiosInstance.get(

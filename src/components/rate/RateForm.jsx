@@ -123,7 +123,7 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
           )}
           <SelectField
             name="nttn_id"
-            label="NTTN *"
+            placeholder="NTTN *"
             options={nttns.map((n) => ({ value: n.id, label: n.nttn_name }))}
             onChange={(v) => {
               console.log("🔥 onChange fired with", v);   // ← log here
@@ -133,7 +133,7 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
           />
           <SelectField
             name="bw_id"
-            label="Bandwidth Range *"
+            placeholder="Bandwidth Range *"
             options={bws.map((b) => ({ value: b.id, label: `${b.range_from}-${b.range_to} Mbps` }))}
             onChange={(v) => formik.setFieldValue("bw_id", v)}
             searchable
@@ -152,14 +152,15 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
         <FormSection title="Validity & Status">
           <DateField
             name="effective_from"
-            placeholder="Effective From *"
+            label="Effective From"
+            placeholder="test"
             value={formik.values.effective_from}
             onChange={(v) => formik.setFieldValue("effective_from", v)}
             range={false}
           />
           <DateField
             name="effective_to"
-            placeholder="Effective To"
+            label="Effective To"
             value={formik.values.effective_to}
             onChange={(v) => formik.setFieldValue("effective_to", v)}
             range={false}
@@ -176,7 +177,7 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
           </div>
           <SelectField
             name="status"
-            label="Status"
+            placeholder="Status"
             options={[
               { value: 1, label: "Active" },
               { value: 0, label: "Inactive" },

@@ -89,7 +89,7 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
           <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-6">
             <SelectField
               name="nttn_id"
-              label="NTTN *"
+              placeholder="NTTN"
               options={nttns.map((n) => ({ value: n.id, label: n.nttn_name }))}
               onChange={(v) => formik.setFieldValue("nttn_id", v)}
               searchable

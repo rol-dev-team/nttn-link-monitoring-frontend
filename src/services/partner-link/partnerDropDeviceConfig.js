@@ -1,14 +1,30 @@
 import axiosInstance from "./apiConfig";
 
-export const createPartnerDropDeviceConfig = async (payload) => {
+// export const createPartnerDropDeviceConfig = async (payload) => {
+//     try {
+//         const response = await axiosInstance.post(
+//             "/partner-drop-device-configs",
+//             payload
+//         );
+//         return response.data;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+export const createPartnerDropDeviceConfig = async (data) => {
     try {
         const response = await axiosInstance.post(
             "/partner-drop-device-configs",
-            payload
+            data
         );
         return response.data;
     } catch (error) {
-        throw error;
+        console.error("Error creating partner dropdown device config:", error);
+        throw new Error(
+            error.response?.data?.message ||
+                "Failed to create partner dorpdown device config. Please try again."
+        );
     }
 };
 

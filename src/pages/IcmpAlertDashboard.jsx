@@ -224,6 +224,11 @@ export default function IcmpAlertDashboard() {
                 render: (_, row) => row.activation_plan?.nas_ip || "N/A",
             },
             {
+                key: "nas_ip",
+                header: "Client Name",
+                render: (_, row) => row.activation_plan?.nas_ip || "N/A",
+            },
+            {
                 key: "work_order_id",
                 header: "Work Order ID",
                 render: (_, row) => row.activation_plan?.work_order_id || "N/A",
@@ -246,7 +251,7 @@ export default function IcmpAlertDashboard() {
             },
             {
                 key: "created_at",
-                header: "Created Date",
+                header: "Last Updated",
                 render: (date) =>
                     date ? new Date(date).toLocaleDateString() : "N/A",
             },

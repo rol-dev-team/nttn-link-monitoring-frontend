@@ -237,7 +237,7 @@ export default function IcmpAlertForm({
                             </div>
 
                             {/* --- Status Section --- */}
-                            <div className="md:col-span-2 mb-8">
+                            {/* <div className="md:col-span-2 mb-8">
                                 <hr className="border-gray-200 my-6" />
                                 <h3 className="text-2xl font-semibold text-gray-800 mb-6">
                                     Configuration Status
@@ -246,7 +246,7 @@ export default function IcmpAlertForm({
                                     name="is_active"
                                     label="Enable Configuration"
                                 />
-                            </div>
+                            </div> */}
 
                             {/* --- Actions --- */}
                             <div className="md:col-span-2 flex justify-end gap-4 pt-6 border-t border-gray-200 mt-6">

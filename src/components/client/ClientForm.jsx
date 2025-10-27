@@ -194,12 +194,12 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
                 </div>
 
                 <FormSection title="Client Information">
-                    <InputField name="client_name" label="Client Name *" placeholder="Enter client name" />
-                    <SelectField name="cat_id" label="Category *" options={categories} valueKey="id" labelKey="cat_name" disabled={loadingCat || loadingMasters} required />
-                    <SelectField name="sbu_id" label="SBU *" options={sbuOpts} valueKey="id" labelKey="sbu_name" disabled={loadingSbu || !formik.values.cat_id} required />
-                    <SelectField name="division_id" label="Division *" options={divisions} valueKey="id" labelKey="division_name" disabled={loadingMasters} required />
-                    <SelectField name="district_id" label="District *" options={districts} valueKey="id" labelKey="district_name" disabled={loadingDis || !formik.values.division_id} required />
-                    <SelectField name="thana_id" label="Thana *" options={thanas} valueKey="id" labelKey="thana_name" disabled={loadingTha || !formik.values.district_id} required />
+                    <InputField name="client_name" label="Client Name" placeholder="Enter client name" />
+                    <SelectField name="cat_id" placeholder="Category" options={categories} valueKey="id" labelKey="cat_name" disabled={loadingCat || loadingMasters} required />
+                    <SelectField name="sbu_id" placeholder="SBU" options={sbuOpts} valueKey="id" labelKey="sbu_name" disabled={loadingSbu || !formik.values.cat_id} required />
+                    <SelectField name="division_id" placeholder="Division" options={divisions} valueKey="id" labelKey="division_name" disabled={loadingMasters} required />
+                    <SelectField name="district_id" placeholder="District" options={districts} valueKey="id" labelKey="district_name" disabled={loadingDis || !formik.values.division_id} required />
+                    <SelectField name="thana_id" placeholder="Thana" options={thanas} valueKey="id" labelKey="thana_name" disabled={loadingTha || !formik.values.district_id} required />
                     <div className="md:col-span-2">
                         <InputField name="address" label="Address" as="textarea" rows={3} />
                     </div>

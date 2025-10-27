@@ -1,13 +1,11 @@
-
-
-import React from 'react';
+import React from "react";
 
 const TextInputField = ({
   name,
   label,
   formik,
   placeholder = "",
-  type = "text", 
+  type = "text",
   className = "",
   disabled,
   ...rest
@@ -28,16 +26,18 @@ const TextInputField = ({
         // Formik Handlers
         onChange={formik.handleChange}
         onBlur={formik.handleBlur}
-        value={formik.values[name] ?? ''} 
+        value={formik.values[name] ?? ""}
         disabled={disabled}
         className={`input input-bordered w-full 
-          ${hasError ? 'input-error border-red-500' : 'border-gray-300'}
+          ${hasError ? "input-error border-red-500" : "border-gray-300"}
         `}
-        {...rest} 
+        {...rest}
       />
       {hasError ? (
-        <label className="label">
-          <span className="label-text-alt text-sm text-red-500">{formik.errors[name]}</span>
+        <label className='label'>
+          <span className='label-text-alt text-sm text-red-500'>
+            {formik.errors[name]}
+          </span>
         </label>
       ) : null}
     </div>

@@ -146,6 +146,8 @@ import "@fortawesome/fontawesome-free/css/brands.min.css";
 // 1. Static Imports (Layouts, Contexts, non-page components)
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import NasInterface from "./pages/NasInterface";
+import NasDropDevice from "./pages/NasDropDevice";
 
 // 2. Lazy Imports for all Page Components
 // Public Pages
@@ -196,6 +198,9 @@ const MenuAndPageManagement = lazy(() =>
   import("./pages/MenuAndPageManagement")
 );
 
+const NasInterfacePage = lazy(() => import("./pages/NasInterface"));
+const NasDropDevicePage = lazy(() => import("./pages/NasDropDevice"));
+
 // React Query Client Setup
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -223,8 +228,7 @@ const LoadingFallback = () => (
       left: 0,
       backgroundColor: "rgba(255, 255, 255, 0.8)", // Semi-transparent background
       zIndex: 9999, // Ensure it's on top of everything
-    }}
-  >
+    }}>
     {/* Pure CSS Spinner */}
     <style>
       {`
@@ -242,7 +246,7 @@ const LoadingFallback = () => (
         }
       `}
     </style>
-    <div className="spinner"></div>
+    <div className='spinner'></div>
   </div>
 );
 
@@ -252,7 +256,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <ToastContainer
-            position="top-right"
+            position='top-right'
             autoClose={5000}
             hideProgressBar={false}
             newestOnTop={false}
@@ -261,76 +265,78 @@ export default function App() {
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="light"
+            theme='light'
           />
           {/* 3. Wrap all Routes in Suspense */}
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               {/* Root decides where to go */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path='/' element={<Navigate to='/login' replace />} />
 
               {/* Public routes */}
 
-              <Route path="login" element={<Login />} />
-              <Route path="403" element={<NotAuthorized />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path='login' element={<Login />} />
+              <Route path='403' element={<NotAuthorized />} />
+              <Route path='*' element={<NotFound />} />
 
               {/* Protected routes WITH MainLayout */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
                   {/* Partner-Link project routes */}
-                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path='dashboard' element={<Dashboard />} />
                   <Route
-                    path="capacity-alert"
+                    path='capacity-alert'
                     element={<CapacityAlertDashboard />}
                   />
                   <Route
-                    path="technical-kam"
+                    path='technical-kam'
                     element={<TechnicalKAMDashboard />}
                   />
                   <Route
-                    path="partner-form"
+                    path='partner-form'
                     element={<PartnerInfoDashboard />}
                   />
                   <Route
-                    path="activation-form"
+                    path='activation-form'
                     element={<PartnerActivationDashboard />}
                   />
-                  <Route path="icmp-alert" element={<IcmpAlertDashboard />} />
-                  <Route path="resource" element={<ResourceMonitor />} />
+                  <Route path='icmp-alert' element={<IcmpAlertDashboard />} />
+                  <Route path='resource' element={<ResourceMonitor />} />
+                  <Route path='nas-interface' element={<NasInterface />} />
+                  <Route path='nas-drop-device' element={<NasDropDevice />} />
                   {/* Partner-Link project routes end */}
 
                   {/* NTTN project routes */}
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/survey" element={<Survey />} />
-                  <Route path="/work-order" element={<WorkOrder />} />
-                  <Route path="/bw-modify" element={<BWModify />} />
+                  <Route path='/reports' element={<Reports />} />
+                  <Route path='/survey' element={<Survey />} />
+                  <Route path='/work-order' element={<WorkOrder />} />
+                  <Route path='/bw-modify' element={<BWModify />} />
                   <Route
-                    path="/capacity-shifting"
+                    path='/capacity-shifting'
                     element={<ShiftingCapacity />}
                   />
                   {/* <Route path='/users' element={<Users />} /> */}
 
                   {/* Nested settings routes */}
-                  <Route path="/settings/sbu" element={<SBU />} />
-                  <Route path="/settings/category" element={<Category />} />
-                  <Route path="/settings/aggregator" element={<Aggregator />} />
-                  <Route path="/settings/nttn" element={<NTTN />} />
-                  <Route path="/settings/kam" element={<KAM />} />
-                  <Route path="/settings/link-type" element={<LinkType />} />
-                  <Route path="/settings/reason" element={<Reason />} />
-                  <Route path="/settings/rate" element={<Rate />} />
-                  <Route path="/settings/bwranges" element={<BwRanges />} />
-                  <Route path="/settings/client" element={<Client />} />
+                  <Route path='/settings/sbu' element={<SBU />} />
+                  <Route path='/settings/category' element={<Category />} />
+                  <Route path='/settings/aggregator' element={<Aggregator />} />
+                  <Route path='/settings/nttn' element={<NTTN />} />
+                  <Route path='/settings/kam' element={<KAM />} />
+                  <Route path='/settings/link-type' element={<LinkType />} />
+                  <Route path='/settings/reason' element={<Reason />} />
+                  <Route path='/settings/rate' element={<Rate />} />
+                  <Route path='/settings/bwranges' element={<BwRanges />} />
+                  <Route path='/settings/client' element={<Client />} />
 
                   {/* NTTN project routes */}
                   <Route
-                    path="page-management"
+                    path='page-management'
                     element={<MenuAndPageManagement />}
                   />
-                  <Route path="users" element={<UserManagement />} />
-                  <Route path="roles" element={<RolesPermissionsPage />} />
-                  <Route path="permissions" element={<PermissionsPage />} />
+                  <Route path='users' element={<UserManagement />} />
+                  <Route path='roles' element={<RolesPermissionsPage />} />
+                  <Route path='permissions' element={<PermissionsPage />} />
                 </Route>
               </Route>
             </Routes>

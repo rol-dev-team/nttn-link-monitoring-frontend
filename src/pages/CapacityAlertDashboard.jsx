@@ -289,6 +289,12 @@ export default function CapacityAlertDashboard() {
                 className: "min-w-[150px]",
             },
             {
+                key: "nas_ip",
+                header: "Client Name",
+                render: (_, row) => row.activation_plan?.nas_ip || "N/A",
+                className: "min-w-[150px]",
+            },
+            {
                 key: "work_order_id",
                 header: "Work Order ID",
                 render: (_, row) => row.activation_plan?.work_order_id || "N/A",
@@ -309,7 +315,7 @@ export default function CapacityAlertDashboard() {
             { key: "min_consecutive_days", header: "Min Consecutive Days" },
             {
                 key: "created_at",
-                header: "Created Date",
+                header: "Last Updated",
                 render: (val) =>
                     val ? new Date(val).toLocaleDateString() : "N/A",
             },

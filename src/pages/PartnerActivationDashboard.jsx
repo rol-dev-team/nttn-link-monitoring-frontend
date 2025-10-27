@@ -265,6 +265,7 @@ export default function PartnerActivationDashboard() {
         () => [
             { key: "id", header: "ID" },
             { key: "work_order_id", header: "Work Order ID" },
+            { key: "work_order_id", header: "Client Name" },
             { key: "asn", header: "ASN" },
             { key: "nas_ip", header: "NAS IP" },
             { key: "nat_ip", header: "NAT IP" },

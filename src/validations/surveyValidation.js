@@ -15,5 +15,5 @@ export const surveySchema = Yup.object({
   // client_lat: Yup.string().required("Client latitude is required"),
   // client_long: Yup.string().required("Client longitude is required"),
   // mac_user: Yup.string().required("MAC User count is required"),
-  submition: Yup.string().required("Submission Date is required"),
+  submission: Yup.string().required("Submission Date is required"),
 });

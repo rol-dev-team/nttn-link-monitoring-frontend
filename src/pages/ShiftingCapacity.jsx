@@ -38,17 +38,23 @@ const defaultInitialValues = {
 /* ---------- Helper functions to handle nested data and unique options ---------- */
 const getUniqueOptionsWithIds = (records, namePath, idPath) => {
   const uniqueMap = new Map();
-  records.forEach(record => {
-    const name = namePath.split('.').reduce((acc, part) => acc && acc[part], record);
-    const id = idPath.split('.').reduce((acc, part) => acc && acc[part], record);
+  records.forEach((record) => {
+    const name = namePath
+      .split(".")
+      .reduce((acc, part) => acc && acc[part], record);
+    const id = idPath
+      .split(".")
+      .reduce((acc, part) => acc && acc[part], record);
     if (name && id) {
       uniqueMap.set(name, id);
     }
   });
-  return Array.from(uniqueMap.entries()).sort().map(([name, id]) => ({
-    label: name,
-    value: id,
-  }));
+  return Array.from(uniqueMap.entries())
+    .sort()
+    .map(([name, id]) => ({
+      label: name,
+      value: id,
+    }));
 };
 
 const ShiftingCapacity = () => {
@@ -94,17 +100,18 @@ const ShiftingCapacity = () => {
       const preprocessedData = (res.data || []).map((item) => ({
         ...item,
         // Flatten the data for easier access
-        client_name: item.from_client_details?.client_name ?? 'N/A',
+        client_name: item.from_client_details?.client_name ?? "N/A",
         client_id: item.from_client_details?.id,
-        shifting_client_name: item.to_client_details?.client_name ?? 'N/A',
+        shifting_client_name: item.to_client_details?.client_name ?? "N/A",
         shifting_client_id: item.to_client_details?.id,
       }));
       setRecords(preprocessedData);
-      setPagination(prev => ({ ...prev, totalRows: res.total }));
+      setPagination((prev) => ({ ...prev, totalRows: res.total }));
     } catch (e) {
-      const msg = e?.response?.data?.message || 'Failed to load capacity shifts';
+      const msg =
+        e?.response?.data?.message || "Failed to load capacity shifts";
       setError(msg);
-      pushToast(msg, 'error');
+      pushToast(msg, "error");
     } finally {
       setLoading(false);
     }
@@ -175,13 +182,21 @@ const ShiftingCapacity = () => {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   }, []);
 
   const dynamicOptions = useMemo(() => {
     return {
-      from_client: getUniqueOptionsWithIds(records, 'from_client_details.client_name', 'from_client_details.id'),
-      to_client: getUniqueOptionsWithIds(records, 'to_client_details.client_name', 'to_client_details.id'),
+      from_client: getUniqueOptionsWithIds(
+        records,
+        "from_client_details.client_name",
+        "from_client_details.id"
+      ),
+      to_client: getUniqueOptionsWithIds(
+        records,
+        "to_client_details.client_name",
+        "to_client_details.id"
+      ),
     };
   }, [records]);
 
@@ -193,17 +208,24 @@ const ShiftingCapacity = () => {
         header: "From Client",
         isSortable: true,
         field: SelectField,
-        fieldProps: { name: "client", options: dynamicOptions.from_client }
+        fieldProps: { name: "client", options: dynamicOptions.from_client },
       },
       { key: "nttn_link_id", header: "Link ID", isSortable: true },
       { key: "capacity", header: "Last Capacity", isSortable: true },
-      { key: "after_shifting_capacity", header: "After Shift Capacity", isSortable: true },
+      {
+        key: "after_shifting_capacity",
+        header: "After Shift Capacity",
+        isSortable: true,
+      },
       {
         key: "shifting_client_name",
         header: "To Client",
         isSortable: true,
         field: SelectField,
-        fieldProps: { name: "shifting_client", options: dynamicOptions.to_client }
+        fieldProps: {
+          name: "shifting_client",
+          options: dynamicOptions.to_client,
+        },
       },
       { key: "shifting_bw", header: "Shifting BW", isSortable: true },
       { key: "total_shifting_cost", header: "Total Cost", isSortable: true },
@@ -214,14 +236,18 @@ const ShiftingCapacity = () => {
         isSortable: true,
         render: (v) => (v ? new Date(v).toLocaleDateString() : "-"),
         field: DateField,
-        fieldProps: { name: "created_at", }
+        fieldProps: { name: "created_at" },
       },
       {
         key: "actions",
         header: "Action",
         render: (_, row) => (
-          <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
-            <Pencil className="h-4 w-4" />
+          <Button
+            variant='icon'
+            size='sm'
+            onClick={() => openEdit(row)}
+            title='Edit'>
+            <Pencil className='h-4 w-4' />
           </Button>
         ),
       },
@@ -232,7 +258,7 @@ const ShiftingCapacity = () => {
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className='p-8 bg-gray-100 min-h-screen'>
         <ShiftCapacityForm
           initialValues={formState.initialValues}
           isEditMode={formState.isEditMode}
@@ -246,35 +272,36 @@ const ShiftingCapacity = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
-      <div className="flex justify-between items-center pb-16">
+    <div className='p-8 bg-gray-100 min-h-screen'>
+      <div className='flex justify-between items-center pb-16'>
         <div>
-          <h1 className="text-2xl font-bold">Capacity Shifting List</h1>
-          <p className="text-gray-500">View and manage capacity-shifting records.</p>
+          <h1 className='text-2xl font-bold'>Capacity Shifting List</h1>
+          <p className='text-gray-500'>
+            View and manage capacity-shifting records.
+          </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className='flex items-center gap-4'>
           <ExportButton
             data={records}
             columns={columns}
-            fileName="capacity_shifts"
-            intent="primary"
+            fileName='capacity_shifts'
+            intent='primary'
             leftIcon={FaFileExcel}
-            className="text-white bg-green-700 hover:bg-green-800 border-none"
-          >
+            className='text-white bg-green-700 hover:bg-green-800 border-none'>
             Export
           </ExportButton>
-          <Button intent="primary" onClick={openNew} leftIcon={Plus}>
+          <Button intent='primary' onClick={openNew} leftIcon={Plus}>
             Add Capacity Shift
           </Button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20 text-gray-500">
+        <div className='flex justify-center items-center py-20 text-gray-500'>
           <p>Loading records...</p>
         </div>
       ) : error ? (
-        <div className="flex justify-center items-center py-20 text-red-500">
+        <div className='flex justify-center items-center py-20 text-red-500'>
           <p>Error: {error}</p>
         </div>
       ) : (
@@ -285,17 +312,16 @@ const ShiftingCapacity = () => {
           selection={true}
           showId={true}
           filterComponent={
-            <FilterMenu
-              columns={columns}
-              onFilterChange={handleFilterChange}
-            />
+            <FilterMenu columns={columns} onFilterChange={handleFilterChange} />
           }
           isBackendPagination={true}
           totalRows={pagination.totalRows}
           page={pagination.page}
           pageSize={pagination.limit}
-          setPage={(page) => setPagination(prev => ({ ...prev, page }))}
-          setPageSize={(limit) => setPagination(prev => ({ ...prev, limit, page: 1 }))}
+          setPage={(page) => setPagination((prev) => ({ ...prev, page }))}
+          setPageSize={(limit) =>
+            setPagination((prev) => ({ ...prev, limit, page: 1 }))
+          }
         />
       )}
 

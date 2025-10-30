@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Plus, Pencil } from "lucide-react";
+import moment from 'moment';
 import Button from "../components/ui/Button";
 import SurveyForm from "../components/survey/SurveyForm";
 import SurveyTable from "../components/survey/SurveyTable";
@@ -121,7 +122,7 @@ const Survey = () => {
 
       // The service layer (fetchSurveys) is assumed to correctly read X-Total-Count
       const { data, totalCount } = await fetchSurveys(finalFilters);
-
+      console.log("suverysss  ",data);
       setRecords(data);
       // Ensure totalRows is updated and non-negative
       setTotalRows(Math.max(0, totalCount));
@@ -241,7 +242,7 @@ const Survey = () => {
         fieldProps: { name: "sbu_id", options: dynamicOptions.sbu },
       },
       {
-        key: "link_type_name",
+        key: "type_name",
         header: "Link Type",
         field: SelectField,
         fieldProps: {
@@ -282,12 +283,12 @@ const Survey = () => {
       },
       { key: "nttn_survey_id", header: "NTTN Provider ID" },
       {
-        key: "client_category",
+        key: "cat_name",
         header: "Client Cat.",
         field: SelectField,
         fieldProps: {
-          name: "client_category",
-          options: dynamicOptions.client_category,
+          name: "cat_name",
+          options: dynamicOptions.cat_name,
           searchable: true,
         },
       },
@@ -301,18 +302,19 @@ const Survey = () => {
           searchable: true,
         },
       },
-      { key: "client_division", header: "Division" },
-      { key: "client_district", header: "District" },
-      { key: "client_thana", header: "Thana" },
+      { key: "division_name", header: "Division" },
+      { key: "district_name", header: "District" },
+      { key: "thana_name", header: "Thana" },
       { key: "mac_user", header: "MAC Users" },
       { key: "status", header: "Status" },
       {
-        key: "submition",
+        key: "submission",
         header: "Submission Date",
+        render: (row) => moment(row.submission).format("MMM Do YY"),
         field: DateField,
         fieldProps: {
-          name: "submition",
-          options: dynamicOptions.submition,
+          name: "submission",
+          options: dynamicOptions.submission,
           searchable: true,
         },
       },

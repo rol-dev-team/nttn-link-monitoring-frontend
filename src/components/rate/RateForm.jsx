@@ -10,6 +10,7 @@ import DateField from "../fields/DateField";
 import { rateValidation } from "../../validations/rateValidation";
 import { fetchNTTNs } from "../../services/nttn";
 import { fetchBandwidthRangesByNttnID } from "../../services/bandwidthRanges";
+import DatePickerField from './../fields/DatePickerField';
 
 
 /* ---------- section wrapper (identical to other forms) ---------- */
@@ -23,26 +24,26 @@ const FormSection = ({ title, children }) => (
 const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
   const [nttns, setNttns] = useState([]);
   const [bws, setBws] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   /* ---------- formik ---------- */
+
   const formik = useFormik({
     initialValues: {
-      id: isEditMode ? initialValues.id : "",
+      // id: isEditMode ? initialValues.id : "",
       nttn_id: initialValues.nttn_id || "",
-      bw_id: initialValues.bw_id || initialValues.bw || "",
+      bw_range_from: initialValues.bw_range_from || initialValues.bw_range_from || "",
+      bw_range_to: initialValues.bw_range_to || initialValues.bw_range_to || "",
       rate: initialValues.rate || "",
-      effective_from: initialValues.effective_from || "",
-      effective_to: initialValues.effective_to || "",
-      continue: initialValues.continue || false,
-      status: initialValues.status || 1,
+      start_date: initialValues.start_date || "",
+      end_date: initialValues.end_date || "",
     },
     validationSchema: rateValidation,
     enableReinitialize: true,
     onSubmit,
   });
 
-  /* ---------- bootstrap nttn + cascading bw ---------- */
+/* ---------- bootstrap nttn + cascading bw ---------- */
   useEffect(() => {
     const boot = async () => {
       try {
@@ -50,10 +51,10 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
         setNttns(nttnData);
 
         // if editing, load bw for pre-selected nttn
-        if (isEditMode && formik.values.nttn_id) {
-          const bwData = await fetchBandwidthRangesByNttnID(formik.values.nttn_id);
-          setBws(bwData);
-        }
+        // if (isEditMode && formik.values.nttn_id) {
+        //   const bwData = await fetchBandwidthRangesByNttnID(formik.values.nttn_id);
+        //   setBws(bwData);
+        // }
       } catch (e) {
         showToast?.(e.message || "Failed to load form data", "error");
       } finally {
@@ -65,14 +66,6 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
 
   const handleNttnChange = async (v) => {
     formik.setFieldValue("nttn_id", v);
-    formik.setFieldValue("bw_id", ""); // reset
-    if (!v) return setBws([]);
-    try {
-      const bwData = await fetchBandwidthRangesByNttnID(v);
-      setBws(bwData);
-    } catch {
-      setBws([]);
-    }
   };
 
   /* ---------- render ---------- */
@@ -123,21 +116,27 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
           )}
           <SelectField
             name="nttn_id"
-            placeholder="NTTN *"
+            placeholder="NTTN Name *"
             options={nttns.map((n) => ({ value: n.id, label: n.nttn_name }))}
             onChange={(v) => {
-              console.log("🔥 onChange fired with", v);   // ← log here
+              console.log("🔥 onChange fired with", v);   
               handleNttnChange(v);
             }}
             searchable
           />
-          <SelectField
-            name="bw_id"
-            placeholder="Bandwidth Range *"
-            options={bws.map((b) => ({ value: b.id, label: `${b.range_from}-${b.range_to} Mbps` }))}
-            onChange={(v) => formik.setFieldValue("bw_id", v)}
-            searchable
-            disabled={!formik.values.nttn_id}
+          <InputField
+            name="bw_range_from"
+            label="BW Range From *"
+            type="number"
+            step="0.01"
+            placeholder="BW Range From"
+          />
+          <InputField
+            name="bw_range_to"
+            label="BW Range To *"
+            type="number"
+            step="0.01"
+            placeholder="BW Range To"
           />
           <InputField
             name="rate"
@@ -148,43 +147,19 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
           />
         </FormSection>
 
-        {/* Date & Status */}
-        <FormSection title="Validity & Status">
-          <DateField
-            name="effective_from"
-            label="Effective From"
-            placeholder="test"
-            value={formik.values.effective_from}
-            onChange={(v) => formik.setFieldValue("effective_from", v)}
-            range={false}
-          />
-          <DateField
-            name="effective_to"
-            label="Effective To"
-            value={formik.values.effective_to}
-            onChange={(v) => formik.setFieldValue("effective_to", v)}
-            range={false}
-          />
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="continue"
-              checked={formik.values.continue}
-              onChange={formik.handleChange}
-              className="checkbox checkbox-sm"
-            />
-            <label className="text-sm font-medium text-gray-700">Continue</label>
-          </div>
-          <SelectField
-            name="status"
-            placeholder="Status"
-            options={[
-              { value: 1, label: "Active" },
-              { value: 0, label: "Inactive" },
-            ]}
-            onChange={(v) => formik.setFieldValue("status", v)}
-          />
-        </FormSection>
+          <DatePickerField
+                name='start_date'
+                placeholder='Start Date'
+                field={{ name: "start_date", value: formik.values.start_date }}
+                form={formik}
+              />
+          <DatePickerField
+                name='end_date'
+                placeholder='End Date'
+                field={{ name: "end_date", value: formik.values.end_date }}
+                form={formik}
+              />
+
 
         {/* Actions – identical bar */}
         <div className="flex w-full justify-end mt-8 space-x-3">

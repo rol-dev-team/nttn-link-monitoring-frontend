@@ -18,9 +18,13 @@ import { fetchAggregators } from "../../services/aggregator";
 import { fetchKams } from "../../services/kam";
 import { fetchNTTNs } from "../../services/nttn";
 import { fetchCategories } from "../../services/category";
-import { fetchClientsCategoryWise } from "../../services/client";
+import {
+  fetchCategoriesBySBU,
+  fetchClientsCategoryWise,
+} from "../../services/client";
 import { surveySchema } from "../../validations/surveyValidation";
 import DatePickerField from "./../fields/DatePickerField";
+import { fetchClientDetailCategoryAndClientWise } from "../../services/survey";
 
 const FormSection = ({ title, children }) => (
   <fieldset className='col-span-full border-t border-gray-300 pt-6 mt-6'>
@@ -120,9 +124,9 @@ const SurveyForm = ({
         setNttnOptions(
           nttnRes.map((item) => ({ value: item.id, label: item.nttn_name }))
         );
-        setCategoryOptions(
-          catRes.map((item) => ({ value: item.id, label: item.cat_name }))
-        );
+        // setCategoryOptions(
+        //   catRes.map((item) => ({ value: item.id, label: item.cat_name }))
+        // );
       } catch (err) {
         showToast(
           err?.response?.data?.message ||
@@ -133,6 +137,34 @@ const SurveyForm = ({
     };
     loadStaticData();
   }, [showToast]);
+
+  // fetch sbu wise categories
+  useEffect(() => {
+    const fetchSbuWiseCategories = async () => {
+      const sbuId = formik.values.sbu_id;
+      if (!sbuId) {
+        setCategoryOptions([]);
+        return;
+      }
+      try {
+        const categoriesData = await fetchCategoriesBySBU(sbuId);
+        setCategoryOptions(
+          categoriesData.map((item) => ({
+            value: item.id,
+            label: item.cat_name,
+          }))
+        );
+      } catch (err) {
+        showToast(
+          err?.response?.data?.message ||
+            "Failed to load clients for the selected category!",
+          "error"
+        );
+        setCategoryOptions([]);
+      }
+    };
+    fetchSbuWiseCategories();
+  }, [formik.values.sbu_id, showToast]);
 
   // Fetch client options when category changes
   useEffect(() => {
@@ -171,29 +203,63 @@ const SurveyForm = ({
   // **NEW FIX:** Handle client-related fields from user interaction ONLY
   const handleClientChange = (selectedValue) => {
     formik.setFieldValue("client_id", selectedValue);
-    const selectedClient = clientOptions.find(
-      (client) => client.value === selectedValue
-    );
-    if (selectedClient) {
-      formik.setFieldValue("division", selectedClient.division || "");
-      formik.setFieldValue("district", selectedClient.district || "");
-      formik.setFieldValue("thana", selectedClient.thana || "");
-      formik.setFieldValue("address", selectedClient.address || "");
-      formik.setFieldValue("client_lat", selectedClient.client_lat || "");
-      formik.setFieldValue("client_long", selectedClient.client_long || "");
-    }
+    // const selectedClient = clientOptions.find(
+    //   (client) => client.value === selectedValue
+    // );
+    // if (selectedClient) {
+    //   formik.setFieldValue("division", selectedClient.division || "");
+    //   formik.setFieldValue("district", selectedClient.district || "");
+    //   formik.setFieldValue("thana", selectedClient.thana || "");
+    //   formik.setFieldValue("address", selectedClient.address || "");
+    //   formik.setFieldValue("client_lat", selectedClient.client_lat || "");
+    //   formik.setFieldValue("client_long", selectedClient.client_long || "");
+    // }
   };
 
   const handleCategoryChange = (selectedValue) => {
     formik.setFieldValue("cat_id", selectedValue);
-    formik.setFieldValue("client_id", null);
-    formik.setFieldValue("division", "");
-    formik.setFieldValue("district", "");
-    formik.setFieldValue("thana", "");
-    formik.setFieldValue("address", "");
-    formik.setFieldValue("client_lat", "");
-    formik.setFieldValue("client_long", "");
+    // formik.setFieldValue("client_id", null);
+    // formik.setFieldValue("division", "");
+    // formik.setFieldValue("district", "");
+    // formik.setFieldValue("thana", "");
+    // formik.setFieldValue("address", "");
+    // formik.setFieldValue("client_lat", "");
+    // formik.setFieldValue("client_long", "");
   };
+
+  useEffect(() => {
+  const fetchClientDetails = async () => {
+    const { cat_id, client_id } = formik.values;
+
+    // Only call API when both IDs are selected
+    if (!cat_id || !client_id) return;
+
+    try {
+      const payload = {
+        category_id: cat_id,
+        client_id: client_id,
+      };
+
+      const response = await fetchClientDetailCategoryAndClientWise(payload);
+      const data = Array.isArray(response.data) ? response.data[0] : response.data;
+
+      formik.setFieldValue("division", data.division_name || "");
+      formik.setFieldValue("district", data.district_name || "");
+      formik.setFieldValue("thana", data.thana_name || "");
+      formik.setFieldValue("address", data.address || "");
+
+    } catch (err) {
+      showToast(
+        err?.response?.data?.message ||
+          "Failed to fetch client details for selected category & client!",
+        "error"
+      );
+    }
+  };
+
+  fetchClientDetails();
+}, [formik.values.cat_id, formik.values.client_id]);
+
 
   console.log(formik.values);
 
@@ -276,10 +342,7 @@ const SurveyForm = ({
             />
             <div className='p-4 bg-gray-50 rounded-lg border border-gray-200 col-span-full'>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 items-center gap-4 text-sm'>
-                <h3 className='flex items-center text-sm font-semibold text-gray-700'>
-                  <MapPin size={16} className='mr-2 text-gray-500' />
-                  Client Location Information
-                </h3>
+                
                 <div className='flex items-center space-x-2'>
                   <Globe size={16} className='text-blue-500' />
                   <p>

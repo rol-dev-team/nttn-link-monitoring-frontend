@@ -8,17 +8,16 @@ import ExportButton from "../../components/ui/ExportButton";
 import { FaFileExcel } from "react-icons/fa";
 import RateForm from "../../components/rate/RateForm";
 import { createRate, fetchRates, updateRate } from "../../services/rate";
-
+import { createBwRates, fetchSBwRates } from "../../services/bwRateApi";
+import moment from 'moment';
 
 const defaultInitialValues = {
-  id: "",
   nttn_id: "",
-  bw_id: "",
+  bw_range_from: "",
+  bw_range_to: "",
   rate: "",
-  effective_from: "",
-  effective_to: "",
-  continue: false,
-  status: 1,
+  start_date: "",
+  end_date: "",
 };
 
 const Rate = () => {
@@ -48,15 +47,8 @@ const Rate = () => {
     setLoading(true);
     setError(null);
     try {
-      const raw = await fetchRates();
-
-      // flatten: add friendly nttn_name, keep everything else as-is
-      const flat = raw.map((r) => ({
-        nttn_name: r.nttn?.nttn_name ?? "N/A",
-        ...r,
-      }));
-
-      setRecords(flat);
+      const {data} = await fetchSBwRates()
+      setRecords(data);
     } catch (e) {
       const msg = e?.response?.data?.message || "Failed to load rates";
       setError(msg);
@@ -110,7 +102,7 @@ const Rate = () => {
         await updateRate(formState.editingId, values);
         pushToast("Updated successfully!", "success");
       } else {
-        await createRate(values);
+        await createBwRates(values);
         pushToast("Created successfully!", "success");
       }
       fetchAll();
@@ -123,40 +115,33 @@ const Rate = () => {
   /* ---------- columns (unchanged) ---------- */
   const columns = useMemo(
     () => [
-
       { key: "nttn_name", header: "NTTN", isSortable: true },
-      { key: "bw_id", header: "BW ID", isSortable: true },
+      { key: "bw_range_from", header: "BW Range From", isSortable: true },
+      { key: "bw_range_to", header: "BW Range To", isSortable: true },
       { key: "rate", header: "Rate", isSortable: true },
       {
-        key: "effective_from",
-        header: "Effective From",
+        key: "start_date",
+        header: "Start Date",
         isSortable: true,
-        render: (v) => (v ? new Date(v).toLocaleDateString() : "-"),
+          render: (row) => moment(row.start_date).format("MMM Do YY"),
       },
       {
-        key: "effective_to",
-        header: "Effective To",
+        key: "end_date",
+        header: "End Date",
         isSortable: true,
-        render: (v) => (v ? new Date(v).toLocaleDateString() : "-"),
+          render: (row) => moment(row.end_date).format("MMM Do YY"),
       },
-      {
-        key: "continue",
-        header: "Continue",
-        isSortable: true,
-        render: (v) => (v ? "Yes" : "No"),
-      },
-      {
-        key: "status",
-        header: "Status",
-        isSortable: true,
-        render: (v) => (v === 1 ? "Active" : "Inactive"),
-      },
+      
       {
         key: "actions",
         header: "Action",
         render: (_, row) => (
-          <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
-            <Pencil className="h-4 w-4" />
+          <Button
+            variant='icon'
+            size='sm'
+            onClick={() => openEdit(row)}
+            title='Edit'>
+            <Pencil className='h-4 w-4' />
           </Button>
         ),
       },
@@ -167,7 +152,7 @@ const Rate = () => {
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (
-      <div className="p-8 bg-gray-100 min-h-screen">
+      <div className='p-8 bg-gray-100 min-h-screen'>
         <RateForm
           initialValues={formState.initialValues}
           isEditMode={formState.isEditMode}
@@ -181,35 +166,34 @@ const Rate = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
-      <div className="flex justify-between items-center pb-16">
+    <div className='p-8 bg-gray-100 min-h-screen'>
+      <div className='flex justify-between items-center pb-16'>
         <div>
-          <h1 className="text-2xl font-bold">Rate List</h1>
-          <p className="text-gray-500">View and manage bandwidth rates.</p>
+          <h1 className='text-2xl font-bold'>Rate List</h1>
+          <p className='text-gray-500'>View and manage bandwidth rates.</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className='flex items-center gap-4'>
           <ExportButton
             data={records}
             columns={columns}
-            fileName="rate_list"
-            intent="primary"
+            fileName='rate_list'
+            intent='primary'
             leftIcon={FaFileExcel}
-            className="text-white bg-green-700 hover:bg-green-800 border-none"
-          >
+            className='text-white bg-green-700 hover:bg-green-800 border-none'>
             Export
           </ExportButton>
-          <Button intent="primary" onClick={openNew} leftIcon={Plus}>
+          <Button intent='primary' onClick={openNew} leftIcon={Plus}>
             Add Rate
           </Button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20 text-gray-500">
+        <div className='flex justify-center items-center py-20 text-gray-500'>
           <p>Loading records...</p>
         </div>
       ) : error ? (
-        <div className="flex justify-center items-center py-20 text-red-500">
+        <div className='flex justify-center items-center py-20 text-red-500'>
           <p>Error: {error}</p>
         </div>
       ) : (

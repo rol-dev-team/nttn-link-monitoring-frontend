@@ -1,43 +1,36 @@
 import * as Yup from 'yup';
 
 export const rateValidation = Yup.object().shape({
-  //   rate_id: Yup.number()
-  //     .required('Rate ID is required')
-  //     .positive('Rate ID must be positive')
-  //     .integer('Rate ID must be an integer'),
-
   nttn_id: Yup.number()
-    .required('NTN ID is required')
-    .positive('NTN ID must be positive')
-    .integer('NTN ID must be an integer'),
+    .typeError('NTTN ID must be a number')
+    .required('NTTN ID is required')
+    .integer('NTTN ID must be an integer')
+    .positive('NTTN ID must be positive'),
 
-  bw_id: Yup.number()
-    .required('BW ID is required')
-    .positive('BW ID must be positive')
-    .integer('BW ID must be an integer'),
+  bw_range_from: Yup.number()
+    .typeError('Bandwidth From must be a number')
+    .required('Bandwidth From is required')
+    .integer('Bandwidth From must be an integer')
+    .positive('Bandwidth From must be positive'),
+
+  bw_range_to: Yup.number()
+    .typeError('Bandwidth To must be a number')
+    .required('Bandwidth To is required')
+    .integer('Bandwidth To must be an integer')
+    .positive('Bandwidth To must be positive')
+    .moreThan(Yup.ref('bw_range_from'), 'Bandwidth To must be greater than Bandwidth From'),
 
   rate: Yup.number()
+    .typeError('Rate must be a number')
     .required('Rate is required')
     .positive('Rate must be positive'),
 
-  // effective_from: Yup.date()
-  //   .nullable()
-  //   .typeError('Please enter a valid date')
-  //   .required('Effective From date is required'),
+  start_date: Yup.date()
+    .typeError('Start Date must be a valid date')
+    .required('Start Date is required'),
 
-  // effective_to: Yup.date()
-  //   .nullable()
-  //   .typeError('Please enter a valid date')
-  //   .when('effective_from', (effective_from, schema) => {
-  //     if (effective_from) {
-  //       return schema.min(effective_from, 'Effective To must be after Effective From');
-  //     }
-  //     return schema;
-  //   }),
-
-  continue: Yup.boolean(),
-
-  status: Yup.number()
-    .oneOf([0, 1], "Status must be either 0 (Inactive) or 1 (Active)")
-    .required('Status is required')
+  end_date: Yup.date()
+    .nullable()
+    .typeError('End Date must be a valid date')
+    .min(Yup.ref('start_date'), 'End Date cannot be before Start Date'),
 });

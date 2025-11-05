@@ -23,6 +23,8 @@ export const shiftCapacitySchema = Yup.object().shape({
 
   nttn_link_id: Yup.string()
     .required('NTTN Link ID is required'),
+  shifting_link_id: Yup.string()
+    .required('Shifting Link ID is required'),
 
   capacity: Yup.number()
     .required('Capacity is required')
@@ -56,11 +58,4 @@ export const shiftCapacitySchema = Yup.object().shape({
     .required('Total shifting cost is required')
     .min(0, 'Total shifting cost cannot be negative'),
 
-  workorder_id: Yup.number()
-    .required('WorkOrder ID is required')
-    .positive('WorkOrder ID must be positive'),
-
-  vlan: Yup.string()
-    .nullable()
-    .max(100, 'VLAN must be less than 100 characters'),
 });

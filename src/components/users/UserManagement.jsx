@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../app/AuthContext";
 import { useUsers } from "./useUsers ";
 
+
 import {
   AiOutlineEdit,
   AiOutlineDelete,
@@ -16,7 +17,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import apiClient from "../../utils/apiClient";
 
-export function UserManagement() {
+const UserManagement = () => {
   const { isAuthenticated, user: currentUser } = useAuth();
 
   const [page, setPage] = useState(1);
@@ -686,3 +687,5 @@ export function UserManagement() {
     </div>
   );
 }
+
+export default UserManagement;

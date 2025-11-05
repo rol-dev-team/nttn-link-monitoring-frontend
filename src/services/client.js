@@ -1,4 +1,5 @@
 import api from "./api";
+import axiosInstance from "./partner-link/apiConfig";
 export const createClient = async (payload) => {
   try {
     const response = await api.post("/clients/", payload);
@@ -79,7 +80,7 @@ export const fetchThanaDistrictWise = async (id) => {
 
 export const fetchClientsCategoryWise = async (id) => {
   try {
-    const response = await api.get(`/clients/by-category/${id}/`);
+    const response = await axiosInstance.get(`/clients/by-category/${id}/`);
     return response.data;
   } catch (error) {
     throw error;

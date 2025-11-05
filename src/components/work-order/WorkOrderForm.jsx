@@ -4,31 +4,33 @@ import { useFormik, FormikProvider } from "formik";
 import Button from "../ui/Button";
 import InputField from "../fields/InputField";
 import SelectField from "../fields/SelectField";
-import DateField from "../fields/DateField";
+import DatePickerField from "../fields/DateField";
 import {
   ArrowLeft,
   MapPin,
   Building,
   Pin,
   Globe,
-  DollarSign,
-  Briefcase,
 } from "lucide-react";
 import { fetchSBUs } from "../../services/sbu";
 import { fetchLinkTypes } from "../../services/linkType";
 import { fetchAggregators } from "../../services/aggregator";
 import { fetchKams } from "../../services/kam";
 import { fetchNTTNs } from "../../services/nttn";
-import { fetchSurveysByClient } from "../../services/survey";
+import { 
+  fetchClientDetailsByClient, 
+  fetchSurveysByClientLaravel, 
+  fetchSurveysDetailsByClient 
+} from "../../services/survey"; 
 import {
   fetchClientsCategoryWise,
   fetchCategoriesBySBU,
 } from "../../services/client";
 import { surveySchema } from "../../validations/surveyValidation";
 import { showToast } from "../constants/message";
-import { fetchRatesByID } from "../../services/rate";
-import { fetchBandwidthRangesByID } from "../../services/bandwidthRanges";
+import { fetchRatesByNttn } from "../../services/rate";
 import { format, isValid, parseISO } from "date-fns";
+import { useAuth } from "../../app/AuthContext";
 
 const FormSection = ({ title, icon: Icon, children }) => (
   <fieldset className="col-span-full border-t border-gray-300 pt-6 mt-6">
@@ -51,30 +53,63 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [clientOptions, setClientOptions] = useState([]);
   const [surveyOptions, setSurveyOptions] = useState([]);
-  const [bandwidthRanges, setBandwidthRanges] = useState([]);
+  const [allNttnRates, setAllNttnRates] = useState([]);
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormLoaded, setIsFormLoaded] = useState(false);
   const [surveyLocked, setSurveyLocked] = useState({});
+  const [autoFilledFields, setAutoFilledFields] = useState(new Set());
+  const [hasCalculatedEditModeRates, setHasCalculatedEditModeRates] = useState(false);
+
+  const { user } = useAuth();
+
+  const sanitizeInitialValues = (values) => {
+  const sanitized = { ...values };
+  Object.keys(sanitized).forEach(key => {
+    if (sanitized[key] === null || sanitized[key] === undefined) {
+      sanitized[key] = "";
+    }
+    // Handle date fields specifically
+    if (['submission', 'requested_delivery', 'service_handover'].includes(key)) {
+      if (sanitized[key] && sanitized[key] !== '0000-00-00 00:00:00') {
+        try {
+          // Convert to proper date format for date picker
+          const dateObj = new Date(sanitized[key]);
+          if (!isNaN(dateObj.getTime())) {
+            sanitized[key] = format(dateObj, 'yyyy-MM-dd');
+          } else {
+            sanitized[key] = "";
+          }
+        } catch (e) {
+          sanitized[key] = "";
+        }
+      } else {
+        sanitized[key] = "";
+      }
+    }
+  });
+  return sanitized;
+};
 
   const defaultFormValues = {
     type_id: 2,
-    survey_id: null,
-    sbu_id: null,
-    link_type_id: null,
-    nttn_link_id: "",
-    aggregator_id: null,
-    kam_id: null,
-    nttn_id: null,
+    survey_id: "",
+    sbu_id: "",
+    link_type_id: "",
+    nttn_work_order_id: "",
+    aggregator_id: "",
+    kam_id: "",
+    nttn_id: "",
     nttn_survey_id: "",
     nttn_lat: "",
     nttn_long: "",
-    cat_id: null,
-    client_id: null,
+    cat_id: "",
+    client_id: "",
     client_lat: "",
     client_long: "",
     mac_user: "",
-    submition: "",
+    work_order_mac_user: "",
+    submission: "",
     division: "",
     district: "",
     thana: "",
@@ -86,15 +121,18 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
     shifting_capacity_price: "",
     net_capacity: "",
     unit_rate: "",
+    rate_id: "",
+    modify_status: "",
     vlan: "",
     remarks: "",
-    status: "Active",
+    status: "active",
     requested_delivery: "",
     service_handover: "",
+    posted_by: "",
   };
-
+  
   const formik = useFormik({
-    initialValues: { ...defaultFormValues, ...initialValues },
+    initialValues: { ...defaultFormValues, ...sanitizeInitialValues(initialValues) },
     validationSchema: surveySchema,
     enableReinitialize: true,
     onSubmit: async (values, { resetForm }) => {
@@ -103,6 +141,13 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
       try {
         const payload = { ...values };
 
+        // 🚨 FIX: Inject 'posted_by' from frontend user state
+        payload['posted_by'] = user?.name ?? 'Frontend Guest'; 
+
+        // Remove survey_id since it's not used in backend
+        delete payload.survey_id;
+
+        // Numeric fields to convert to Number
         const numericFields = [
           "request_capacity",
           "unit_rate",
@@ -111,7 +156,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
           "shifting_capacity_price",
           "net_capacity",
           "mac_user",
-          "vlan",
+          "work_order_mac_user",
           "sbu_id",
           "link_type_id",
           "aggregator_id",
@@ -119,31 +164,35 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
           "nttn_id",
           "cat_id",
           "client_id",
-          "nttn_lat",
-          "nttn_long",
-          "client_lat",
-          "client_long",
-          "survey_id",
+          "rate_id",
         ];
 
         numericFields.forEach((field) => {
           if (payload[field] === "") {
             payload[field] = null;
+          } else if (payload[field]) {
+            payload[field] = Number(payload[field]);
           }
         });
 
+        // Handle modify_status - only include in edit mode
+        if (!isEditMode) {
+          delete payload.modify_status;
+        } else {
+          if (payload.modify_status === "") {
+            payload.modify_status = null;
+          }
+        }
+
         const dateFields = [
-          "submition",
+          "submission",
           "requested_delivery",
           "service_handover",
         ];
         dateFields.forEach((field) => {
           if (payload[field]) {
             try {
-              const dateObj =
-                typeof payload[field] === "string"
-                  ? parseISO(payload[field])
-                  : payload[field];
+              const dateObj = typeof payload[field] === "string" ? parseISO(payload[field]) : payload[field];
               if (isValid(dateObj)) {
                 payload[field] = format(dateObj, "yyyy-MM-dd");
               } else {
@@ -157,11 +206,11 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
             payload[field] = null;
           }
         });
-        const statusValue = payload.status;          // read first
+
+        const statusValue = payload.status;
         delete payload.status;
-        payload.survey_status = payload.status;
-        payload.workorder_status = payload.status;
-        // delete payload.status;
+        payload.survey_status = statusValue;
+        payload.workorder_status = statusValue;
 
         await onSubmit(payload, { resetForm });
       } catch (error) {
@@ -173,8 +222,317 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
     },
   });
 
+  // 💡 FIXED: Improved Helper function to map Formik's raw ID value to the full option object
+  const findSelectedOption = (fieldName, options) => {
+    const value = formik.values[fieldName];
+    console.log(`🔍 findSelectedOption for ${fieldName}:`, { 
+      value, 
+      optionsLength: options?.length,
+      options: options 
+    });
+    
+    if (value === null || value === undefined || value === "" || !options || options.length === 0) {
+      return null;
+    }
+    
+    // Find the option object that matches the raw ID (value) stored in Formik
+    const foundOption = options.find(option => {
+      // Handle both string and number comparisons
+      const optionValue = option.value;
+      const formikValue = value;
+      
+      // Convert both to string for comparison to handle number vs string issues
+      return String(optionValue) === String(formikValue);
+    });
+    
+    console.log(`🔍 Found option for ${fieldName}:`, foundOption);
+    return foundOption || null;
+  };
 
-  // Step 1: Load all static data on component mount (runs once)
+  // Function to auto-fill client location from client details API
+  const autoFillClientLocation = (clientDetails) => {
+    if (!clientDetails || typeof clientDetails !== 'object') {
+      console.log('❌ No valid client details object provided to autoFillClientLocation');
+      return;
+    }
+
+    console.log('📍 Auto-filling client location with details:', clientDetails);
+    const filledFields = new Set();
+    
+    const locationFields = {
+      division: clientDetails.division_name || clientDetails.division,
+      district: clientDetails.district_name || clientDetails.district,
+      thana: clientDetails.thana_name || clientDetails.thana,
+      address: clientDetails.address,
+    };
+
+    console.log('🗺️ Location fields to fill:', locationFields);
+    Object.entries(locationFields).forEach(([field, value]) => {
+      const currentValue = formik.values[field] === null || formik.values[field] === undefined ? "" : String(formik.values[field]);
+      const validValue = value !== null && value !== undefined && String(value).trim() !== '';
+
+      if (currentValue === "" && validValue) {
+        formik.setFieldValue(field, value);
+        filledFields.add(field);
+        console.log(`✅ Auto-filled client ${field}:`, value);
+      } else if (currentValue !== "" && validValue) {
+        console.log(`ℹ️ Field ${field} already has value: ${currentValue}, not overwriting.`);
+      } else {
+        console.log(`❌ No valid value for field ${field} in API response.`);
+      }
+    });
+
+    if (filledFields.size > 0) {
+      console.log(`🎉 Successfully auto-filled ${filledFields.size} location fields.`);
+      showToast.success(`Auto-filled ${filledFields.size} client location fields`);
+    } else {
+      console.log('ℹ️ No location fields were auto-filled.');
+    }
+  };
+
+  // Function to auto-fill fields from survey data
+  const autoFillFromSurvey = (survey) => {
+    if (!survey) {
+        const fieldsToClear = ["sbu_id", "link_type_id", "aggregator_id", "kam_id", "nttn_id", "nttn_survey_id", "nttn_lat", "nttn_long", "client_lat", "client_long", "mac_user", "nttn_work_order_id", "request_capacity", "unit_rate", "rate_id", "total_cost_of_request_capacity"];
+        fieldsToClear.forEach(field => {
+            if (!["client_id", "cat_id"].includes(field)) {
+                formik.setFieldValue(field, defaultFormValues[field]);
+            }
+        });
+        setSurveyLocked({});
+        return;
+    }
+
+    console.log('🔄 Auto-filling fields from survey:', survey);
+    const filledFields = new Set();
+    const fieldMapping = {
+      sbu_id: survey.sbu_id,
+      link_type_id: survey.link_type_id,
+      aggregator_id: survey.aggregator_id,
+      kam_id: survey.kam_id,
+      nttn_id: survey.nttn_id,
+      nttn_survey_id: survey.nttn_survey_id,
+      nttn_lat: survey.nttn_lat,
+      nttn_long: survey.nttn_long,
+      client_lat: survey.client_lat,
+      client_long: survey.client_long,
+      mac_user: survey.mac_user,
+      nttn_work_order_id: survey.nttn_work_order_id,
+      request_capacity: survey.request_capacity, 
+      unit_rate: survey.unit_rate, 
+      rate_id: survey.rate_id, 
+      total_cost_of_request_capacity: survey.total_cost_of_request_capacity,
+    };
+
+    Object.entries(fieldMapping).forEach(([field, value]) => {
+      const currentValue = formik.values[field];
+      if ((!currentValue || currentValue === '') && value !== null && value !== undefined && value !== '') {
+        formik.setFieldValue(field, value);
+        filledFields.add(field);
+        console.log(`✅ Auto-filled ${field} from survey:`, value);
+      } else if (currentValue && value) {
+        console.log(`ℹ️ Field ${field} already has value: ${currentValue}, not overwriting with: ${value}`);
+      }
+    });
+
+    const lockedFields = {};
+    const fieldsToLock = ["link_type_id", "nttn_work_order_id", "client_lat", "client_long", "aggregator_id", "kam_id"];
+    fieldsToLock.forEach((field) => {
+      if (survey[field] !== null && survey[field] !== undefined && survey[field] !== '') {
+        lockedFields[field] = true;
+      }
+    });
+    setSurveyLocked(lockedFields);
+
+    setAutoFilledFields(filledFields);
+    
+    if (filledFields.size > 0) {
+      showToast.success(`Auto-filled ${filledFields.size} fields from survey data`);
+    }
+  };
+
+  // Handle survey selection
+  const handleSurveySelectChange = async (nttnSurveyId) => {
+    formik.setFieldValue("survey_id", nttnSurveyId); 
+    formik.setFieldTouched("survey_id", true);
+    
+    autoFillFromSurvey({});
+
+    const clientId = formik.values.client_id;
+    const catId = formik.values.cat_id;
+
+    if (!clientId || !catId || !nttnSurveyId) {
+      console.log("❌ Missing client ID, category ID, or NTTN survey ID for detail fetch");
+      return;
+    }
+    
+    try {
+      console.log(`📡 Fetching survey details for NTTN Survey ID: ${nttnSurveyId}`);
+      const surveysData = await fetchSurveysDetailsByClient(clientId, catId, nttnSurveyId);
+      const surveysArray = surveysData?.data || surveysData;
+      
+      if (Array.isArray(surveysArray) && surveysArray.length > 0) {
+        autoFillFromSurvey(surveysArray[0]);
+        showToast.success("Successfully loaded survey details.");
+      } else {
+        showToast.error("No details found for the selected survey.");
+      }
+    } catch (err) {
+      console.error("💥 Error fetching survey details:", err);
+      showToast.error("Failed to fetch survey details");
+    }
+  };
+
+  // Handle select changes
+  const handleSelectChange = async (fieldName, selectedValue) => {
+    console.log(`📡 Select Change: ${fieldName}, Selected Value:`, selectedValue);
+    const actualValue = selectedValue?.value ?? selectedValue;
+    
+    formik.setFieldValue(fieldName, actualValue);
+    formik.setFieldTouched(fieldName, true);
+
+    if (fieldName === "survey_id") {
+      await handleSurveySelectChange(actualValue);
+      return;
+    }
+
+    // Clear dependent fields when parent fields change
+    if (fieldName === "sbu_id") {
+      formik.setFieldValue("cat_id", "");
+      formik.setFieldValue("client_id", "");
+      formik.setFieldValue("survey_id", "");
+      setCategoryOptions([]);
+      setClientOptions([]);
+      setSurveyOptions([]);
+      autoFillFromSurvey({});
+      ["division", "district", "thana", "address"].forEach(field => formik.setFieldValue(field, ""));
+    }
+
+    if (fieldName === "cat_id") {
+      formik.setFieldValue("client_id", "");
+      formik.setFieldValue("survey_id", "");
+      setClientOptions([]);
+      setSurveyOptions([]);
+      autoFillFromSurvey({});
+      ["division", "district", "thana", "address"].forEach(field => formik.setFieldValue(field, ""));
+    }
+    
+    if (fieldName === "client_id") {
+      formik.setFieldValue("survey_id", "");
+      setSurveyOptions([]);
+      autoFillFromSurvey({});
+    }
+  };
+
+  // ⭐️ NEW: Function to calculate rates based on NTTN and capacity
+  const calculateRates = async (nttnId, requestCapacity) => {
+    if (!nttnId || !requestCapacity) {
+      formik.setFieldValue("unit_rate", "");
+      formik.setFieldValue("rate_id", "");
+      return;
+    }
+
+    setIsLoadingRates(true);
+    try {
+      console.log(`📡 Calculating rates for NTTN: ${nttnId}, Capacity: ${requestCapacity}`);
+      
+      // Fetch rates for the selected NTTN
+      const rates = await fetchRatesByNttn(nttnId);
+      console.log('📊 Rates fetched:', rates);
+      
+      const capacity = parseInt(requestCapacity);
+      
+      // Find matching rate based on capacity range
+      const matchingRate = rates.find((rate) => {
+        const rangeFrom = parseInt(rate.bw_range_from);
+        const rangeTo = parseInt(rate.bw_range_to);
+        return capacity >= rangeFrom && capacity <= rangeTo;
+      });
+
+      if (matchingRate) {
+        console.log('✅ Matching rate found:', matchingRate);
+        formik.setFieldValue("unit_rate", matchingRate.rate);
+        formik.setFieldValue("rate_id", matchingRate.id);
+        showToast.success(`Rate calculated: ${matchingRate.rate} per Mbps`);
+      } else {
+        console.log('❌ No matching rate found for capacity:', capacity);
+        formik.setFieldValue("unit_rate", "");
+        formik.setFieldValue("rate_id", "");
+        showToast.error("No rate found for the selected capacity range");
+      }
+    } catch (err) {
+      console.error("💥 Error calculating rates:", err);
+      showToast.error("Failed to calculate rates");
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
+
+  // ⭐️ USE EFFECT to fetch client location and survey options 
+  useEffect(() => {
+    const fetchClientDataAndSurveys = async () => {
+      const clientId = formik.values.client_id;
+      const catId = formik.values.cat_id;
+      
+      if (!clientId || !catId) {
+        setSurveyOptions([]);
+        autoFillFromSurvey({});
+        return;
+      }
+
+      try {
+        console.log(`📡 [USE EFFECT] Fetching client details & surveys for client: ${clientId}, category: ${catId}`);
+
+        // 1️⃣ Fetch Client Details (Location)
+        const clientDetails = await fetchClientDetailsByClient(clientId, catId);
+        
+        if (clientDetails && typeof clientDetails === 'object' && clientDetails.id) {
+          autoFillClientLocation(clientDetails);
+        } else {
+          console.log("❌ Failed to get client details object from service response or client not found in DB.");
+          showToast.error("Client details not found");
+          ["division", "district", "thana", "address"].forEach(field => formik.setFieldValue(field, ""));
+        }
+
+        // 2️⃣ Fetch Surveys (for Survey ID dropdown)
+        const surveysResponse = await fetchSurveysByClientLaravel(clientId, catId);
+        const surveysData = surveysResponse ? [surveysResponse] : []; 
+
+        if (Array.isArray(surveysData) && surveysData.length > 0 && surveysData[0].nttn_survey_id) {
+          const mappedSurveys = surveysData.map((s) => ({
+            value: s.nttn_survey_id,
+            label: s.nttn_survey_id,
+            _raw: s,
+          }));
+          setSurveyOptions(mappedSurveys);
+
+          const currentSurveyId = formik.values.survey_id;
+          if (mappedSurveys.length > 0 && (!currentSurveyId || currentSurveyId === '')) {
+            formik.setFieldValue("survey_id", mappedSurveys[0].value);
+            await handleSurveySelectChange(mappedSurveys[0].value);
+          }
+        } else {
+          setSurveyOptions([]);
+          autoFillFromSurvey({});
+          console.log("ℹ️ [USE EFFECT] No surveys found for this client");
+        }
+
+      } catch (err) {
+        console.error("💥 Error fetching client details or surveys:", err);
+        setSurveyOptions([]);
+        showToast.error("Failed to fetch client details or surveys"); 
+      }
+    };
+    
+    const timer = setTimeout(() => {
+        fetchClientDataAndSurveys();
+    }, 100);
+
+    return () => clearTimeout(timer);
+
+  }, [formik.values.client_id, formik.values.cat_id]);
+
+  // Step 1: Load all static data on component mount
   useEffect(() => {
     const loadStaticData = async () => {
       try {
@@ -187,26 +545,46 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
             fetchNTTNs(),
           ]);
 
+        console.log('📊 NTTN Data received:', nttnRes);
+
+        // FIX: Properly map NTTN data
         setSbuOptions(
-          sbuRes.map((item) => ({ value: item.id, label: item.sbu_name }))
+          Array.isArray(sbuRes) ? sbuRes.map((item) => ({ value: item.id, label: item.sbu_name })) : []
         );
         setLinkTypeOptions(
-          linkTypeRes.map((item) => ({ value: item.id, label: item.type_name }))
+          Array.isArray(linkTypeRes) ? linkTypeRes.map((item) => ({ value: item.id, label: item.type_name })) : []
         );
         setAggregatorOptions(
-          aggregatorRes.map((item) => ({
+          Array.isArray(aggregatorRes) ? aggregatorRes.map((item) => ({
             value: item.id,
             label: item.aggregator_name,
-          }))
+          })) : []
         );
         setKamOptions(
-          kamRes.map((item) => ({ value: item.id, label: item.kam_name }))
+          Array.isArray(kamRes) ? kamRes.map((item) => ({ value: item.id, label: item.kam_name })) : []
         );
-        setNttnOptions(
-          nttnRes.map((item) => ({ value: item.id, label: item.nttn_name }))
-        );
+        
+        // FIX: Handle NTTN data properly
+        let nttnData = [];
+        if (Array.isArray(nttnRes)) {
+          nttnData = nttnRes;
+        } else if (nttnRes && nttnRes.data && Array.isArray(nttnRes.data)) {
+          nttnData = nttnRes.data;
+        } else if (nttnRes && Array.isArray(nttnRes)) {
+          nttnData = nttnRes;
+        }
+        
+        const mappedNttns = nttnData.map((item) => ({
+          value: item.id,
+          label: item.nttn_name,
+        }));
+        
+        console.log('✅ Mapped NTTN Options:', mappedNttns);
+        setNttnOptions(mappedNttns);
+        
         setIsFormLoaded(true);
       } catch (err) {
+        console.error('❌ Error loading static data:', err);
         showToast.error(
           err?.response?.data?.message ||
           "Failed to load static data for survey form!"
@@ -216,307 +594,246 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
     loadStaticData();
   }, []);
 
-  // Step 2: Unified Initialization for Edit Mode (runs once after static data is loaded)
+  // Step 2: Load categories when SBU changes
   useEffect(() => {
-    const initializeEditMode = async () => {
-      if (!isEditMode || !isFormLoaded || !initialValues.sbu_id) {
+    const fetchSbuWiseCategories = async () => {
+      const sbuId = formik.values.sbu_id;
+      if (!sbuId) {
+        setCategoryOptions([]);
         return;
       }
-
       try {
-        // Step A: Load categories for the initial SBU
-        const categoriesRes = await fetchCategoriesBySBU(initialValues.sbu_id);
-        const mappedCategories = categoriesRes.map((item) => ({
+        console.log('📡 Calling fetchCategoriesBySBU with:', sbuId);
+        const categoriesData = await fetchCategoriesBySBU(sbuId);
+        
+        const categoriesArray = categoriesData?.data || categoriesData;
+
+        const mappedCategories = Array.isArray(categoriesArray) ? categoriesArray.map((item) => ({
           value: item.id,
           label: item.cat_name,
-        }));
+        })) : [];
+        
         setCategoryOptions(mappedCategories);
-
-        // Step B: Use category name to find and set the category ID
-        const category = mappedCategories.find(
-          (cat) => cat.label === initialValues.client_category
+        
+        if (isEditMode && initialValues.cat_id && initialValues.sbu_id === sbuId && !formik.values.cat_id) {
+          formik.setFieldValue("cat_id", initialValues.cat_id);
+        }
+      } catch (err) {
+        console.error('❌ Error fetching categories:', err);
+        showToast.error(
+          err?.response?.data?.message ||
+          "Failed to load categories for the selected SBU!"
         );
-        if (category) {
-          formik.setFieldValue("cat_id", category.value);
-
-          // Step C: Load clients based on the found category ID
-          const clientsRes = await fetchClientsCategoryWise(category.value);
-          const mappedClients = clientsRes.map((c) => ({
-            value: c.id,
-            label: c.client_name,
-            division: c.division_name || "N/A",
-            district: c.district_name || "N/A",
-            thana: c.thana_name || "N/A",
-            address: c.address || "",
-            client_lat: c.client_lat || "",
-            client_long: c.client_long || "",
-          }));
-          setClientOptions(mappedClients);
-
-          // Step D: Find the client and populate location fields
-          const client = mappedClients.find(
-            (c) => c.value === initialValues.client_id
-          );
-          if (client) {
-            ["division", "district", "thana", "address", "client_lat", "client_long"].forEach((f) =>
-              formik.setFieldValue(f, client[f] || "")
-            );
-          }
-
-          // Step E: Load surveys for the client
-          const surveysRes = await fetchSurveysByClient(initialValues.client_id);
-          const mappedSurveys = surveysRes.map((s) => ({
-            value: s.id,
-            label: s.nttn_survey_id,
-            _raw: s,
-          }));
-          setSurveyOptions(mappedSurveys);
-
-          // Step F: Find the survey and populate fields from it
-          const survey = mappedSurveys.find((s) => s.value === initialValues.survey_id)?._raw;
-          if (survey) {
-            const fields = ["link_type_id", "nttn_link_id", "client_lat", "client_long", "aggregator_id", "kam_id"];
-            const lockedFields = {};
-            fields.forEach((f) => {
-              if (survey[f] !== null && survey[f] !== undefined && survey[f] !== '') {
-                formik.setFieldValue(f, survey[f]);
-                lockedFields[f] = true;
-              }
-            });
-            setSurveyLocked(lockedFields);
-          }
-        }
-
-        // ⚡️ NEW: Trigger rate calculation after all other data is loaded
-        if (initialValues.nttn_id && initialValues.request_capacity) {
-          setIsLoadingRates(true);
-          try {
-            const requestCapacity = parseInt(initialValues.request_capacity);
-            const ranges = await fetchBandwidthRangesByID(initialValues.nttn_id);
-
-            const matchingRange = ranges.find((range) => {
-              const rangeFrom = parseInt(range.range_from);
-              const rangeTo = parseInt(range.range_to);
-              return requestCapacity >= rangeFrom && requestCapacity <= rangeTo;
-            });
-
-            if (matchingRange) {
-              const rates = await fetchRatesByID(initialValues.nttn_id, matchingRange.id);
-              const activeRate = rates.find(
-                (rate) =>
-                  rate.continue_field &&
-                  rate.status === 1 &&
-                  new Date(rate.effective_from) <= new Date() &&
-                  new Date(rate.effective_to) >= new Date()
-              );
-
-              if (activeRate) {
-                formik.setFieldValue("unit_rate", activeRate.rate);
-              } else {
-                formik.setFieldValue("unit_rate", initialValues.unit_rate);
-              }
-            } else {
-              formik.setFieldValue("unit_rate", initialValues.unit_rate);
-            }
-          } catch (err) {
-            console.error("Error fetching rates on initial load:", err);
-            showToast.error("Failed to load rate for the existing entry.");
-          } finally {
-            setIsLoadingRates(false);
-          }
-        }
-
-      } catch (e) {
-        showToast.error("Failed to initialize form data for editing.");
-        console.error("Initialization error:", e);
+        setCategoryOptions([]);
       }
     };
-    initializeEditMode();
-  }, [isEditMode, initialValues, isFormLoaded]);
+    fetchSbuWiseCategories();
+  }, [formik.values.sbu_id, isEditMode, initialValues.cat_id, initialValues.sbu_id]);
 
-  // Step 3: Handle cascading changes based on user interaction directly in the handler
-  const handleSelectChange = async (fieldName, selectedValue) => {
-    formik.setFieldValue(fieldName, selectedValue);
-    formik.setFieldTouched(fieldName, true);
+  // Step 3: Load clients when category changes
+  useEffect(() => {
+    const fetchCategoryWiseClients = async () => {
+      const catId = formik.values.cat_id;
+      if (!catId) {
+        setClientOptions([]);
+        return;
+      }
+      try {
+        console.log('📡 Calling fetchClientsCategoryWise with:', catId);
+        const clientsData = await fetchClientsCategoryWise(catId);
+        
+        const clientsArray = clientsData?.data || clientsData;
+        
+        const mappedClients = Array.isArray(clientsArray) ? clientsArray.map((c) => ({
+          value: c.id,
+          label: c.client_name,
+          division: c.division_name || "N/A",
+          district: c.district_name || "N/A",
+          thana: c.thana_name || "N/A",
+          address: c.address || "",
+          client_lat: c.client_lat || "",
+          client_long: c.client_long || "",
+        })) : [];
 
-    if (fieldName === "sbu_id") {
-      formik.setFieldValue("cat_id", null);
-      formik.setFieldValue("client_id", null);
-      setCategoryOptions([]);
-      setClientOptions([]);
-      setSurveyOptions([]);
-      if (selectedValue) {
-        try {
-          const categoriesRes = await fetchCategoriesBySBU(selectedValue);
-          setCategoryOptions(
-            categoriesRes.map((item) => ({ value: item.id, label: item.cat_name }))
-          );
-        } catch (err) {
-          showToast.error("Failed to load categories for the selected SBU!");
+        setClientOptions(mappedClients);
+        
+        if (isEditMode && initialValues.client_id && initialValues.cat_id === catId && !formik.values.client_id) {
+            formik.setFieldValue("client_id", initialValues.client_id);
         }
+      } catch (err) {
+        showToast.error(
+          err?.response?.data?.message ||
+          "Failed to load clients for the selected category!"
+        );
+        setClientOptions([]);
       }
-    } else if (fieldName === "cat_id") {
-      formik.setFieldValue("client_id", null);
-      setClientOptions([]);
-      setSurveyOptions([]);
-      if (selectedValue) {
-        try {
-          const clientsRes = await fetchClientsCategoryWise(selectedValue);
-          const mapped = clientsRes.map((c) => ({
-            value: c.id,
-            label: c.client_name,
-            division: c.division_name || "N/A",
-            district: c.district_name || "N/A",
-            thana: c.thana_name || "N/A",
-            address: c.address || "",
-            client_lat: c.client_lat || "",
-            client_long: c.client_long || "",
-          }));
-          setClientOptions(mapped);
-        } catch (err) {
-          showToast.error("Failed to load clients for the selected category!");
-        }
-      }
-    } else if (fieldName === "client_id") {
-      formik.setFieldValue("division", "");
-      formik.setFieldValue("district", "");
-      formik.setFieldValue("thana", "");
-      formik.setFieldValue("address", "");
-      formik.setFieldValue("client_lat", "");
-      formik.setFieldValue("client_long", "");
-      formik.setFieldValue("survey_id", null);
-      setSurveyOptions([]);
+    };
+    fetchCategoryWiseClients();
+  }, [formik.values.cat_id, isEditMode, initialValues.client_id, initialValues.cat_id]);
 
-      const client = clientOptions.find((c) => c.value === selectedValue);
-      if (client) {
-        formik.setFieldValue("division", client.division);
-        formik.setFieldValue("district", client.district);
-        formik.setFieldValue("thana", client.thana);
-        formik.setFieldValue("address", client.address);
-        formik.setFieldValue("client_lat", client.client_lat);
-        formik.setFieldValue("client_long", client.client_long);
+  // ⭐️ NEW: Calculate rates when NTTN or capacity changes (for both create and edit modes)
+  useEffect(() => {
+    const nttnId = formik.values.nttn_id;
+    const requestCapacity = formik.values.request_capacity;
 
-        try {
-          const surveysRes = await fetchSurveysByClient(selectedValue);
-          setSurveyOptions(
-            surveysRes.map((s) => ({
-              value: s.id,
-              label: s.nttn_survey_id,
-              _raw: s,
-            }))
-          );
-        } catch (e) {
-          showToast.error("Could not load surveys for selected client");
-        }
-      }
-    } else if (fieldName === "survey_id") {
-      const survey = surveyOptions.find(
-        (o) => o.value === selectedValue
-      )?._raw;
-      const fields = [
-        "link_type_id",
-        "nttn_link_id",
-        "client_lat",
-        "client_long",
-        "aggregator_id",
-        "kam_id",
-      ];
-      const lockedFields = {};
-      if (survey) {
-        fields.forEach((f) => {
-          if (survey[f] !== null && survey[f] !== undefined && survey[f] !== '') {
-            formik.setFieldValue(f, survey[f]);
-            lockedFields[f] = true;
-          }
-        });
-      } else {
-        fields.forEach((f) => {
-          formik.setFieldValue(f, defaultFormValues[f]);
-        });
-      }
-      setSurveyLocked(lockedFields);
+    if (nttnId && requestCapacity) {
+      calculateRates(nttnId, requestCapacity);
+    } else if (!nttnId || !requestCapacity) {
+      formik.setFieldValue("unit_rate", "");
+      formik.setFieldValue("rate_id", "");
     }
-  };
+  }, [formik.values.nttn_id, formik.values.request_capacity]);
 
-  // Remaining useEffects for rates which are not part of the main cascade
+  // ⭐️ NEW: Calculate total cost when capacity or unit rate changes
   useEffect(() => {
-    const fetchRangesForNttn = async () => {
-      if (formik.values.nttn_id) {
-        try {
-          const ranges = await fetchBandwidthRangesByID(formik.values.nttn_id);
-          setBandwidthRanges(ranges);
-        } catch (err) {
-          showToast.error("Failed to load bandwidth ranges for selected NTTN");
-          setBandwidthRanges([]);
-        }
-      } else {
-        setBandwidthRanges([]);
-      }
-    };
-    fetchRangesForNttn();
-  }, [formik.values.nttn_id]);
+    const requestCapacity = parseFloat(formik.values.request_capacity);
+    const unitRate = parseFloat(formik.values.unit_rate);
 
-  useEffect(() => {
-    const fetchAndSetUnitRate = async () => {
-      if (formik.values.nttn_id && formik.values.request_capacity && bandwidthRanges.length > 0) {
-        setIsLoadingRates(true);
-        try {
-          const requestCapacity = parseInt(formik.values.request_capacity);
-          const matchingRange = bandwidthRanges.find((range) => {
-            const rangeFrom = parseInt(range.range_from);
-            const rangeTo = parseInt(range.range_to);
-            return requestCapacity >= rangeFrom && requestCapacity <= rangeTo;
-          });
-
-          if (matchingRange) {
-            const rates = await fetchRatesByID(
-              formik.values.nttn_id,
-              matchingRange.id
-            );
-            const activeRate = rates.find(
-              (rate) =>
-                rate.continue_field &&
-                rate.status === 1 &&
-                new Date(rate.effective_from) <= new Date() &&
-                new Date(rate.effective_to) >= new Date()
-            );
-
-            if (activeRate) {
-              formik.setFieldValue("unit_rate", activeRate.rate);
-            } else {
-              formik.setFieldValue("unit_rate", "");
-            }
-          } else {
-            formik.setFieldValue("unit_rate", "");
-          }
-        } catch (err) {
-          console.error("Error fetching rates:", err);
-          showToast.error("Failed to load rate for selected capacity");
-        } finally {
-          setIsLoadingRates(false);
-        }
-      } else {
-        if (formik.values.unit_rate) {
-          formik.setFieldValue("unit_rate", "");
-        }
-      }
-    };
-    fetchAndSetUnitRate();
-  }, [formik.values.nttn_id, formik.values.request_capacity, bandwidthRanges]);
-
-  useEffect(() => {
-    if (formik.values.request_capacity && formik.values.unit_rate) {
-      const requestCapacity = parseFloat(formik.values.request_capacity);
-      const unitRate = parseFloat(formik.values.unit_rate);
+    if (requestCapacity > 0 && unitRate > 0) {
       const totalCost = requestCapacity * unitRate;
       formik.setFieldValue(
         "total_cost_of_request_capacity",
         totalCost.toFixed(2)
       );
-    } else if (!formik.values.request_capacity || !formik.values.unit_rate) {
+    } else if (formik.values.total_cost_of_request_capacity) {
       formik.setFieldValue("total_cost_of_request_capacity", "");
     }
   }, [formik.values.request_capacity, formik.values.unit_rate]);
+
+  // ⭐️ FIXED: Initialize edit mode data when form loads
+  useEffect(() => {
+    if (isEditMode && initialValues && Object.keys(initialValues).length > 0 && isFormLoaded && !hasCalculatedEditModeRates) {
+      console.log('🔄 Setting edit mode initial values:', initialValues);
+      
+      // Set values with proper timing to ensure dropdowns are populated
+      // const initializeEditMode = async () => {
+      //   // Set basic values first
+      //   const fieldMappings = {
+      //     sbu_id: initialValues.sbu_id,
+      //     link_type_id: initialValues.link_type_id,
+      //     aggregator_id: initialValues.aggregator_id,
+      //     kam_id: initialValues.kam_id,
+      //     nttn_id: initialValues.nttn_id,
+      //     nttn_survey_id: initialValues.nttn_survey_id,
+      //     nttn_lat: initialValues.nttn_lat,
+      //     nttn_long: initialValues.nttn_long,
+      //     client_id: initialValues.client_id,
+      //     client_lat: initialValues.client_lat,
+      //     client_long: initialValues.client_long,
+      //     mac_user: initialValues.mac_user,
+      //     work_order_mac_user: initialValues.work_order_mac_user,
+      //     nttn_work_order_id: initialValues.nttn_work_order_id,
+      //     request_capacity: initialValues.request_capacity,
+      //     total_cost_of_request_capacity: initialValues.total_cost_of_request_capacity,
+      //     unit_rate: initialValues.unit_rate,
+      //     rate_id: initialValues.rate_id,
+      //     vlan: initialValues.vlan,
+      //     remarks: initialValues.remarks,
+      //     status: initialValues.status,
+      //     modify_status: initialValues.modify_status,
+      //     posted_by: initialValues.posted_by,
+      //     submission: initialValues.submission,
+      //     requested_delivery: initialValues.requested_delivery,
+      //     service_handover: initialValues.service_handover,
+      //     division: initialValues.division,
+      //     district: initialValues.district,
+      //     thana: initialValues.thana,
+      //     address: initialValues.address,
+      //     survey_id: "",
+      //   };
+
+      //   console.log('🗺️ Field mappings for edit mode:', fieldMappings);
+
+      //   // Set values individually
+      //   Object.entries(fieldMappings).forEach(([key, value]) => {
+      //     if (value !== undefined && value !== null) {
+      //       console.log(`✅ Setting ${key}:`, value);
+      //       formik.setFieldValue(key, value);
+      //     }
+      //   });
+
+      //   // Wait for dropdowns to populate and then calculate rates
+      //   setTimeout(() => {
+      //     if (initialValues.nttn_id && initialValues.request_capacity) {
+      //       console.log('🔄 Calculating rates for edit mode...');
+      //       calculateRates(initialValues.nttn_id, initialValues.request_capacity);
+      //     }
+      //     setHasCalculatedEditModeRates(true);
+      //   }, 1000);
+      // };
+
+      const initializeEditMode = async () => {
+  // Set basic values first
+  const fieldMappings = {
+    sbu_id: initialValues.sbu_id,
+    link_type_id: initialValues.link_type_id,
+    aggregator_id: initialValues.aggregator_id,
+    kam_id: initialValues.kam_id,
+    nttn_id: initialValues.nttn_id,
+    nttn_survey_id: initialValues.nttn_survey_id,
+    nttn_lat: initialValues.nttn_lat,
+    nttn_long: initialValues.nttn_long,
+    client_id: initialValues.client_id,
+    client_lat: initialValues.client_lat,
+    client_long: initialValues.client_long,
+    mac_user: initialValues.mac_user,
+    work_order_mac_user: initialValues.work_order_mac_user,
+    nttn_work_order_id: initialValues.nttn_work_order_id,
+    request_capacity: initialValues.request_capacity,
+    total_cost_of_request_capacity: initialValues.total_cost_of_request_capacity,
+    unit_rate: initialValues.unit_rate,
+    rate_id: initialValues.rate_id,
+    vlan: initialValues.vlan,
+    remarks: initialValues.remarks,
+    status: initialValues.status,
+    modify_status: initialValues.modify_status,
+    posted_by: initialValues.posted_by,
+    // Date fields - ensure they're properly formatted
+    submission: initialValues.submission,
+    requested_delivery: initialValues.requested_delivery,
+    service_handover: initialValues.service_handover,
+    division: initialValues.division,
+    district: initialValues.district,
+    thana: initialValues.thana,
+    address: initialValues.address,
+    survey_id: "",
+  };
+
+  console.log('🗺️ Field mappings for edit mode:', fieldMappings);
+  console.log('📅 Date fields:', {
+    submission: initialValues.submission,
+    requested_delivery: initialValues.requested_delivery,
+    service_handover: initialValues.service_handover
+  });
+
+  // Set values individually
+  Object.entries(fieldMappings).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      console.log(`✅ Setting ${key}:`, value);
+      formik.setFieldValue(key, value);
+    }
+  });
+
+  // Wait for dropdowns to populate and then calculate rates
+  setTimeout(() => {
+    if (initialValues.nttn_id && initialValues.request_capacity) {
+      console.log('🔄 Calculating rates for edit mode...');
+      calculateRates(initialValues.nttn_id, initialValues.request_capacity);
+    }
+    setHasCalculatedEditModeRates(true);
+  }, 1000);
+};
+
+      initializeEditMode();
+    }
+  }, [isEditMode, initialValues, isFormLoaded, hasCalculatedEditModeRates]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('📊 Current Form Values:', formik.values);
+    console.log('📊 NTTN Options:', nttnOptions);
+    console.log('📊 Selected NTTN Option:', findSelectedOption("nttn_id", nttnOptions));
+  }, [formik.values, nttnOptions]);
 
   return (
     <div className="p-4">
@@ -541,58 +858,67 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
         </div>
       </div>
 
+
       <FormikProvider value={formik}>
         <form className="space-y-6" onSubmit={formik.handleSubmit}>
-          <FormSection title="Client Details">
+          {/* Modification Details Section Removed as requested */}
+
+          <FormSection title="Client Details" icon={Building}>
             <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
               <SelectField
                 name="sbu_id"
-                label="SBU"
+                placeholder="SBU"
                 options={sbuOptions}
+                value={findSelectedOption("sbu_id", sbuOptions)}
                 onChange={(val) => handleSelectChange("sbu_id", val)}
                 searchable
               />
               <SelectField
                 name="cat_id"
-                label="Category"
+                placeholder="Category"
                 options={categoryOptions}
+                value={findSelectedOption("cat_id", categoryOptions)}
                 onChange={(val) => handleSelectChange("cat_id", val)}
                 searchable
-                isDisabled={!formik.values.sbu_id}
+                disabled={!formik.values.sbu_id}
               />
               <SelectField
                 name="client_id"
-                label="Client Name"
+                placeholder="Client Name"
                 options={clientOptions}
+                value={findSelectedOption("client_id", clientOptions)}
                 onChange={(val) => handleSelectChange("client_id", val)}
                 searchable
-                isDisabled={!formik.values.cat_id}
+                disabled={!formik.values.cat_id}
               />
             </div>
             <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
               <SelectField
                 name="survey_id"
-                label="Select Survey"
+                placeholder="Select Survey (NTTN ID)"
                 options={surveyOptions}
+                value={findSelectedOption("survey_id", surveyOptions)}
                 onChange={(val) => handleSelectChange("survey_id", val)}
                 searchable
-                isDisabled={!formik.values.client_id}
+                disabled={!formik.values.client_id || surveyOptions.length === 0}
               />
               <SelectField
                 name="link_type_id"
-                label="Link Type"
+                placeholder="Link Type"
                 options={linkTypeOptions}
+                value={findSelectedOption("link_type_id", linkTypeOptions)}
                 onChange={(val) => handleSelectChange("link_type_id", val)}
                 disabled={surveyLocked.link_type_id}
                 searchable
               />
               <InputField
-                name="nttn_link_id"
+                name="nttn_work_order_id"
                 label="Link / SCR"
                 type="text"
-                disabled={surveyLocked.nttn_link_id}
+                disabled={surveyLocked.nttn_work_order_id}
               />
             </div>
+          
             <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-6">
               <InputField
                 name="client_lat"
@@ -608,16 +934,18 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               />
               <SelectField
                 name="aggregator_id"
-                label="Aggregator"
+                placeholder="Aggregator"
                 options={aggregatorOptions}
+                value={findSelectedOption("aggregator_id", aggregatorOptions)}
                 onChange={(val) => handleSelectChange("aggregator_id", val)}
                 searchable
                 disabled={surveyLocked.aggregator_id}
               />
               <SelectField
                 name="kam_id"
-                label="KAM"
+                placeholder="KAM"
                 options={kamOptions}
+                value={findSelectedOption("kam_id", kamOptions)}
                 onChange={(val) => handleSelectChange("kam_id", val)}
                 searchable
                 disabled={surveyLocked.kam_id}
@@ -631,41 +959,30 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
                 </h3>
                 <div className="flex items-center space-x-2">
                   <Globe size={16} className="text-blue-500" />
-                  <p>
-                    <strong className="text-gray-800">Division:</strong>{" "}
-                    {formik.values.division || "N/A"}
-                  </p>
+                  <p><strong className="text-gray-800">Division:</strong> {formik.values.division || "N/A"}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Building size={16} className="text-green-500" />
-                  <p>
-                    <strong className="text-gray-800">District:</strong>{" "}
-                    {formik.values.district || "N/A"}
-                  </p>
+                  <p><strong className="text-gray-800">District:</strong> {formik.values.district || "N/A"}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Pin size={16} className="text-red-500" />
-                  <p>
-                    <strong className="text-gray-800">Thana:</strong>{" "}
-                    {formik.values.thana || "N/A"}
-                  </p>
+                  <p><strong className="text-gray-800">Thana:</strong> {formik.values.thana || "N/A"}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Building size={16} className="text-purple-500" />
-                  <p className="truncate">
-                    <strong className="text-gray-800">Address:</strong>{" "}
-                    {formik.values.address || "N/A"}
-                  </p>
+                  <p className="truncate"><strong className="text-gray-800">Address:</strong> {formik.values.address || "N/A"}</p>
                 </div>
               </div>
             </div>
           </FormSection>
 
-          <FormSection title="NTTN Details">
+          <FormSection title="NTTN Details" icon={Globe}>
             <SelectField
               name="nttn_id"
-              label="NTTN Name"
+              placeholder="NTTN Name"
               options={nttnOptions}
+              value={findSelectedOption("nttn_id", nttnOptions)}
               onChange={(val) => handleSelectChange("nttn_id", val)}
               searchable
             />
@@ -686,7 +1003,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
             />
           </FormSection>
 
-          <FormSection title="Capacity and Cost">
+          <FormSection title="Capacity and Cost" icon={MapPin}>
             <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
               <InputField
                 name="request_capacity"
@@ -699,41 +1016,63 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
                 step="0.01"
                 label="Unit Rate"
                 disabled={isLoadingRates}
-                help={isLoadingRates ? "Loading rate..." : null}
+                readOnly
+                help={isLoadingRates ? "Loading rate..." : "Auto-calculated based on capacity and NTTN"}
               />
               <InputField
                 name="total_cost_of_request_capacity"
                 type="number"
                 label="Total Cost of Requested Capacity"
                 readOnly
+                help="Auto-calculated (Capacity × Unit Rate)"
               />
             </div>
+            <InputField
+              name="rate_id"
+              type="number"
+              label="Rate ID"
+              help="Auto-populated based on selected capacity and NTTN"
+              readOnly
+            />
           </FormSection>
 
-          <FormSection title="Additional Details">
+          <FormSection title="Additional Details" icon={Pin}>
             <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-6">
               <InputField name="mac_user" label="MAC Users" type="text" />
-              <DateField
-                name="submition"
-                placeholder="Submission Date"
-                value={formik.values.submition}
-                onChange={(val) => formik.setFieldValue("submition", val)}
-                range={false}
+              <InputField 
+                name="work_order_mac_user" 
+                label="Work Order MAC User" 
+                type="text" 
+                help="Specific MAC user for this work order"
               />
-              <DateField
+              <InputField
+                name="vlan"
+                label="VLAN"
+                type="text"
+              />
+              <DatePickerField
+                name="submission"
+                placeholder="Submission Date"
+                field={formik.getFieldProps('submission')}
+                form={formik}
+              />
+            </div>
+           
+            <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-6">
+              <DatePickerField
                 name="requested_delivery"
                 placeholder="Requested Delivery Date"
-                value={formik.values.requested_delivery}
-                onChange={(val) => formik.setFieldValue("requested_delivery", val)}
-                range={false}
+                field={formik.getFieldProps('requested_delivery')}
+                form={formik}
               />
-              <DateField
+              <DatePickerField
                 name="service_handover"
                 placeholder="Service Handover Date"
-                value={formik.values.service_handover}
-                onChange={(val) => formik.setFieldValue("service_handover", val)}
-                range={false}
+                field={formik.getFieldProps('service_handover')}
+                form={formik}
               />
+              <div></div>
+              <div></div>
             </div>
             <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               <InputField
@@ -744,16 +1083,17 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               />
               <SelectField
                 name="status"
-                label="Status"
+                placeholder="Status"
                 options={[
-                  { value: "Active", label: "Active" },
-                  { value: "Inactive", label: "Inactive" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
                 ]}
                 onChange={(val) => handleSelectChange("status", val)}
                 className="md:col-span-1"
               />
             </div>
           </FormSection>
+          
           <div className="flex w-full justify-end mt-8 space-x-3">
             <Button intent="cancel" type="button" onClick={onCancel}>
               Cancel

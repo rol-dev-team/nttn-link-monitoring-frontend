@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Plus, Pencil } from "lucide-react";
 import Button from "../components/ui/Button";
@@ -16,7 +18,7 @@ import {
 } from "../services/bwModification";
 import moment from "moment";
 
-/* ---------- Helper functions from WorkOrder example ---------- */
+/* ---------- Helper functions ---------- */
 const getNestedValue = (obj, path) => {
   return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
@@ -51,7 +53,6 @@ const getUniqueOptions = (records, key) => {
 };
 /* ----------------------------------------------------------- */
 
-/* ---------- default empty form values ---------- */
 const defaultInitialValues = {
   id: "",
   nttn_provider: null,
@@ -68,14 +69,12 @@ const defaultInitialValues = {
 };
 
 const BWModify = () => {
-  /* ---------- data & UI state ---------- */
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
-  const [filters, setFilters] = useState({}); // Stores active column filters
+  const [filters, setFilters] = useState({});
 
-  // 1️⃣ New state for pagination
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -90,36 +89,58 @@ const BWModify = () => {
 
   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
 
-  /* ---------- fetch data with filters & pagination ---------- */
+  /* ---------- Updated fetch function ---------- */
   const fetchAllBWModifications = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     const { page, limit } = pagination;
 
-    // Combine all filters, including pagination parameters
-    const allFilters = {
+    // Prepare filters for API
+    const apiFilters = {
       ...filters,
       page: page,
       limit: limit,
     };
 
     try {
-      // 2️⃣ Use the combined filters object
-      const res = await fetchBWModifications(allFilters);
-      const preprocessedData = (res.data || []).map((item) => ({
+      const res = await fetchBWModifications(apiFilters);
+      
+      // Handle different API response structures
+      let data = [];
+      let total = 0;
+      
+      if (Array.isArray(res.data)) {
+        // If response has data array
+        data = res.data;
+        total = res.total || res.data.length;
+      } else if (Array.isArray(res)) {
+        // If response is directly an array
+        data = res;
+        total = res.length;
+      } else {
+        // Fallback
+        data = [];
+        total = 0;
+      }
+
+      // Preprocess data with proper field mapping
+      const preprocessedData = data.map((item) => ({
         ...item,
-        nttn_provider_name: item.nttn_provider_details?.nttn_name ?? item.nttn_provider ?? "-",
-        client_category_name: item.client_category_details?.cat_name,
-        client_name: item.client_details?.client_name,
+        // Map fields according to your database structure
+        nttn_provider_name: item.nttn_name || item.nttn_provider_details?.nttn_name || "-",
+        client_category_name: item.cat_name || item.client_category_details?.cat_name,
+        client_name: item.client_name || item.client_details?.client_name,
         workorder_bw_capacity: item.workorder_details?.request_capacity,
-        workorder_id: item.workorder_details?.id,
-        modification_type: item.modification_type ?? "",
-        shifting_capacity: item.shifting_capacity ?? "",
-        shifting_unit_cost: item.shifting_unit_cost ?? "",
+        workorder_id: item.workorder_row_id || item.workorder_details?.id,
+        modification_type: item.modification_type || "",
+        shifting_capacity: item.shifting_capacity || "",
+        shifting_unit_cost: item.shifting_unit_cost || "",
+        nttn_link_id: item.nttn_work_order_id || item.nttn_link_id || "", // Handle both field names
       }));
+
       setRecords(preprocessedData);
-      setPagination(prev => ({ ...prev, totalRows: res.total })); // 3️⃣ Update total rows
+      setPagination(prev => ({ ...prev, totalRows: total }));
     } catch (err) {
       const msg = err?.response?.data?.message || "Failed to fetch BW Modifications.";
       setError(msg);
@@ -133,7 +154,7 @@ const BWModify = () => {
     fetchAllBWModifications();
   }, [fetchAllBWModifications]);
 
-  /* ---------- form handling (unchanged) ---------- */
+  /* ---------- form handling ---------- */
   const [formState, setFormState] = useState({
     isOpen: false,
     isEditMode: false,
@@ -158,16 +179,16 @@ const BWModify = () => {
       editingRecordId: item.id,
       initialValues: {
         ...item,
-        nttn_link_id: item.nttn_link_id || "",
+        nttn_work_order_id: item.nttn_link_id || item.nttn_work_order_id || "",
         capacity: item.capacity || "",
         capacity_cost: item.capacity_cost || "",
         shifting_bw: item.shifting_bw || "",
         shifting_capacity: item.shifting_capacity || "",
         shifting_unit_cost: item.shifting_unit_cost || "",
-        nttn_provider: item.nttn_provider_details?.id ?? null,
-        client: item.client_details?.id ?? null,
-        client_category: item.client_category_details?.id ?? null,
-        workorder: item.workorder_details?.id ?? null,
+        nttn_provider: item.nttn_provider_id || item.nttn_provider_details?.id || null,
+        client: item.client_id || item.client_details?.id || null,
+        client_category: item.client_category_id || item.client_category_details?.id || null,
+        workorder: item.workorder_row_id || item.workorder_details?.id || null,
       },
       isLoading: false,
     });
@@ -175,42 +196,42 @@ const BWModify = () => {
   const closeForm = () =>
     setFormState((s) => ({ ...s, isOpen: false, isEditMode: false, editingRecordId: null, initialValues: defaultInitialValues }));
 
-  const handleSubmit = async (values) => {
-    const { isEditMode, editingRecordId } = formState;
-    try {
-      if (isEditMode) {
-        await updateBWModification(editingRecordId, values);
-        showToast("Updated successfully!", "success");
-      } else {
-        await createBWModification(values);
-        showToast("Created successfully!", "success");
-      }
-      fetchAllBWModifications();
-      closeForm();
-    } catch (err) {
-      showToast(err?.response?.data?.message || "Save failed!", "error");
+ const handleSubmit = async (values) => {
+  const { isEditMode, editingRecordId } = formState;
+  try {
+    if (isEditMode) {
+      await updateBWModification(editingRecordId, values);
+      showToast("Updated successfully!", "success");
+    } else {
+      await createBWModification(values);
+      showToast("Created successfully!", "success");
     }
-  };
+    fetchAllBWModifications();
+    closeForm();
+  } catch (err) {
+    showToast(err?.response?.data?.message || "Save failed!", "error");
+  }
+};
 
-  // 4️⃣ New filter handler
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-    // IMPORTANT: Reset to page 1 whenever filters change
     setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
 
-  // 5️⃣ Dynamic Options Calculation (based on fetched records)
+  // Dynamic Options Calculation
   const dynamicOptions = useMemo(() => {
     return {
-      nttn_provider: getUniqueOptionsWithIds(records, 'nttn_provider_details.nttn_name', 'nttn_provider_details.id'),
+      nttn_provider: getUniqueOptionsWithIds(records, 'nttn_name', 'nttn_provider_id') || 
+                     getUniqueOptionsWithIds(records, 'nttn_provider_details.nttn_name', 'nttn_provider_details.id'),
       modification_type: getUniqueOptions(records, 'modification_type'),
-      client: getUniqueOptionsWithIds(records, 'client_details.client_name', 'client_details.id'),
-      client_category: getUniqueOptionsWithIds(records, 'client_category_details.cat_name', 'client_category_details.id'),
+      client: getUniqueOptionsWithIds(records, 'client_name', 'client_id') || 
+              getUniqueOptionsWithIds(records, 'client_details.client_name', 'client_details.id'),
+      client_category: getUniqueOptionsWithIds(records, 'cat_name', 'client_category_id') || 
+                      getUniqueOptionsWithIds(records, 'client_category_details.cat_name', 'client_category_details.id'),
     };
   }, [records]);
 
-
-  // 6️⃣ Work Order Columns Definition (Configured for Filtering)
+  // Updated Columns Definition
   const bwModifyColumns = useMemo(
     () => [
       {
@@ -218,46 +239,105 @@ const BWModify = () => {
         header: "NTTN Provider",
         isSortable: true,
         field: SelectField,
-        fieldProps: { name: "nttn_provider", options: dynamicOptions.nttn_provider, searchable: true }
+        fieldProps: { 
+          name: "nttn_provider", 
+          options: dynamicOptions.nttn_provider || [], 
+          searchable: true 
+        }
       },
       {
         key: "modification_type",
         header: "Modification Type",
         isSortable: true,
         field: SelectField,
-        fieldProps: { name: "modification_type", options: dynamicOptions.modification_type, searchable: true }
+        fieldProps: { 
+          name: "modification_type", 
+          options: dynamicOptions.modification_type || [], 
+          searchable: true 
+        }
       },
       {
         key: "client_category_name",
         header: "Client Category",
         isSortable: true,
         field: SelectField,
-        fieldProps: { name: "client_category", options: dynamicOptions.client_category, searchable: true }
+        fieldProps: { 
+          name: "client_category", 
+          options: dynamicOptions.client_category || [], 
+          searchable: true 
+        }
       },
       {
         key: "client_name",
         header: "Client",
         isSortable: true,
         field: SelectField,
-        fieldProps: { name: "client", options: dynamicOptions.client, searchable: true }
+        fieldProps: { 
+          name: "client", 
+          options: dynamicOptions.client || [], 
+          searchable: true 
+        }
       },
-      { key: "nttn_link_id", header: "NTTN Link ID", isSortable: true },
-      { key: "capacity", header: "Current Capacity", isSortable: true },
-      { key: "capacity_cost", header: "Current Cost", isSortable: true },
-      { key: "shifting_bw", header: "New BW", isSortable: true },
-      { key: "workorder_bw_capacity", header: "Work Order BW", isSortable: true },
-      { key: "shifting_capacity", header: "New Amount", isSortable: true },
-      { key: "shifting_unit_cost", header: "Unit Cost", isSortable: true },
-      { key: "workorder_id", header: "Work Order ID", isSortable: true },
+      { 
+        key: "nttn_link_id", 
+        header: "NTTN Link ID", 
+        isSortable: true 
+      },
+      { 
+        key: "capacity", 
+        header: "Current Capacity", 
+        isSortable: true,
+        render: (val) => val ? `${val} Mbps` : "-"
+      },
+      { 
+        key: "capacity_cost", 
+        header: "Current Cost", 
+        isSortable: true,
+        render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "-"
+      },
+      { 
+        key: "shifting_bw", 
+        header: "New BW", 
+        isSortable: true,
+        render: (val) => val ? `${val} Mbps` : "-"
+      },
+      // { 
+      //   key: "workorder_bw_capacity", 
+      //   header: "Work Order BW", 
+      //   isSortable: true,
+      //   render: (val) => val ? `${val} Mbps` : "-"
+      // },
+      { 
+        key: "shifting_capacity", 
+        header: "New Amount", 
+        isSortable: true,
+        render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "-"
+      },
+      { 
+        key: "shifting_unit_cost", 
+        header: "Unit Cost", 
+        isSortable: true,
+        render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "-"
+      },
+      { 
+        key: "workorder_id", 
+        header: "Work Order ID", 
+        isSortable: true 
+      },
       {
         key: "created_at",
         header: "Created",
         isSortable: true,
         render: (val) => (val ? moment(val).format("LLL") : "-"),
         field: DateField,
-        fieldProps: { name: "created_at", label: "Created Date", }
+        fieldProps: { name: "created_at", label: "Created Date" }
       },
-      { key: "updated_at", header: "Updated", isSortable: true, render: (val) => (val ? moment(val).format("LLL") : "-") },
+      { 
+        key: "updated_at", 
+        header: "Updated", 
+        isSortable: true, 
+        render: (val) => (val ? moment(val).format("LLL") : "-") 
+      },
       {
         key: "actions",
         header: "Action",
@@ -280,6 +360,7 @@ const BWModify = () => {
           isEditMode={formState.isEditMode}
           onSubmit={handleSubmit}
           onCancel={closeForm}
+          showToast={showToast}
         />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
@@ -323,22 +404,16 @@ const BWModify = () => {
           data={records}
           columns={bwModifyColumns}
           showId={true}
-
-          // 7️⃣ The FilterMenu is passed as a component to the DataTable
           filterComponent={
             <BWModificationFilterMenu
               records={records}
-              onFilterChange={handleFilterChange} // This handler updates 'filters' and triggers a data fetch
+              onFilterChange={handleFilterChange}
             />
           }
-
-          // 8️⃣ Server-Side Control Props
           isBackendPagination={true}
           totalRows={pagination.totalRows}
           page={pagination.page}
           pageSize={pagination.limit}
-
-          // Dedicated handlers for pagination/filters
           setPage={(page) => setPagination(prev => ({ ...prev, page }))}
           setPageSize={(limit) => setPagination(prev => ({ ...prev, limit, page: 1 }))}
         />

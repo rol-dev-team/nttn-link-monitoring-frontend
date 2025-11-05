@@ -1,4 +1,5 @@
 import api from "./api";
+import axiosInstance from "./partner-link/apiConfig";
 
 export const createCategory = async (payload) => {
   try {
@@ -11,7 +12,7 @@ export const createCategory = async (payload) => {
 
 export const fetchCategories = async () => {
   try {
-    const response = await api.get("/categories/");
+    const response = await  axiosInstance.get("/categories/");
     return response.data;
   } catch (error) {
     throw error;

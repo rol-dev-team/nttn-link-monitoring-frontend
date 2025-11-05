@@ -546,7 +546,7 @@ const SurveyForm = ({
           kamRes.map((item) => ({ value: item.id, label: item.kam_name }))
         );
         setNttnOptions(
-          nttnRes.map((item) => ({ value: item.id, label: item.nttn_name }))
+          nttnRes.data.map((item) => ({ value: item.id, label: item.nttn_name }))
         );
       } catch (err) {
         showToast(
@@ -596,9 +596,9 @@ const SurveyForm = ({
         return;
       }
       try {
-        const clientsRes = await fetchClientsCategoryWise(categoryId);
+        const {data} = await fetchClientsCategoryWise(categoryId);
         setClientOptions(
-          clientsRes.map((item) => ({
+          data.map((item) => ({
             value: item.id,
             label: item.client_name,
             division: item.division_name,

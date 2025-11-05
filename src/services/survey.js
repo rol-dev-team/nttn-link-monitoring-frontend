@@ -69,33 +69,82 @@ export const deleteSurvey = async (id) => {
   }
 };
 
-/* -------------------------------------------------
-   ✅ MODIFIED: Legacy functions refactored to use the new fetchSurveys internally
-   Their external API remains the same to avoid breaking existing code.
-   ------------------------------------------------- */
 
-/**
- * Fetch surveys within a date range (inclusive).
- * @param {Date|null} startDate
- * @param {Date|null} endDate
- * @returns {Promise<Array>} surveys
- */
 export const fetchSurveysByDateRange = async (startDate, endDate) => {
   const filters = {};
   if (startDate) filters.start = startDate.toISOString().slice(0, 10);
   if (endDate) filters.end = endDate.toISOString().slice(0, 10);
-
-  // Use the new, robust fetcher to handle the API call
   return fetchSurveys(filters);
 };
 
-/* -------------------------------------------------
-   Fetch surveys for a specific client
-   ------------------------------------------------- */
+
 export const fetchSurveysByClient = async (clientId) => {
   const filters = { client: clientId };
-
-  // Use the new, robust fetcher to handle the API call
   return fetchSurveys(filters);
 };
 
+
+
+
+
+////
+export const fetchClientDetailsByClient = async (clientId, categoryId) => {
+  try {
+    const response = await axiosInstance.get(`/client-details/${clientId}/${categoryId}`);
+    if (response.data && response.data.success !== false) {
+     
+      if (response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Client not found');
+    }
+  } catch (error) {
+    console.error('❌ Error fetching client details:', error);
+    throw error;
+  }
+};
+
+
+export const fetchSurveysByClientLaravel = async (clientId, categoryId) => {
+  try {
+    const response = await axiosInstance.get(`/surveys-id-by-client/${clientId}/${categoryId}`);
+    
+    if (response.data && response.data.success !== false) {
+      return response.data.data || [];
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error('❌ Error fetching surveys:', error);
+    return [];
+  }
+};
+
+
+export const fetchSurveysDetailsByClient = async (clientId, categoryId, nttnSurveyId) => {
+  try {
+    const response = await axiosInstance.get(`/surveys-details-by-client/${clientId}/${categoryId}/${nttnSurveyId}`);
+    
+    if (response.data && response.data.success !== false) {
+      return response.data.data || [];
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error('❌ Error fetching surveys:', error);
+    return [];
+  }
+};
+
+export const fetchRatesByNttn = async (nttnId) => {
+  try {
+    const response = await axiosInstance.get(`/rates/nttn/${nttnId}`);
+    return response.data;
+  } catch (error) {
+    console.error('API Error fetching rates by NTTN ID:', error);
+    throw new Error('Failed to fetch rates from the server.');
+  }
+};

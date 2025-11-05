@@ -1,4 +1,5 @@
 import api from "./api";
+import axiosInstance from "./partner-link/apiConfig";
 
 export const createNTTN = async (payload) => {
   try {
@@ -11,7 +12,7 @@ export const createNTTN = async (payload) => {
 
 export const fetchNTTNs = async () => {
   try {
-    const response = await api.get("/nttns/");
+    const response = await axiosInstance.get("/nttns/");
     return response.data;
   } catch (error) {
     throw error;

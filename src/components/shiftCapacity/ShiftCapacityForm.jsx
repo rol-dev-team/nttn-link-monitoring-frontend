@@ -90,8 +90,8 @@ const ShiftCapacityForm = ({
           fetchWorkOrders(),
 
         ]);
-        setNttnProviders(nttn);
-        setClientCategories(cats);
+        setNttnProviders(nttn.data);
+        setClientCategories(cats.data);
       
         setWorkOrders(Array.isArray(wos) ? wos : wos?.data || []);
       } catch (e) {
@@ -118,7 +118,7 @@ const ShiftCapacityForm = ({
       return;
     }
     fetchClientsCategoryWise(formik.values.client_category)
-      .then(setClients)
+      .then((res) => {setClients(res.data)})
       .catch(() => setClients([]));
   }, [formik.values.client_category]);
 
@@ -129,7 +129,7 @@ const ShiftCapacityForm = ({
       return;
     }
     fetchClientsCategoryWise(formik.values.shifting_client_category)
-      .then(setShiftingClients)
+      .then((res) => {setShiftingClients(res.data)})
       .catch(() => setShiftingClients([]));
   }, [formik.values.shifting_client_category]);
 

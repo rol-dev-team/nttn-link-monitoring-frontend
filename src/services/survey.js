@@ -52,7 +52,7 @@ export const fetchSurvey = async (id) => {
 // Update survey
 export const updateSurvey = async (id, data) => {
   try {
-    const response = await api.put(`/surveys/${id}/`, data);
+    const response = await axiosInstance.put(`/surveys/${id}/`, data);
     return response.data;
   } catch (error) {
     throw error;

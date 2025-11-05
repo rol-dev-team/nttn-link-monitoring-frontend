@@ -7,15 +7,12 @@ import DataTable from "../components/table/DataTable";
 import ToastContainer from "../components/ui/ToastContainer";
 import ExportButton from "../components/ui/ExportButton";
 import { FaFileExcel } from "react-icons/fa";
-import FilterMenu from "../components/table/FilterMenu";
-import SelectField from "../components/fields/SelectField";
-import DateField from "../components/fields/DateField";
+
 
 import {
   createShiftCapacity,
-  fetchShiftCapacities,
-  updateShiftCapacity,
 } from "../services/shiftCapacity";
+import { fetchCapacityShifting } from "../services/capacityShiftingApi";
 
 const defaultInitialValues = {
   nttn_provider: "",
@@ -31,35 +28,14 @@ const defaultInitialValues = {
   shifting_client: "",
   shifting_unit_cost: "",
   total_shifting_cost: "",
-  workorder_id: "",
-  vlan: "",
 };
 
-/* ---------- Helper functions to handle nested data and unique options ---------- */
-const getUniqueOptionsWithIds = (records, namePath, idPath) => {
-  const uniqueMap = new Map();
-  records.forEach((record) => {
-    const name = namePath
-      .split(".")
-      .reduce((acc, part) => acc && acc[part], record);
-    const id = idPath
-      .split(".")
-      .reduce((acc, part) => acc && acc[part], record);
-    if (name && id) {
-      uniqueMap.set(name, id);
-    }
-  });
-  return Array.from(uniqueMap.entries())
-    .sort()
-    .map(([name, id]) => ({
-      label: name,
-      value: id,
-    }));
-};
+
 
 const ShiftingCapacity = () => {
+  const [capacityShiftingData,setCapacityShiftingData] = useState([]);
   const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [filters, setFilters] = useState({});
@@ -85,41 +61,18 @@ const ShiftingCapacity = () => {
 
   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
 
-  /* ---------- fetch data with filters & pagination ---------- */
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const { page, limit } = pagination;
-    const allFilters = {
-      ...filters,
-      page: page,
-      limit: limit,
-    };
-    try {
-      const res = await fetchShiftCapacities(allFilters);
-      const preprocessedData = (res.data || []).map((item) => ({
-        ...item,
-        // Flatten the data for easier access
-        client_name: item.from_client_details?.client_name ?? "N/A",
-        client_id: item.from_client_details?.id,
-        shifting_client_name: item.to_client_details?.client_name ?? "N/A",
-        shifting_client_id: item.to_client_details?.id,
-      }));
-      setRecords(preprocessedData);
-      setPagination((prev) => ({ ...prev, totalRows: res.total }));
-    } catch (e) {
-      const msg =
-        e?.response?.data?.message || "Failed to load capacity shifts";
-      setError(msg);
-      pushToast(msg, "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [pushToast, filters, pagination.page, pagination.limit]);
-
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    const getCapacityShiftingData = async () => {
+      try {
+        const { data } = await fetchCapacityShifting(filters);
+        setCapacityShiftingData(data);
+      } catch (error) {
+        console.error(" API call failed:", error);
+      }
+    };
+  
+    getCapacityShiftingData();
+  }, []);
 
   /* ---------- form flow ---------- */
   const openNew = () =>
@@ -130,31 +83,7 @@ const ShiftingCapacity = () => {
       initialValues: defaultInitialValues,
     });
 
-  const openEdit = (item) =>
-    setFormState({
-      isOpen: true,
-      isEditMode: true,
-      editingId: item.id,
-      initialValues: {
-        ...defaultInitialValues,
-        id: item.id,
-        nttn_provider: item.nttn_provider,
-        client_category: item.client_category,
-        client: item.client,
-        shifting_client_category: item.shifting_client_category,
-        shifting_client: item.shifting_client,
-        nttn_link_id: item.nttn_link_id,
-        capacity: item.capacity,
-        capacity_cost: item.capacity_cost,
-        shifting_bw: item.shifting_bw,
-        after_shifting_capacity: item.after_shifting_capacity,
-        shifting_capacity: item.shifting_capacity,
-        shifting_unit_cost: item.shifting_unit_cost,
-        total_shifting_cost: item.total_shifting_cost,
-        workorder_id: item.workorder,
-        vlan: item.vlan,
-      },
-    });
+
 
   const closeForm = () =>
     setFormState({
@@ -166,93 +95,50 @@ const ShiftingCapacity = () => {
 
   const handleSubmit = async (values) => {
     try {
-      if (formState.isEditMode) {
-        await updateShiftCapacity(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
-      } else {
         await createShiftCapacity(values);
         pushToast("Created successfully!", "success");
-      }
-      fetchAll();
       closeForm();
     } catch (e) {
       pushToast(e?.response?.data?.message || "Save failed", "error");
     }
   };
 
-  const handleFilterChange = useCallback((newFilters) => {
-    setFilters(newFilters);
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  }, []);
 
-  const dynamicOptions = useMemo(() => {
-    return {
-      from_client: getUniqueOptionsWithIds(
-        records,
-        "from_client_details.client_name",
-        "from_client_details.id"
-      ),
-      to_client: getUniqueOptionsWithIds(
-        records,
-        "to_client_details.client_name",
-        "to_client_details.id"
-      ),
-    };
-  }, [records]);
+
 
   /* ---------- columns with filter options ---------- */
+
   const columns = useMemo(
     () => [
       {
-        key: "client_name",
+        key: "from_client",
         header: "From Client",
         isSortable: true,
-        field: SelectField,
-        fieldProps: { name: "client", options: dynamicOptions.from_client },
       },
-      { key: "nttn_link_id", header: "Link ID", isSortable: true },
-      { key: "capacity", header: "Last Capacity", isSortable: true },
+      { key: "source_capacity", header: "Source Capacity", isSortable: true },
+     
       {
-        key: "after_shifting_capacity",
-        header: "After Shift Capacity",
-        isSortable: true,
-      },
-      {
-        key: "shifting_client_name",
+        key: "to_client",
         header: "To Client",
         isSortable: true,
-        field: SelectField,
-        fieldProps: {
-          name: "shifting_client",
-          options: dynamicOptions.to_client,
-        },
       },
+
       { key: "shifting_bw", header: "Shifting BW", isSortable: true },
+       {
+        key: "current_capacity",
+        header: "Current Capacity",
+
+        isSortable: true,
+      },
       { key: "total_shifting_cost", header: "Total Cost", isSortable: true },
-      { key: "vlan", header: "VLAN", isSortable: true },
       {
         key: "created_at",
         header: "Date",
         isSortable: true,
-        render: (v) => (v ? new Date(v).toLocaleDateString() : "-"),
-        field: DateField,
-        fieldProps: { name: "created_at" },
-      },
-      {
-        key: "actions",
-        header: "Action",
-        render: (_, row) => (
-          <Button
-            variant='icon'
-            size='sm'
-            onClick={() => openEdit(row)}
-            title='Edit'>
-            <Pencil className='h-4 w-4' />
-          </Button>
-        ),
-      },
+      }
+      
     ],
-    [openEdit, dynamicOptions]
+    []
   );
 
   /* ---------- UI ---------- */
@@ -282,7 +168,7 @@ const ShiftingCapacity = () => {
         </div>
         <div className='flex items-center gap-4'>
           <ExportButton
-            data={records}
+            data={capacityShiftingData}
             columns={columns}
             fileName='capacity_shifts'
             intent='primary'
@@ -306,14 +192,11 @@ const ShiftingCapacity = () => {
         </div>
       ) : (
         <DataTable
-          data={records}
+          data={capacityShiftingData}
           columns={columns}
           searchable={true}
           selection={true}
           showId={true}
-          filterComponent={
-            <FilterMenu columns={columns} onFilterChange={handleFilterChange} />
-          }
           isBackendPagination={true}
           totalRows={pagination.totalRows}
           page={pagination.page}

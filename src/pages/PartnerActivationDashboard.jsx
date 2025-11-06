@@ -137,135 +137,85 @@ export default function PartnerActivationDashboard() {
         }
     };
 
-    // Form Submission Handler - UPDATED with correct field mapping
-    const handleFormSubmit = async (values, { resetForm }) => {
-        try {
-            // Extract arrays for separate API calls
-            const { drop_devices, interface_configs, ...activationData } =
-                values;
+// In PartnerActivationDashboard.jsx - Update the handleFormSubmit function
+const handleFormSubmit = async (values, { resetForm }) => {
+    try {
+        console.log("=== DEBUG: Checking all form values ===");
+        console.log("nttn_work_order_id:", values.nttn_work_order_id);
+        console.log("client_id:", values.client_id); // Add this
+        console.log("nttn_vlan:", values.nttn_vlan);
+        console.log("All values:", values);
 
-            console.log("Original Form Data:", activationData);
-
-            // Map frontend field names to backend field names
-            const mappedActivationData = {
-                work_order_id: activationData.nttn_link_id,
-                int_routing_ip: activationData.int_peering_ip,
-                ggc_routing_ip: activationData.ggc_peering_ip,
-                fna_routing_ip: activationData.fna_peering_ip,
-                bcdx_routing_ip: activationData.bdix_peering_ip,
-                mcdn_routing_ip: activationData.mcdn_peering_ip,
-                nttn_vlan: activationData.nttn_vlan,
-                int_vlan: activationData.int_vlan,
-                ggn_vlan: activationData.ggn_vlan,
-                fna_vlan: activationData.fna_vlan,
-                bcdx_vlan: activationData.bdix_vlan,
-                mcdn_vlan: activationData.mcdn_vlan,
-                nas_ip: activationData.nas_ip,
-                nat_ip: activationData.nat_ip,
-                connected_ws_name: activationData.connected_sw_name,
-                chr_server: activationData.chr_server,
-                sw_port: parseInt(activationData.sw_port) || null,
-                nic_no: activationData.nic_no,
-                asn: parseInt(activationData.asn) || null,
-                status: activationData.status,
-                note: activationData.note,
-            };
-
-            console.log("Mapped Data for Backend:", mappedActivationData);
-
-            let response;
-            if (isEditMode) {
-                response = await updatePartnerActivation(
-                    editingPlan.id,
-                    mappedActivationData
-                );
-            } else {
-                response = await createPartnerActivation(mappedActivationData);
-            }
-
-            if (response.status) {
-                const planId = response.data.id;
-
-                // Handle drop devices creation
-                if (drop_devices && drop_devices.length > 0) {
-                    try {
-                        const devicePromises = drop_devices.map((device) =>
-                            createPartnerDropDeviceConfig({
-                                activation_plan_id: planId,
-                                device_ip: device.device_ip,
-                                usage_vlan: device.usage_vlan,
-                                connected_port: device.connected_port,
-                            })
-                        );
-                        await Promise.all(devicePromises);
-                        addToast(
-                            `${drop_devices.length} drop device(s) created successfully!`,
-                            "success"
-                        );
-                    } catch (deviceErr) {
-                        console.warn(
-                            "Some drop devices failed to create:",
-                            deviceErr
-                        );
-                        addToast(
-                            "Some drop devices failed to create",
-                            "warning"
-                        );
-                    }
-                }
-
-                // Handle interface configs creation
-                if (interface_configs && interface_configs.length > 0) {
-                    try {
-                        const interfacePromises = interface_configs.map(
-                            (interfaceConfig) =>
-                                createPartnerInterfaceConfig({
-                                    activation_plan_id: planId,
-                                    interface_name:
-                                        interfaceConfig.interface_name,
-                                })
-                        );
-                        await Promise.all(interfacePromises);
-                        addToast(
-                            `${interface_configs.length} interface(s) created successfully!`,
-                            "success"
-                        );
-                    } catch (interfaceErr) {
-                        console.warn(
-                            "Some interface configs failed to create:",
-                            interfaceErr
-                        );
-                        addToast(
-                            "Some interface configs failed to create",
-                            "warning"
-                        );
-                    }
-                }
-
-                addToast(
-                    isEditMode
-                        ? "Activation Plan updated successfully!"
-                        : "Activation Plan created successfully!",
-                    "success"
-                );
-                fetchPlans();
-                resetForm();
-                setViewMode("table");
-            } else {
-                throw new Error(response.message || "Save failed");
-            }
-        } catch (err) {
-            console.error("Form submission error:", err);
-            addToast(err.message || "Save failed.", "error");
+        // Check if nttn_vlan exists and has a value
+        if (!values.nttn_vlan) {
+            console.error("nttn_vlan is missing or empty!");
+            addToast("NTTN VLAN is required", "error");
+            return;
         }
-    };
 
+        // Map frontend field names to backend field names
+        const mappedActivationData = {
+            work_order_id: values.nttn_work_order_id || '',
+            client_id: values.client_id || '',
+            nttn_vlan: values.nttn_vlan || '',
+            int_routing_ip: values.int_peering_ip || '',
+            ggc_routing_ip: values.ggc_peering_ip || '',
+            fna_routing_ip: values.fna_peering_ip || '',
+            bcdx_routing_ip: values.bdix_peering_ip || '',
+            mcdn_routing_ip: values.mcdn_peering_ip || '',
+            int_vlan: values.int_vlan || '',
+            ggn_vlan: values.ggn_vlan || '',
+            fna_vlan: values.fna_vlan || '',
+            bcdx_vlan: values.bdix_vlan || '',
+            mcdn_vlan: values.mcdn_vlan || '',
+            nas_ip: values.nas_ip || '',
+            nat_ip: values.nat_ip || '',
+            connected_ws_name: values.connected_sw_name || '',
+            chr_server: values.chr_server || '',
+            sw_port: values.sw_port || '',
+            nic_no: values.nic_no || '',
+            asn: values.asn || '',
+            status: values.status || 'active',
+            note: values.note || '',
+        };
+
+        console.log("Mapped Data for Backend:", mappedActivationData);
+
+        let response;
+        if (isEditMode) {
+            response = await updatePartnerActivation(
+                editingPlan.id,
+                mappedActivationData
+            );
+        } else {
+            response = await createPartnerActivation(mappedActivationData);
+        }
+
+        if (response.status) {
+            addToast(
+                isEditMode
+                    ? "Activation Plan updated successfully!"
+                    : "Activation Plan created successfully!",
+                "success"
+            );
+            fetchPlans();
+            resetForm();
+            setViewMode("table");
+        } else {
+            throw new Error(response.message || "Save failed");
+        }
+    } catch (err) {
+        console.error("Form submission error:", err);
+        console.error("Error details:", err.response?.data);
+        addToast(err.message || "Save failed.", "error");
+    }
+};
     // DataTable Columns - UPDATED with backend field names
     const planColumns = useMemo(
         () => [
             { key: "id", header: "ID" },
             { key: "work_order_id", header: "Work Order ID" },
-            { key: "work_order_id", header: "Client Name" },
+            { key: "client_id", header: "Client Name" },
             { key: "asn", header: "ASN" },
             { key: "nas_ip", header: "NAS IP" },
             { key: "nat_ip", header: "NAT IP" },

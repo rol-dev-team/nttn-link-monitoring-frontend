@@ -1,8 +1,41 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Cpu, Server, HardDrive, Users, Activity, TrendingUp, Calendar, RefreshCw, Clock, ChevronDown, AlertCircle, TrendingDown, TrendingUp as TrendingUpIcon } from 'lucide-react';
+import { useFormik } from "formik";
+import * as Yup from 'yup';
+import { Search,Cpu, Server, HardDrive, Users, Activity, TrendingUp, Calendar, RefreshCw, Clock, ChevronDown, AlertCircle, TrendingDown, TrendingUp as TrendingUpIcon } from 'lucide-react';
 import Chart from "../components/charts/Chart";
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { fetchCategoryWiseClientPartner, fetchWorkOrderDetailsForPartner } from "../services/partner-link/txToPartner";
+import { getResourceMonitoring } from "../services/partner-link/nasHealthApi";
+
+
+
+
+const validationSchema = Yup.object().shape({
+  nttnId: Yup.string().required("NTTN Link is required"),
+  dateRange: Yup.array()
+    .of(Yup.date().nullable())
+    .test(
+      "both-required",
+      "Please select start and end dates",
+      (value) => {
+        if (!value) return false; 
+        const [start, end] = value;
+        return !!start && !!end;  
+      }
+    ),
+});
+
+
+
+
+  const mockOptions = {
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
+  };
 
 /* =============================================================================
    MOCK DATA & API SIMULATORS
@@ -509,6 +542,9 @@ const LineChart = ({ data, label, color, icon: Icon, isFullWidth }) => {
 
 export default function ResourceMonitor({ onCancel }) {
   // State
+  const [nttnLinkIdOptions, setNttnLinkIdOptions] = useState([]);
+  const [resourceData, setResourceData] = useState([]);
+  const [partnerInfos, setPartnerInfos] = useState(null);
   const [selectedNttnId, setSelectedNttnId] = useState('');
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
@@ -524,6 +560,80 @@ export default function ResourceMonitor({ onCancel }) {
   const partnerDetails = selectedNttnId ? MOCK_PARTNER_DATA[selectedNttnId] : null;
   const isFullWidth = selectedResource !== 'all';
   
+
+    useEffect(() => {
+    const boot = async () => {
+      try {
+        const {data} = await fetchCategoryWiseClientPartner();
+        setNttnLinkIdOptions(data.map(item => ({ label: item.nttn_work_order_id, value: item.work_order_id })));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    boot();
+  }, []);
+
+
+  const fetchResources = async (parameter,partnerActivationId) => {
+      try {
+        const [partnerInRes,resourceRes] = await Promise.all([
+          fetchWorkOrderDetailsForPartner(parameter),
+                    getResourceMonitoring(partnerActivationId),
+        ]);
+        setPartnerInfos(partnerInRes.data);
+        setResourceData(resourceRes.data);
+        console.log('Fetched Partner Infos:', resourceRes.data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+   
+
+  const formik = useFormik({
+  initialValues: {
+    nttnId: '',
+    dateRange: [null, null],
+  },
+  validationSchema,
+  onSubmit: (values) => {
+    try {
+    const partnerRes =  fetchWorkOrderDetailsForPartner(values.nttnId)
+      .then(res => {
+         setPartnerInfos(res.data);
+    })
+    .catch(err => { console.error('Error fetching resource data:', err)})
+   
+
+    const {data} =  getResourceMonitoring({
+      partner_activation_id: partnerRes?.data?.activation_plan_id,
+      date_range: values.dateRange
+    })
+    .then(res => {
+      setResourceData(res.data);
+          console.log('Resource Data:', res.data);
+    })
+    .catch(err => { console.error('Error fetching resource data:', err)})
+    
+
+    
+  } catch (err) {
+    console.error(err);
+  }
+     
+  },
+});
+
+
+
+ 
+
+
+
   // Fetch live data
   const fetchLiveData = useCallback(async (id) => {
     if (!id) return;
@@ -564,25 +674,6 @@ export default function ResourceMonitor({ onCancel }) {
     return () => clearInterval(interval);
   }, [selectedNttnId, isHistoricalMode, startDate, endDate, fetchLiveData, fetchHistoricalData]);
   
-  // Handlers
-  const handleNttnChange = (value) => {
-    setSelectedNttnId(value);
-    setDateRange([null, null]);
-    setHistoricalData(null);
-  };
-  
-  const handleClearDates = () => {
-    setDateRange([null, null]);
-    setHistoricalData(null);
-  };
-  
-  const handleRefresh = () => {
-    if (isHistoricalMode) {
-      fetchHistoricalData(selectedNttnId, startDate, endDate);
-    } else if (selectedNttnId) {
-      fetchLiveData(selectedNttnId);
-    }
-  };
   
   // Format date helpers
   const formatDate = (date) => {
@@ -600,6 +691,23 @@ export default function ResourceMonitor({ onCancel }) {
       ram: { color: '#10b981', icon: HardDrive, label: 'RAM' },
     };
     return configs[type];
+  };
+
+  
+
+  const mockData = {
+    labels: resourceData.map(item => item.collected_at),  
+    datasets: [
+      {
+        label: 'Sales',
+        data: resourceData.map(item => item.value),
+        borderColor: '#4f46e5', 
+        backgroundColor: 'rgba(79, 70, 229, 0.2)',
+        tension: 0.4, 
+        fill: true,
+        pointRadius: 4,
+      }
+    ],
   };
   
   return (
@@ -627,105 +735,96 @@ export default function ResourceMonitor({ onCancel }) {
         
         {/* Control Panel */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            
-            {/* NTTN Link Selector */}
-            <div className="lg:col-span-1">
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                NTTN Link ID
-              </label>
-              <Select
-                value={selectedNttnId}
-                onChange={handleNttnChange}
-                options={MOCK_NTTN_OPTIONS}
-                placeholder="Select NTTN Link"
-              />
-            </div>
-            
-            {/* Resource Filter */}
-            <div className="lg:col-span-1">
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                Resource View
-              </label>
-              <Select
-                value={selectedResource}
-                onChange={setSelectedResource}
-                options={RESOURCE_OPTIONS}
-                placeholder="Select Resource"
-                disabled={!selectedNttnId}
-              />
-            </div>
-            
-            {/* Date Range Picker */}
-            <div className="lg:col-span-2">
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                Date Range (Optional)
-              </label>
-              <DatePicker
-                selectsRange={true}
-                startDate={startDate}
-                endDate={endDate}
-                onChange={(update) => setDateRange(update)}
-                maxDate={today}
-                disabled={!selectedNttnId}
-                placeholderText="Select date range"
-                dateFormat="MMM dd, yyyy"
-                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm
-                           text-gray-900 text-sm font-medium
-                           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
-                           disabled:bg-gray-100 disabled:cursor-not-allowed
-                           transition-colors duration-200"
-                isClearable
-              />
-            </div>
-            
-            {/* Actions */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-700 opacity-0">Actions</label>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  icon={Calendar}
-                  onClick={handleClearDates}
-                  disabled={!startDate && !endDate}
-                  className="flex-1"
-                >
-                  Clear
-                </Button>
-                <Button
-                  variant="primary"
-                  icon={RefreshCw}
-                  onClick={handleRefresh}
-                  disabled={!selectedNttnId}
-                  className="flex-1"
-                >
-                  Refresh
-                </Button>
-              </div>
-            </div>
-          </div>
+          <form onSubmit={formik.handleSubmit} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4 justify-center">
+
+  {/* NTTN Link Selector */}
+  <div className="">
+    <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+      NTTN Link ID*
+    </label>
+    <Select
+      value={formik.values.nttnId}
+      onChange={(value) => formik.setFieldValue("nttnId", value)}
+      options={nttnLinkIdOptions}
+      placeholder="Select NTTN Link"
+    />
+    {formik.touched.nttnId && formik.errors.nttnId && (
+      <p className="text-xs text-red-500 mt-1">{formik.errors.nttnId}</p>
+    )}
+  </div>
+
+  {/* Date Range Picker */}
+  <div className="">
+    <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+      Date Range*
+    </label>
+    <DatePicker
+      selectsRange={true}
+      startDate={formik.values.dateRange[0]}
+      endDate={formik.values.dateRange[1]}
+      onChange={(update) => formik.setFieldValue("dateRange", update)}
+      maxDate={today}
+      placeholderText="Select date range"
+      dateFormat="MMM dd, yyyy"
+      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm
+                 text-gray-900 text-sm font-medium
+                 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                 transition-colors duration-200"
+      isClearable
+    />
+    {formik.touched.dateRange && formik.errors.dateRange && (
+      <p className="text-xs text-red-500 mt-1">{formik.errors.dateRange}</p>
+    )}
+  </div>
+
+  {/* Submit Button */}
+  <div className="">
+    <label className="text-sm font-semibold text-gray-700 opacity-0">Actions</label>
+    <div className="flex gap-2">
+      <Button
+        type="submit"
+        variant="primary"
+        icon={Search}
+        className="flex-1"
+      >
+        Search
+      </Button>
+    </div>
+  </div>
+</form>
+
+
         </div>
         
         {/* Partner Information */}
-        {partnerDetails && (
+
+        {partnerInfos && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
-              {/* <div className="p-2 bg-indigo-100 rounded-lg">
-                <Users className="w-5 h-5 text-indigo-600" />
-              </div> */}
               <h2 className="text-xl font-bold text-gray-900">Partner Information</h2>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
-              <InfoCard label="NTTN Provider" value={partnerDetails.nttn_provider} />
-              <InfoCard label="Partner Name" value={partnerDetails.partner_name} />
-              <InfoCard label="SBU" value={partnerDetails.sbu} />
-              <InfoCard label="Aggregator" value={partnerDetails.aggregator} />
-              <InfoCard label="Business KAM" value={partnerDetails.business_kam} />
-              <InfoCard label="Purchased Capacity" value={partnerDetails.purchased_capacity} />
+              <InfoCard label="NTTN Provider" value={partnerInfos.nttn_name} />
+              <InfoCard label="Partner Name" value={partnerInfos.client_name} />
+              <InfoCard label="SBU" value={partnerInfos.sbu_name} />
+              <InfoCard label="Aggregator" value={partnerInfos.aggregator_name} />
+              <InfoCard label="Business KAM" value={partnerInfos.kam_name} />
+              <InfoCard label="Purchased Capacity" value={partnerInfos.request_capacity} />
             </div>
           </div>
         )}
+
+
+<div className="p-4 h-[400px]">
+      <Chart
+        type="line"
+        data={mockData}
+        options={mockOptions}
+      />
+    </div>
+
+
         
         {/* Visualization Section */}
         {selectedNttnId && (
@@ -764,6 +863,14 @@ export default function ResourceMonitor({ onCancel }) {
               </div>
             </div>
             
+
+            <LineChart
+                          data={historicalData.cpu}
+                          label="CPU"
+                          color="#3b82f6"
+                          icon={Cpu}
+                          isFullWidth={isFullWidth && selectedResource === 'cpu'}
+                        />
             {/* Historical Mode: Line Charts */}
             {isHistoricalMode && (
               <>
@@ -873,3 +980,10 @@ export default function ResourceMonitor({ onCancel }) {
     </div>
   );
 }
+
+
+
+
+
+      
+  

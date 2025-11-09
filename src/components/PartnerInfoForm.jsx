@@ -9,6 +9,8 @@ import SelectField from "./fields/SelectField";
 import Button from "./ui/Button";
 import { fetchRadiusServers } from "../services/partner-link/radiusServer";
 import { fetchTechnicalKams } from "../services/partner-link/technicalKam";
+import { fetchCategoryWiseClientPartner, fetchWorkOrderDetailsForPartner } from "../services/partner-link/txToPartner";
+import { useToast } from "../hooks/useToast";
 
 // ================================================================
 // 1. Validation Schema
@@ -67,21 +69,26 @@ export default function PartnerInfoForm({
     onSubmit,
     onCancel,
 }) {
+    const { addToast } = useToast();
     const [radiusOptions, setRadiusOptions] = useState([]);
     const [kamOptions, setKamOptions] = useState([]);
+    const [clientOptions, setClientOptions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [partnerDetails, setPartnerDetails] = useState({});
+    const [detailsLoading, setDetailsLoading] = useState(false);
 
     const formTitle = isEditMode
         ? "Edit Partner Info Settings"
         : "Partner Info Settings";
 
-    // Fetch dropdown data
+    // Fetch all dropdown data including client data from API
     const fetchDropdownData = useCallback(async () => {
         try {
             setLoading(true);
-            const [radiusResponse, kamResponse] = await Promise.all([
+            const [radiusResponse, kamResponse, clientResponse] = await Promise.all([
                 fetchRadiusServers(),
                 fetchTechnicalKams(),
+                fetchCategoryWiseClientPartner()
             ]);
 
             // Transform radius servers data
@@ -97,70 +104,30 @@ export default function PartnerInfoForm({
                 value: kam.id.toString(), // Convert to string for form
             }));
 
+            // Transform client data for NTTN Link ID dropdown
+            let clientOptions = [];
+            if (clientResponse.status === 'success' && clientResponse.data) {
+                clientOptions = clientResponse.data.map(client => ({
+                    label: `${client.client_name} - ${client.nttn_work_order_id}`,
+                    value: client.work_order_id.toString(),
+                    client_id: client.client_id
+                }));
+            }
+
             setRadiusOptions(radiusOptions);
             setKamOptions(kamOptions);
+            setClientOptions(clientOptions);
         } catch (error) {
             console.error("Error fetching dropdown data:", error);
+            addToast("Error loading form data", "error");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [addToast]);
 
     useEffect(() => {
         fetchDropdownData();
     }, [fetchDropdownData]);
-
-    // Mock data for NTTN Link IDs (word_order_id)
-    const MOCK_NTTN_OPTIONS = [
-        { label: "NTTN-LINK-001", value: "NTTN-LINK-001" },
-        { label: "NTTN-LINK-002", value: "NTTN-LINK-002" },
-        { label: "NTTN-LINK-003", value: "NTTN-LINK-003" },
-        { label: "NTTN-LINK-004", value: "NTTN-LINK-004" },
-        { label: "NTTN-LINK-005", value: "NTTN-LINK-005" },
-    ];
-
-    const MOCK_PARTNER_DATA = {
-        "NTTN-LINK-001": {
-            nttn_provider: "Summit",
-            partner_name: "ABC Entity",
-            sbu: "Race Online",
-            aggregator: "Khaja",
-            business_kam: "XYZ",
-            purchased_capacity: "100 Mb",
-        },
-        "NTTN-LINK-002": {
-            nttn_provider: "Fiber@Home",
-            partner_name: "Beta ISP",
-            sbu: "MetroNet",
-            aggregator: "Rahim",
-            business_kam: "PQR",
-            purchased_capacity: "50 Mb",
-        },
-        "NTTN-LINK-003": {
-            nttn_provider: "Summit",
-            partner_name: "Gamma Telecom",
-            sbu: "Linkup",
-            aggregator: "Karim",
-            business_kam: "LMN",
-            purchased_capacity: "500 Mb",
-        },
-        "NTTN-LINK-004": {
-            nttn_provider: "BDCOM",
-            partner_name: "Delta Networks",
-            sbu: "Fiber Optic",
-            aggregator: "Salam",
-            business_kam: "ABC",
-            purchased_capacity: "200 Mb",
-        },
-        "NTTN-LINK-005": {
-            nttn_provider: "Link3",
-            partner_name: "Epsilon Telecom",
-            sbu: "Broadband",
-            aggregator: "Rafiq",
-            business_kam: "DEF",
-            purchased_capacity: "150 Mb",
-        },
-    };
 
     return (
         <div className="w-full h-full p-4 lg:p-6">
@@ -197,21 +164,71 @@ export default function PartnerInfoForm({
                 >
                     {(formik) => {
                         const selectedLinkID = formik.values.nttn_link_id;
-                        const partnerDetails =
-                            MOCK_PARTNER_DATA[selectedLinkID];
+                        
+                        // Hook to Fetch Work Order Details when nttn_link_id changes
+                        useEffect(() => {
+                            if (selectedLinkID) {
+                                const fetchDetails = async () => {
+                                    setDetailsLoading(true);
+                                    try {
+                                        const response = await fetchWorkOrderDetailsForPartner(selectedLinkID);
+                                        if (response.status === 'success' && response.data) {
+                                            setPartnerDetails({
+                                                nttn_provider: response.data.nttn_name,
+                                                aggregator: response.data.aggregator_name,
+                                                partner_name: response.data.client_name,
+                                                business_kam: response.data.kam_name,
+                                                sbu: response.data.sbu_name,
+                                                purchased_capacity: response.data.request_capacity,
+                                            });
+                                            console.log('Selected work order details:', response.data);
+                                        } else {
+                                            addToast("Failed to load partner details", "error");
+                                            setPartnerDetails({});
+                                        }
+                                    } catch (error) {
+                                        console.error("Error fetching partner details:", error);
+                                        addToast("Error loading partner details", "error");
+                                        setPartnerDetails({});
+                                    } finally {
+                                        setDetailsLoading(false);
+                                    }
+                                };
+                                fetchDetails();
+                            } else {
+                                setPartnerDetails({});
+                            }
+                        }, [selectedLinkID, addToast]);
 
                         return (
                             <Form className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-6">
-                                {/* Row 1: NTTN Link ID Dropdown (word_order_id) */}
-                                <SelectField
-                                    name="nttn_link_id"
-                                    options={MOCK_NTTN_OPTIONS}
-                                    placeholder="Select Partner Name / NTTN Link ID"
-                                    formik={formik}
-                                />
-
-                                {/* Empty column for alignment */}
-                                <div className="hidden md:block"></div>
+                                {/* Row 1: NTTN Link ID Dropdown (work_order_id) */}
+                                <div className="md:col-span-2">
+                                    <SelectField
+                                        name="nttn_link_id"
+                                        options={clientOptions}
+                                        placeholder={clientOptions.length === 0 ? "No clients available" : "Select Partner Name / Link ID"}
+                                        formik={formik}
+                                        onChange={(selectedValue) => {
+                                            // Find the selected client
+                                            const selectedClient = clientOptions.find(option => option.value === selectedValue);
+                                            
+                                            if (selectedClient) {
+                                                // Set the work_order_id as nttn_link_id
+                                                formik.setFieldValue("nttn_link_id", selectedValue);
+                                            } else {
+                                                // Clear if no selection
+                                                formik.setFieldValue("nttn_link_id", "");
+                                            }
+                                            
+                                            // Clear partner details when selection changes
+                                            setPartnerDetails({});
+                                        }}
+                                    />
+                                    {clientOptions.length === 0 && !loading && (
+                                        <p className="text-sm text-gray-500 mt-1">No client data available</p>
+                                    )}
+                                </div>
 
                                 {/* Row 2: Partner Details Display Box */}
                                 <div className="md:col-span-2 mb-4">
@@ -225,13 +242,13 @@ export default function PartnerInfoForm({
                                             <PartnerDetailDisplayField
                                                 label="NTTN Provider"
                                                 value={
-                                                    partnerDetails?.nttn_provider
+                                                    detailsLoading ? "Loading..." : partnerDetails.nttn_provider
                                                 }
                                             />
                                             <PartnerDetailDisplayField
                                                 label="Partner Name"
                                                 value={
-                                                    partnerDetails?.partner_name
+                                                    detailsLoading ? "Loading..." : partnerDetails.partner_name
                                                 }
                                             />
                                         </div>
@@ -240,12 +257,12 @@ export default function PartnerInfoForm({
                                         <div className="space-y-4 px-5 border-r border-gray-100">
                                             <PartnerDetailDisplayField
                                                 label="SBU"
-                                                value={partnerDetails?.sbu}
+                                                value={detailsLoading ? "Loading..." : partnerDetails.sbu}
                                             />
                                             <PartnerDetailDisplayField
                                                 label="Aggregator"
                                                 value={
-                                                    partnerDetails?.aggregator
+                                                    detailsLoading ? "Loading..." : partnerDetails.aggregator
                                                 }
                                             />
                                         </div>
@@ -255,13 +272,13 @@ export default function PartnerInfoForm({
                                             <PartnerDetailDisplayField
                                                 label="Business KAM"
                                                 value={
-                                                    partnerDetails?.business_kam
+                                                    detailsLoading ? "Loading..." : partnerDetails.business_kam
                                                 }
                                             />
                                             <PartnerDetailDisplayField
                                                 label="Purchased Capacity"
                                                 value={
-                                                    partnerDetails?.purchased_capacity
+                                                    detailsLoading ? "Loading..." : partnerDetails.purchased_capacity
                                                 }
                                             />
                                         </div>

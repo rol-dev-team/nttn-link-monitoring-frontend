@@ -32,6 +32,7 @@
 //   getICMPAlert,
 //   getMinMaxUtilizationLastSevenDays,
 // } from "../services/partner-link/dashboardApi";
+// import { fetchPartnerAggreatorSummary, fetchPartnerPartnerCountSummary, fetchPartnerUtilizationLast7Days } from "../services/partner-link/partnerDashboard";
 
 // /* -------------------------------------------------
 //    1. HELPER FUNCTIONS & UI ELEMENTS (UNCHANGED)
@@ -437,9 +438,47 @@
 
 // const AGGREGATOR_COLUMNS = [
 //   { key: "aggregator_name", header: "Aggregator Name" },
-//   { key: "num_partners", header: "No. of Partners" },
-//   { key: "purchase_capacity", header: "Purchase Capacity" },
+//   { 
+//     key: "total_clients", 
+//     header: "No. of Partners",
+//     render: (val) => safeCell(val)
+//   },
+//   { 
+//     key: "total_request_capacity", 
+//     header: "Purchase Capacity",
+//     render: (val) => `${safeCell(val)} Mbps`
+//   },
 // ];
+
+// // const PARTNER_COLUMNS = [
+// //   { key: "partner_name", header: "Partner Name" },
+// //   { key: "contact_person", header: "Contact Person" },
+// //   {
+// //     key: "location",
+// //     header: "Location",
+// //     render: (val) => (
+// //       <span className='inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-600'>
+// //         {safeCell(val)}
+// //       </span>
+// //     ),
+// //   },
+// //   {
+// //     key: "status",
+// //     header: "Status",
+// //     render: (v) => (
+// //       <span
+// //         className={clsx(
+// //           "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
+// //           v === "Active"
+// //             ? "bg-green-100 text-green-800"
+// //             : "bg-red-100 text-red-800"
+// //         )}>
+// //         {safeCell(v)}
+// //       </span>
+// //     ),
+// //   },
+// // ];
+
 
 // const PARTNER_COLUMNS = [
 //   { key: "partner_name", header: "Partner Name" },
@@ -460,7 +499,7 @@
 //       <span
 //         className={clsx(
 //           "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-//           v === "Active"
+//           v === "active" || v === "Active" // Handle both 'active' and 'Active'
 //             ? "bg-green-100 text-green-800"
 //             : "bg-red-100 text-red-800"
 //         )}>
@@ -490,46 +529,90 @@
 //   const [minMaxUtilizationSevenDays, setMinMaxUtilizationSevenDays] = useState(
 //     []
 //   );
+  
+  
+//   const [aggregatorSummary, setAggregatorSummary] = useState([]);
+//   const [aggregatorCount, setAggregatorCount] = useState(0);
+
+//   const [partnerSummary, setPartnerSummary] = useState([]);
+//   const [partnerCount, setPartnerCount] = useState(0);
 
 //   const handleStatCardClick = (cardKey) => {
-//     setActiveCard(cardKey);
+//   setActiveCard(cardKey);
 
-//     let dataToDisplay = [];
-//     let columnsToDisplay = [];
+//   let dataToDisplay = [];
+//   let columnsToDisplay = [];
 
-//     switch (cardKey) {
-//       case "max_alert":
-//         dataToDisplay = maxUtilizationAlert;
-//         columnsToDisplay = MAX_ALERT_COLUMNS;
-//         break;
-//       case "min_alert":
-//         dataToDisplay = minUtilizationAlert;
-//         columnsToDisplay = MIN_ALERT_COLUMNS;
-//         break;
-//       case "icmp_alert":
-//         dataToDisplay = icmpAlert;
-//         columnsToDisplay = ICMP_ALERT_COLUMNS;
-//         break;
-//       case "partners":
-//         dataToDisplay = partnerInfos;
-//         columnsToDisplay = PARTNER_COLUMNS;
-//         break;
-//       case "aggregators":
-//         dataToDisplay = aggregators;
-//         columnsToDisplay = AGGREGATOR_COLUMNS;
-//         break;
-//       default:
-//         dataToDisplay = [];
-//         columnsToDisplay = PARTNER_COLUMNS;
-//     }
+//   switch (cardKey) {
+//     case "max_alert":
+//       dataToDisplay = maxUtilizationAlert;
+//       columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
+//       break;
+//     case "min_alert":
+//       dataToDisplay = minUtilizationAlert;
+//       columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
+//       break;
+//     case "icmp_alert":
+//       dataToDisplay = icmpAlert;
+//       columnsToDisplay = getICMPAlertColumns(handleRunPause, handleResolveClick);
+//       break;
+//     case "partners":
+//       dataToDisplay = partnerSummary;
+//       columnsToDisplay = PARTNER_COLUMNS;
+//       break;
+//     case "aggregators":
+//       dataToDisplay = aggregatorSummary;
+//       columnsToDisplay = AGGREGATOR_COLUMNS;
+//       break;
+//     default:
+//       dataToDisplay = [];
+//       columnsToDisplay = PARTNER_COLUMNS;
+//   }
 
-//     setTableData(dataToDisplay);
-//     setTableColumns(columnsToDisplay);
-//   };
+//   setTableData(dataToDisplay);
+//   setTableColumns(columnsToDisplay);
+// };
 
 //   const fetchAllDashboardData = async () => {
 //     try {
 //       setInitialLoading(true);
+      
+//       // Create individual API calls with error handling
+//       const apiCalls = [
+//         getPartnerInfos().catch(error => {
+//           console.error("Partner Infos API error:", error);
+//           return { data: [] }; // Return empty data on error
+//         }),
+//         getAggregators().catch(error => {
+//           console.error("Aggregators API error:", error);
+//           return []; // Return empty array on error
+//         }),
+//         getMaxUtilizationAlert().catch(error => {
+//           console.error("Max Utilization API error:", error);
+//           return []; // Return empty array on error
+//         }),
+//         getMinUtilizationAlert().catch(error => {
+//           console.error("Min Utilization API error:", error);
+//           return []; // Return empty array on error
+//         }),
+//         getICMPAlert().catch(error => {
+//           console.error("ICMP Alert API error:", error);
+//           return { data: [] }; // Return empty data on error
+//         }),
+//         getMinMaxUtilizationLastSevenDays().catch(error => {
+//           console.error("Min Max Utilization API error:", error);
+//           return []; // Return empty array on error
+//         }),
+//         fetchPartnerAggreatorSummary().catch(error => {
+//           console.error("Aggregator Summary API error:", error);
+//           return { aggregator_summary: [], aggregator_count: 0 }; // Return empty data on error
+//         }),
+//         fetchPartnerPartnerCountSummary().catch(error => { // Add partner API call
+//           console.error("Partner Summary API error:", error);
+//           return { aggregator_summary: [], aggregator_count: 0 }; // Return empty data on error
+//         })
+//       ];
+
 //       const [
 //         infoResponse,
 //         aggResponse,
@@ -537,21 +620,24 @@
 //         minUtilResponse,
 //         icmpResponse,
 //         minMaxUtilResponse,
-//       ] = await Promise.all([
-//         getPartnerInfos(),
-//         getAggregators(),
-//         getMaxUtilizationAlert(),
-//         getMinUtilizationAlert(),
-//         getICMPAlert(),
-//         getMinMaxUtilizationLastSevenDays(),
-//       ]);
+//         aggregatorSummaryResponse,
+//         partnerSummaryResponse // Add partner response
+//       ] = await Promise.all(apiCalls);
 
-//       setPartnerInfos(infoResponse.data);
-//       setAggregators(aggResponse);
-//       setMaxUtilizationAlert(maxUtilResponse);
-//       setMinUtilizationAlert(minUtilResponse);
-//       setIcmpAlert(icmpResponse.data);
-//       setMinMaxUtilizationSevenDays(minMaxUtilResponse);
+//       setPartnerInfos(infoResponse.data || []);
+//       setAggregators(aggResponse || []);
+//       setMaxUtilizationAlert(maxUtilResponse || []);
+//       setMinUtilizationAlert(minUtilResponse || []);
+//       setIcmpAlert(icmpResponse.data || []);
+//       setMinMaxUtilizationSevenDays(minMaxUtilResponse || []);
+      
+//       // Set aggregator data from API response
+//       setAggregatorSummary(aggregatorSummaryResponse.aggregator_summary || []);
+//       setAggregatorCount(aggregatorSummaryResponse.aggregator_count || 0);
+      
+//       // Set partner data from API response
+//       setPartnerSummary(partnerSummaryResponse.aggregator_summary || []);
+//       setPartnerCount(partnerSummaryResponse.aggregator_count || 0);
 //     } catch (err) {
 //       console.error("Dashboard API call error:", err);
 //     } finally {
@@ -596,44 +682,44 @@
 //   }, []);
 
 //   const { totalMetrics, currentAlerts } = useMemo(() => {
-//     // Utilization Alerts
-//     const maxUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-//       (d) => d.utilization_pct > 100
-//     );
-//     const minUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-//       (d) => d.utilization_pct < 20
-//     );
+//   // Utilization Alerts
+//   const maxUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
+//     (d) => d.utilization_pct > 100
+//   );
+//   const minUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
+//     (d) => d.utilization_pct < 20
+//   );
 
-//     // ICMP Alerts
-//     const icmpAlerts = ICMP_ALERT_SOURCE_DATA;
+//   // ICMP Alerts
+//   const icmpAlerts = ICMP_ALERT_SOURCE_DATA;
 
-//     // Count only 'running' alerts for the cards
-//     const currentMaxUtilAlerts = maxUtilAlerts.filter(
-//       (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-//     );
-//     const currentMinUtilAlerts = minUtilAlerts.filter(
-//       (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-//     );
-//     const currentIcmpAlerts = icmpAlerts.filter(
-//       (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-//     );
+//   // Count only 'running' alerts for the cards
+//   const currentMaxUtilAlerts = maxUtilAlerts.filter(
+//     (d) => alertStatusMap.get(d.nttn_link_id) === "running"
+//   );
+//   const currentMinUtilAlerts = minUtilAlerts.filter(
+//     (d) => alertStatusMap.get(d.nttn_link_id) === "running"
+//   );
+//   const currentIcmpAlerts = icmpAlerts.filter(
+//     (d) => alertStatusMap.get(d.nttn_link_id) === "running"
+//   );
 
-//     return {
-//       totalMetrics: {
-//         maxAlertCount: currentMaxUtilAlerts.length,
-//         minAlertCount: currentMinUtilAlerts.length,
-//         icmpAlertCount: currentIcmpAlerts.length,
-//         partnerCount: mockPartnerData.length,
-//         aggregatorCount: mockAggregatorData.length,
-//       },
-//       // For internal use to determine base data count
-//       currentAlerts: {
-//         maxAlerts: maxUtilAlerts,
-//         minAlerts: minUtilAlerts,
-//         icmpAlerts: icmpAlerts,
-//       },
-//     };
-//   }, [alertStatusMap]);
+//   return {
+//     totalMetrics: {
+//       maxAlertCount: currentMaxUtilAlerts.length,
+//       minAlertCount: currentMinUtilAlerts.length,
+//       icmpAlertCount: currentIcmpAlerts.length,
+//       partnerCount: partnerCount, // Use API data
+//       aggregatorCount: aggregatorCount, // Use API data
+//     },
+//     // For internal use to determine base data count
+//     currentAlerts: {
+//       maxAlerts: maxUtilAlerts,
+//       minAlerts: minUtilAlerts,
+//       icmpAlerts: icmpAlerts,
+//     },
+//   };
+// }, [alertStatusMap, partnerCount, aggregatorCount]);
 
 //   const { dynamicTableData, baseAlertCount } = useMemo(() => {
 //     let baseAlertData = [];
@@ -641,14 +727,14 @@
 
 //     if (activeCard === "partners") {
 //       return {
-//         dynamicTableData: mockPartnerData,
-//         baseAlertCount: mockPartnerData.length,
+//         dynamicTableData: partnerSummary,
+//         baseAlertCount: partnerSummary.length,
 //       };
 //     }
 //     if (activeCard === "aggregators") {
 //       return {
-//         dynamicTableData: mockAggregatorData,
-//         baseAlertCount: mockAggregatorData.length,
+//         dynamicTableData: aggregatorSummary,
+//         baseAlertCount: aggregatorSummary.length,
 //       };
 //     }
 
@@ -700,7 +786,7 @@
 //       dynamicTableData: finalFilteredData,
 //       baseAlertCount: countBeforeFilter,
 //     };
-//   }, [activeCard, actionFilter, alertStatusMap, currentAlerts]);
+//   }, [activeCard, actionFilter, alertStatusMap, currentAlerts, aggregatorSummary]);
 
 //   /* --- Action Handlers (UNCHANGED) --- */
 
@@ -900,7 +986,7 @@
 //               {/* Partners */}
 //               <HealthStatCard
 //                 title='Partners'
-//                 value={partnerInfos?.length}
+//                 value={partnerCount} // Use API data instead of partnerInfos?.length
 //                 subLabel='Total number of partners'
 //                 icon={Users}
 //                 iconBgClass='bg-indigo-100'
@@ -916,7 +1002,7 @@
 //               {/* Aggregators */}
 //               <HealthStatCard
 //                 title='Aggregators'
-//                 value={totalMetrics.aggregatorCount}
+//                 value={aggregatorCount} // Use API data
 //                 subLabel='Total number of aggregators'
 //                 icon={Layers}
 //                 iconBgClass='bg-yellow-100'
@@ -1005,7 +1091,7 @@
 //           selection={true}
 //           onSelectionChange={() => {}}
 //           initialPageSize={5}
-//           rowKey='nttn_link_id'
+//           rowKey='id' // Changed to 'id' for aggregator data
 //         />
 //       </div>
 
@@ -1042,6 +1128,10 @@
 // }
 
 
+
+
+
+// src/pages/PartnerDashboard.jsx
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import {
@@ -1060,6 +1150,7 @@ import {
   AlertCircle, // Modal Icon
   Clock, // NEW: Delay icon
   Timer,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "chartjs-adapter-date-fns";
@@ -1076,7 +1167,11 @@ import {
   getICMPAlert,
   getMinMaxUtilizationLastSevenDays,
 } from "../services/partner-link/dashboardApi";
-import { fetchPartnerAggreatorSummary, fetchPartnerPartnerCountSummary } from "../services/partner-link/partnerDashboard";
+import { 
+  fetchPartnerAggreatorSummary, 
+  fetchPartnerPartnerCountSummary, 
+  fetchPartnerUtilizationLast7Days 
+} from "../services/partner-link/partnerDashboard";
 
 /* -------------------------------------------------
    1. HELPER FUNCTIONS & UI ELEMENTS (UNCHANGED)
@@ -1262,28 +1357,6 @@ const mockAggregatorData = Array.from({ length: 8 }, (_, i) => ({
   num_partners: 10 + i * 5,
   purchase_capacity: `${(i + 1) * 20} Gbps`,
 }));
-
-const mockMinMaxChartData = {
-  labels: ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"],
-  datasets: [
-    {
-      label: "Max Utilization (%)",
-      data: [95, 102, 98, 105, 90, 110, 95],
-      borderColor: "#ef4444",
-      backgroundColor: "rgba(239, 68, 68, 0.2)",
-      tension: 0.3,
-      fill: false,
-    },
-    {
-      label: "Min Utilization (%)",
-      data: [15, 10, 25, 12, 5, 8, 18],
-      borderColor: "#06b6d4",
-      backgroundColor: "rgba(6, 182, 212, 0.2)",
-      tension: 0.3,
-      fill: false,
-    },
-  ],
-};
 
 /* -------------------------------------------------
    3. COLUMN DEFINITION FUNCTION (MODIFIED: getICMPAlertColumns)
@@ -1494,36 +1567,6 @@ const AGGREGATOR_COLUMNS = [
   },
 ];
 
-// const PARTNER_COLUMNS = [
-//   { key: "partner_name", header: "Partner Name" },
-//   { key: "contact_person", header: "Contact Person" },
-//   {
-//     key: "location",
-//     header: "Location",
-//     render: (val) => (
-//       <span className='inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-600'>
-//         {safeCell(val)}
-//       </span>
-//     ),
-//   },
-//   {
-//     key: "status",
-//     header: "Status",
-//     render: (v) => (
-//       <span
-//         className={clsx(
-//           "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-//           v === "Active"
-//             ? "bg-green-100 text-green-800"
-//             : "bg-red-100 text-red-800"
-//         )}>
-//         {safeCell(v)}
-//       </span>
-//     ),
-//   },
-// ];
-
-
 const PARTNER_COLUMNS = [
   { key: "partner_name", header: "Partner Name" },
   { key: "contact_person", header: "Contact Person" },
@@ -1554,7 +1597,7 @@ const PARTNER_COLUMNS = [
 ];
 
 /* -------------------------------------------------
-   4. PARTNER DASHBOARD COMPONENT (LOGIC UNCHANGED)
+   4. PARTNER DASHBOARD COMPONENT
    ------------------------------------------------- */
 
 export default function PartnerDashboard() {
@@ -1570,10 +1613,7 @@ export default function PartnerDashboard() {
   const [maxUtilizationAlert, setMaxUtilizationAlert] = useState([]);
   const [minUtilizationAlert, setMinUtilizationAlert] = useState([]);
   const [icmpAlert, setIcmpAlert] = useState([]);
-  const [minMaxUtilizationSevenDays, setMinMaxUtilizationSevenDays] = useState(
-    []
-  );
-  
+  const [minMaxUtilizationSevenDays, setMinMaxUtilizationSevenDays] = useState([]);
   
   const [aggregatorSummary, setAggregatorSummary] = useState([]);
   const [aggregatorCount, setAggregatorCount] = useState(0);
@@ -1581,41 +1621,113 @@ export default function PartnerDashboard() {
   const [partnerSummary, setPartnerSummary] = useState([]);
   const [partnerCount, setPartnerCount] = useState(0);
 
+  // NEW: State for chart data - initialize as empty object instead of null
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: []
+  });
+  const [chartLoading, setChartLoading] = useState(true);
+
+  // Fetch chart data
+  const fetchChartData = async () => {
+    try {
+      setChartLoading(true);
+      const response = await fetchPartnerUtilizationLast7Days();
+      console.log("Chart API Response:", response);
+      
+      if (response.status && response.data) {
+        // Transform API data to chart format
+        const transformedData = transformUtilizationDataForChart(response.data);
+        setChartData(transformedData);
+      } else {
+        console.error("Failed to fetch chart data:", response.message);
+        // Set empty chart data
+        setChartData({
+          labels: [],
+          datasets: []
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching chart data:", error);
+      // Set empty chart data on error
+      setChartData({
+        labels: [],
+        datasets: []
+      });
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
+  // Transform API data to chart.js format
+  const transformUtilizationDataForChart = (apiData) => {
+    if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+      return {
+        labels: [],
+        datasets: []
+      };
+    }
+
+    return {
+      labels: apiData.map(item => item.formatted_date || item.date),
+      datasets: [
+        {
+          label: "Max Download (Mbps)",
+          data: apiData.map(item => item.max_download_mbps || 0),
+          borderColor: "#ef4444", // red-500
+          backgroundColor: "rgba(239, 68, 68, 0.2)",
+          tension: 0.3,
+          fill: false,
+          borderWidth: 2,
+        },
+        {
+          label: "Max Upload (Mbps)",
+          data: apiData.map(item => item.max_upload_mbps || 0),
+          borderColor: "#06b6d4", // cyan-500
+          backgroundColor: "rgba(6, 182, 212, 0.2)",
+          tension: 0.3,
+          fill: false,
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
   const handleStatCardClick = (cardKey) => {
-  setActiveCard(cardKey);
+    setActiveCard(cardKey);
 
-  let dataToDisplay = [];
-  let columnsToDisplay = [];
+    let dataToDisplay = [];
+    let columnsToDisplay = [];
 
-  switch (cardKey) {
-    case "max_alert":
-      dataToDisplay = maxUtilizationAlert;
-      columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
-      break;
-    case "min_alert":
-      dataToDisplay = minUtilizationAlert;
-      columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
-      break;
-    case "icmp_alert":
-      dataToDisplay = icmpAlert;
-      columnsToDisplay = getICMPAlertColumns(handleRunPause, handleResolveClick);
-      break;
-    case "partners":
-      dataToDisplay = partnerSummary;
-      columnsToDisplay = PARTNER_COLUMNS;
-      break;
-    case "aggregators":
-      dataToDisplay = aggregatorSummary;
-      columnsToDisplay = AGGREGATOR_COLUMNS;
-      break;
-    default:
-      dataToDisplay = [];
-      columnsToDisplay = PARTNER_COLUMNS;
-  }
+    switch (cardKey) {
+      case "max_alert":
+        dataToDisplay = maxUtilizationAlert;
+        columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
+        break;
+      case "min_alert":
+        dataToDisplay = minUtilizationAlert;
+        columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
+        break;
+      case "icmp_alert":
+        dataToDisplay = icmpAlert;
+        columnsToDisplay = getICMPAlertColumns(handleRunPause, handleResolveClick);
+        break;
+      case "partners":
+        dataToDisplay = partnerSummary;
+        columnsToDisplay = PARTNER_COLUMNS;
+        break;
+      case "aggregators":
+        dataToDisplay = aggregatorSummary;
+        columnsToDisplay = AGGREGATOR_COLUMNS;
+        break;
+      default:
+        dataToDisplay = [];
+        columnsToDisplay = PARTNER_COLUMNS;
+    }
 
-  setTableData(dataToDisplay);
-  setTableColumns(columnsToDisplay);
-};
+    setTableData(dataToDisplay);
+    setTableColumns(columnsToDisplay);
+  };
 
   const fetchAllDashboardData = async () => {
     try {
@@ -1691,6 +1803,7 @@ export default function PartnerDashboard() {
 
   useEffect(() => {
     fetchAllDashboardData();
+    fetchChartData(); // Fetch chart data on component mount
   }, []);
 
   // Combine utilization and ICMP alert data into one status map
@@ -1716,8 +1829,6 @@ export default function PartnerDashboard() {
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [alertToResolve, setAlertToResolve] = useState(null);
 
-  const [chartData] = useState(mockMinMaxChartData);
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialLoading(false);
@@ -1726,44 +1837,44 @@ export default function PartnerDashboard() {
   }, []);
 
   const { totalMetrics, currentAlerts } = useMemo(() => {
-  // Utilization Alerts
-  const maxUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-    (d) => d.utilization_pct > 100
-  );
-  const minUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-    (d) => d.utilization_pct < 20
-  );
+    // Utilization Alerts
+    const maxUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
+      (d) => d.utilization_pct > 100
+    );
+    const minUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
+      (d) => d.utilization_pct < 20
+    );
 
-  // ICMP Alerts
-  const icmpAlerts = ICMP_ALERT_SOURCE_DATA;
+    // ICMP Alerts
+    const icmpAlerts = ICMP_ALERT_SOURCE_DATA;
 
-  // Count only 'running' alerts for the cards
-  const currentMaxUtilAlerts = maxUtilAlerts.filter(
-    (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-  );
-  const currentMinUtilAlerts = minUtilAlerts.filter(
-    (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-  );
-  const currentIcmpAlerts = icmpAlerts.filter(
-    (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-  );
+    // Count only 'running' alerts for the cards
+    const currentMaxUtilAlerts = maxUtilAlerts.filter(
+      (d) => alertStatusMap.get(d.nttn_link_id) === "running"
+    );
+    const currentMinUtilAlerts = minUtilAlerts.filter(
+      (d) => alertStatusMap.get(d.nttn_link_id) === "running"
+    );
+    const currentIcmpAlerts = icmpAlerts.filter(
+      (d) => alertStatusMap.get(d.nttn_link_id) === "running"
+    );
 
-  return {
-    totalMetrics: {
-      maxAlertCount: currentMaxUtilAlerts.length,
-      minAlertCount: currentMinUtilAlerts.length,
-      icmpAlertCount: currentIcmpAlerts.length,
-      partnerCount: partnerCount, // Use API data
-      aggregatorCount: aggregatorCount, // Use API data
-    },
-    // For internal use to determine base data count
-    currentAlerts: {
-      maxAlerts: maxUtilAlerts,
-      minAlerts: minUtilAlerts,
-      icmpAlerts: icmpAlerts,
-    },
-  };
-}, [alertStatusMap, partnerCount, aggregatorCount]);
+    return {
+      totalMetrics: {
+        maxAlertCount: currentMaxUtilAlerts.length,
+        minAlertCount: currentMinUtilAlerts.length,
+        icmpAlertCount: currentIcmpAlerts.length,
+        partnerCount: partnerCount, // Use API data
+        aggregatorCount: aggregatorCount, // Use API data
+      },
+      // For internal use to determine base data count
+      currentAlerts: {
+        maxAlerts: maxUtilAlerts,
+        minAlerts: minUtilAlerts,
+        icmpAlerts: icmpAlerts,
+      },
+    };
+  }, [alertStatusMap, partnerCount, aggregatorCount]);
 
   const { dynamicTableData, baseAlertCount } = useMemo(() => {
     let baseAlertData = [];
@@ -1830,7 +1941,7 @@ export default function PartnerDashboard() {
       dynamicTableData: finalFilteredData,
       baseAlertCount: countBeforeFilter,
     };
-  }, [activeCard, actionFilter, alertStatusMap, currentAlerts, aggregatorSummary]);
+  }, [activeCard, actionFilter, alertStatusMap, currentAlerts, aggregatorSummary, partnerSummary]);
 
   /* --- Action Handlers (UNCHANGED) --- */
 
@@ -1875,43 +1986,53 @@ export default function PartnerDashboard() {
     [activeCard]
   );
 
-  //   const handleStatCardClick = useCallback(
-  //     (type) => {
-  //       setTableIsLoading(true);
-  //       setActiveCard(type);
-
-  //       const isAlertCard = ["max_alert", "min_alert", "icmp_alert"].includes(
-  //         type
-  //       );
-  //       const initialActionFilter = isAlertCard ? "running" : null;
-  //       setActionFilter(initialActionFilter);
-
-  //       let columns = [];
-  //       if (type === "max_alert" || type === "min_alert") {
-  //         columns = getUtilizationColumns(handleRunPause, handleResolveClick);
-  //       } else if (type === "icmp_alert") {
-  //         columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
-  //       } else if (type === "partners") {
-  //         columns = PARTNER_COLUMNS;
-  //       } else if (type === "aggregators") {
-  //         columns = AGGREGATOR_COLUMNS;
-  //       }
-
-  //       setTimeout(() => {
-  //         setDynamicTableColumns(columns);
-  //         setTableIsLoading(false);
-  //       }, 300);
-  //     },
-  //     [handleRunPause, handleResolveClick]
-  //   );
-
   const utilizationChartOptions = useMemo(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "top" } },
+      plugins: { 
+        legend: { 
+          position: "top",
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += `${context.parsed.y} Mbps`;
+              }
+              return label;
+            }
+          }
+        }
+      },
       scales: {
-        y: { min: 0, max: 120, ticks: { callback: (value) => value + "%" } },
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: { 
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Mbps'
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)',
+          }
+        },
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index',
       },
     }),
     []
@@ -2139,23 +2260,53 @@ export default function PartnerDashboard() {
         />
       </div>
 
-      {/* Utilization Chart (UNCHANGED) */}
+      {/* Updated Utilization Chart Section */}
       <div className='space-y-4'>
-        <h2 className='text-xl font-semibold text-gray-800'>
-          Min & Max Utilization (Last 7 Days)
-        </h2>
+        <div className="flex justify-between items-center">
+          <h2 className='text-xl font-semibold text-gray-800'>
+            Max Download & Upload Utilization (Last 7 Days)
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchChartData}
+            disabled={chartLoading}
+            leftIcon={RefreshCw}
+            className={chartLoading ? "animate-spin" : ""}
+          >
+            {chartLoading ? "Refreshing..." : "Refresh Data"}
+          </Button>
+        </div>
         <div className='bg-white p-6 border border-gray-200 rounded-lg shadow-sm h-96 relative'>
           <div className='h-[calc(100%-40px)]'>
-            <Chart
-              type='line'
-              data={chartData}
-              options={utilizationChartOptions}
-              className='h-full'
-              initialLoading={initialLoading}
-              fallbackMessage='No utilization logs found.'
-            />
+            {chartLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                  <p className="text-gray-500 mt-2">Loading chart data...</p>
+                </div>
+              </div>
+            ) : chartData && chartData.labels && chartData.labels.length > 0 ? (
+              <Chart
+                type='line'
+                data={chartData}
+                options={utilizationChartOptions}
+                className='h-full'
+                initialLoading={false}
+                fallbackMessage='No utilization data found.'
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">No utilization data available for the last 7 days</p>
+              </div>
+            )}
           </div>
         </div>
+        {chartData && chartData.labels && chartData.labels.length > 0 && (
+          <div className="text-sm text-gray-500 text-center">
+            Showing maximum download and upload speeds in Mbps for the last 7 days
+          </div>
+        )}
       </div>
 
       {/* Confirmation Modal Render (UNCHANGED) */}

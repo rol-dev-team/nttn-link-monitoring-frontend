@@ -215,7 +215,11 @@ const handleFormSubmit = async (values, { resetForm }) => {
         () => [
             { key: "id", header: "ID" },
             { key: "work_order_id", header: "Work Order ID" },
-            { key: "client_id", header: "Client Name" },
+            { 
+                key: "client_id", 
+                header: "Client Name",
+                render: (_, row) => row.client?.client_name || "N/A"
+            },
             { key: "asn", header: "ASN" },
             { key: "nas_ip", header: "NAS IP" },
             { key: "nat_ip", header: "NAT IP" },

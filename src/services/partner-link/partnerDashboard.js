@@ -22,3 +22,15 @@ export const fetchPartnerPartnerCountSummary = async () => {
         throw error;
     }
 };
+
+
+
+
+export const fetchPartnerUtilizationLast7Days = async () => {
+    try {
+        const response = await axiosInstance.get("/nas-utilization/last-7-days");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

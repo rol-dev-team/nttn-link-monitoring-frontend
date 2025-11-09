@@ -398,7 +398,7 @@ const NasDropDevicePage = () => {
                 if (response.status) {
                     const options = response.data.map((item) => ({
                         value: item.id.toString(), // activation_plan_id as value
-                        label: `NAS ${item.nas_ip} / Partner ${item.id}`,
+                        label: `NAS ${item.nas_ip} / ${item.client_name}`,
                         nas_ip: item.nas_ip,
                     }));
                     setNasIpOptions(options);

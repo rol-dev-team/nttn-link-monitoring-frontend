@@ -2,7 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+button.btn-primary {
+  @apply bg-primary text-white;
+}
+button.btn {
+  @apply px-4 py-2; /* Tailwind spacing utilities apply */
+}
 
+input.input-bordered { @apply border border-gray-300 px-2}
 
 /* Sidebar: kill native <summary> markers (Chrome/Firefox) and any theme caret */
 .sidebar details > summary::-webkit-details-marker { display: none; }
@@ -32,3 +39,5 @@
 
 /* Optional: slightly smoother paragraph rhythm */
 .prose { @apply leading-7 md:leading-8; }
+
+

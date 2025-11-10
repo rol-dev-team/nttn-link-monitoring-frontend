@@ -1,3 +1,4 @@
+// // src/pages/PartnerDashboard.jsx
 // import React, { useMemo, useState, useEffect, useCallback } from "react";
 // import clsx from "clsx";
 // import {
@@ -16,6 +17,7 @@
 //   AlertCircle, // Modal Icon
 //   Clock, // NEW: Delay icon
 //   Timer,
+//   RefreshCw,
 // } from "lucide-react";
 // import { useNavigate } from "react-router-dom";
 // import "chartjs-adapter-date-fns";
@@ -32,7 +34,12 @@
 //   getICMPAlert,
 //   getMinMaxUtilizationLastSevenDays,
 // } from "../services/partner-link/dashboardApi";
-// import { fetchPartnerAggreatorSummary, fetchPartnerPartnerCountSummary, fetchPartnerUtilizationLast7Days } from "../services/partner-link/partnerDashboard";
+// import { 
+//   fetchPartnerAggreatorSummary, 
+//   fetchPartnerPartnerCountSummary, 
+//   fetchPartnerUtilizationLast7Days,
+//   fetchPartnerDownloadUtilizationAlert
+// } from "../services/partner-link/partnerDashboard";
 
 // /* -------------------------------------------------
 //    1. HELPER FUNCTIONS & UI ELEMENTS (UNCHANGED)
@@ -157,92 +164,7 @@
 // };
 
 // /* -------------------------------------------------
-//    2. MOCK DATA (UPDATED: UTILIZATION_SOURCE_DATA MODIFIED)
-//    ------------------------------------------------- */
-// const randUtil = (min, max) =>
-//   Math.floor(Math.random() * (max - min + 1)) + min;
-
-// const getInitialStatus = (i) => {
-//   // 20% resolved, 20% paused, 60% running initially
-//   if (i % 5 === 0) return "resolved";
-//   if (i % 5 === 1) return "paused";
-//   return "running";
-// };
-
-// // MODIFIED MOCK DATA
-// const UTILIZATION_SOURCE_DATA = Array.from({ length: 20 }, (_, i) => ({
-//   id: i + 1,
-//   partner_name: `Partner ${String.fromCharCode(65 + i)}`,
-//   nttn_link_id: `NTTN-${1000 + i}`,
-//   purchased_capacity: `${((i % 5) + 1) * 10} Gbps`,
-//   alert_status: getInitialStatus(i),
-//   utilization_pct:
-//     i < 3 ? randUtil(105, 120) : i >= 17 ? randUtil(0, 15) : randUtil(40, 95),
-//   location: `Zone ${i % 4}`,
-//   // 👇 NEW CONFIGURATION FIELDS ADDED
-//   daily_triggers: randUtil(1, 4),
-//   alert_duration_days: randUtil(3, 10),
-// }));
-
-// // UPDATED: Mock data for ICMP Alerts with alert_value and frequency
-// const ICMP_ALERT_SOURCE_DATA = Array.from({ length: 12 }, (_, i) => {
-//   const isTimeout = i % 4 === 0;
-
-//   return {
-//     id: i + 1,
-//     partner_name: `Partner ${String.fromCharCode(75 + i)}`,
-//     nttn_link_id: `ICMP-${2000 + i}`,
-//     last_ping_time: `${(i % 5) + 1} mins ago`,
-//     alert_status: getInitialStatus(i),
-//     location: `Zone ${i % 3}`,
-//     icmp_status: isTimeout ? "Timeout" : "High Latency",
-//     // NEW REQUIRED FIELDS
-//     alert_value: isTimeout
-//       ? `${randUtil(3, 10)} Consecutive Failures`
-//       : `${randUtil(150, 400)}ms Latency`,
-//     frequency: `${randUtil(3, 20)} times in ${randUtil(1, 7)} days`,
-//   };
-// });
-
-// const mockPartnerData = Array.from({ length: 25 }, (_, i) => ({
-//   id: i + 1,
-//   partner_name: `Partner ${i + 1}`,
-//   contact_person: `Contact ${i + 1}`,
-//   location: `City ${i % 5}`,
-//   status: i % 4 === 0 ? "Inactive" : "Active",
-// }));
-
-// const mockAggregatorData = Array.from({ length: 8 }, (_, i) => ({
-//   id: i + 1,
-//   aggregator_name: `Aggregator Group ${i + 1}`,
-//   num_partners: 10 + i * 5,
-//   purchase_capacity: `${(i + 1) * 20} Gbps`,
-// }));
-
-// const mockMinMaxChartData = {
-//   labels: ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"],
-//   datasets: [
-//     {
-//       label: "Max Utilization (%)",
-//       data: [95, 102, 98, 105, 90, 110, 95],
-//       borderColor: "#ef4444",
-//       backgroundColor: "rgba(239, 68, 68, 0.2)",
-//       tension: 0.3,
-//       fill: false,
-//     },
-//     {
-//       label: "Min Utilization (%)",
-//       data: [15, 10, 25, 12, 5, 8, 18],
-//       borderColor: "#06b6d4",
-//       backgroundColor: "rgba(6, 182, 212, 0.2)",
-//       tension: 0.3,
-//       fill: false,
-//     },
-//   ],
-// };
-
-// /* -------------------------------------------------
-//    3. COLUMN DEFINITION FUNCTION (MODIFIED: getICMPAlertColumns)
+//    3. COLUMN DEFINITION FUNCTION (UPDATED FOR DOWNLOAD UTILIZATION)
 //    ------------------------------------------------- */
 
 // // Reusable action column render function (UNCHANGED)
@@ -287,18 +209,18 @@
 //     <div className='flex justify-center space-x-2'>
 //       {/* Run/Pause Toggle Button */}
 //       <Button
-//         key={`${row.nttn_link_id}-runpause`}
+//         key={`${row.nttn_work_order_id}-runpause`}
 //         variant='ghost'
 //         size='sm'
 //         className={clsx(runPauseColorClass, "border")}
-//         onClick={() => handleRunPause(row.nttn_link_id, nextRunPauseStatus)}
+//         onClick={() => handleRunPause(row.nttn_work_order_id, nextRunPauseStatus)}
 //         leftIcon={RunPauseIcon}>
 //         {runPauseLabel}
 //       </Button>
 
 //       {/* Resolve Button */}
 //       <Button
-//         key={`${row.nttn_link_id}-resolve`}
+//         key={`${row.nttn_work_order_id}-resolve`}
 //         variant='ghost'
 //         size='sm'
 //         className='text-green-600 border-green-200 hover:bg-green-50 border'
@@ -310,7 +232,66 @@
 //   );
 // };
 
-// // Utilization Columns (UNCHANGED)
+// // NEW: Columns for Download Utilization Alerts
+// const getDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+//   { key: "client_name", header: "Client Name" },
+//   { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+//   { key: "nas_ip", header: "NAS IP" },
+//   { key: "interface_port", header: "Interface Port" },
+//   { 
+//     key: "request_capacity", 
+//     header: "Request Capacity",
+//     render: (val) => `${safeCell(val)} Mbps`
+//   },
+//   {
+//     key: "consecutive_days",
+//     header: "Alert Configuration",
+//     render: (v) => (
+//       <div className='text-sm text-gray-700'>
+//         {safeCell(v)}
+//       </div>
+//     ),
+//   },
+//   {
+//     key: "avg_utilization_percent",
+//     header: "Avg Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct > 100) {
+//         color = "text-red-600 font-bold";
+//       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "max_utilization_percent",
+//     header: "Max Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct > 100) {
+//         color = "text-red-600 font-bold";
+//       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "actions",
+//     header: "Actions",
+//     align: "center",
+//     width: "18rem",
+//     isSortable: false,
+//     render: (v, row) =>
+//       renderAlertActions(row, handleRunPause, handleResolveClick),
+//   },
+// ];
+
+// // Utilization Columns (For other utilization alerts)
 // const getUtilizationColumns = (handleRunPause, handleResolveClick) => [
 //   { key: "partner_name", header: "Partner Name" },
 //   { key: "nttn_link_id", header: "NTTN Link ID " },
@@ -318,7 +299,6 @@
 //   {
 //     key: "alert_config",
 //     header: "Alert Configuration",
-//     // This column will render the new fields (daily_triggers, alert_duration_days)
 //     render: (v, row) => (
 //       <div className='text-sm text-gray-700'>
 //         {safeCell(row.daily_triggers)} times / day
@@ -378,7 +358,6 @@
 //       </span>
 //     ),
 //   },
-//   // MODIFIED COLUMN: Alert Value
 //   {
 //     key: "alert_value",
 //     header: "Alert Value",
@@ -387,23 +366,18 @@
 
 //       if (typeof v === "string") {
 //         if (row.icmp_status === "High Latency" && v.includes("ms Latency")) {
-//           // High Latency: Extract only the numeric value and 'ms' unit (e.g., '320ms')
 //           displayValue = v.replace("ms Latency", " ms").trim();
 //         } else if (row.icmp_status === "Timeout") {
-//           // 1. Calculate simulated duration (assuming 12 seconds per failure)
 //           const failureCountMatch = v.match(/(\d+)/);
 //           const count = failureCountMatch
 //             ? parseInt(failureCountMatch[0], 10)
 //             : 5;
 //           const simulatedDurationSeconds = count * 12;
 
-//           // 2. Apply the conversion logic
 //           if (simulatedDurationSeconds >= 60) {
-//             // Convert to minutes, rounded to one decimal place
 //             const durationMinutes = (simulatedDurationSeconds / 60).toFixed(1);
 //             displayValue = `${durationMinutes} min`;
 //           } else {
-//             // Display in seconds
 //             displayValue = `${simulatedDurationSeconds} sec`;
 //           }
 //         }
@@ -416,7 +390,6 @@
 //       );
 //     },
 //   },
-//   // NEW COLUMN: Frequency (UNCHANGED)
 //   {
 //     key: "frequency",
 //     header: "Frequency",
@@ -450,36 +423,6 @@
 //   },
 // ];
 
-// // const PARTNER_COLUMNS = [
-// //   { key: "partner_name", header: "Partner Name" },
-// //   { key: "contact_person", header: "Contact Person" },
-// //   {
-// //     key: "location",
-// //     header: "Location",
-// //     render: (val) => (
-// //       <span className='inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-600'>
-// //         {safeCell(val)}
-// //       </span>
-// //     ),
-// //   },
-// //   {
-// //     key: "status",
-// //     header: "Status",
-// //     render: (v) => (
-// //       <span
-// //         className={clsx(
-// //           "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-// //           v === "Active"
-// //             ? "bg-green-100 text-green-800"
-// //             : "bg-red-100 text-red-800"
-// //         )}>
-// //         {safeCell(v)}
-// //       </span>
-// //     ),
-// //   },
-// // ];
-
-
 // const PARTNER_COLUMNS = [
 //   { key: "partner_name", header: "Partner Name" },
 //   { key: "contact_person", header: "Contact Person" },
@@ -499,7 +442,7 @@
 //       <span
 //         className={clsx(
 //           "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-//           v === "active" || v === "Active" // Handle both 'active' and 'Active'
+//           v === "active" || v === "Active"
 //             ? "bg-green-100 text-green-800"
 //             : "bg-red-100 text-red-800"
 //         )}>
@@ -510,26 +453,34 @@
 // ];
 
 // /* -------------------------------------------------
-//    4. PARTNER DASHBOARD COMPONENT (LOGIC UNCHANGED)
+//    4. PARTNER DASHBOARD COMPONENT
 //    ------------------------------------------------- */
 
 // export default function PartnerDashboard() {
 //   const navigate = useNavigate();
 //   const [initialLoading, setInitialLoading] = useState(true);
-//   const [activeCard, setActiveCard] = useState(null);
-//   const [tableColumns, setTableColumns] = useState([]);
-//   const [tableData, setTableData] = useState([]);
 
-//   // 1. Dedicated states for each API response
+//   const [alertStatusMap, setAlertStatusMap] = useState(new Map());
+
+//   const [dynamicTableColumns, setDynamicTableColumns] = useState([]);
+//   const [dynamicTableTitle, setDynamicTableTitle] = useState(
+//     "Select a card to view data"
+//   );
+//   const [activeCard, setActiveCard] = useState(null);
+//   const [tableIsLoading, setTableIsLoading] = useState(false);
+  
+//   const [actionFilter, setActionFilter] = useState("all");
+
+//   const [showResolveModal, setShowResolveModal] = useState(false);
+//   const [alertToResolve, setAlertToResolve] = useState(null);
+
+//   // API states
 //   const [partnerInfos, setPartnerInfos] = useState([]);
 //   const [aggregators, setAggregators] = useState([]);
 //   const [maxUtilizationAlert, setMaxUtilizationAlert] = useState([]);
 //   const [minUtilizationAlert, setMinUtilizationAlert] = useState([]);
 //   const [icmpAlert, setIcmpAlert] = useState([]);
-//   const [minMaxUtilizationSevenDays, setMinMaxUtilizationSevenDays] = useState(
-//     []
-//   );
-  
+//   const [minMaxUtilizationSevenDays, setMinMaxUtilizationSevenDays] = useState([]);
   
 //   const [aggregatorSummary, setAggregatorSummary] = useState([]);
 //   const [aggregatorCount, setAggregatorCount] = useState(0);
@@ -537,79 +488,143 @@
 //   const [partnerSummary, setPartnerSummary] = useState([]);
 //   const [partnerCount, setPartnerCount] = useState(0);
 
-//   const handleStatCardClick = (cardKey) => {
-//   setActiveCard(cardKey);
+//   // NEW: State for download utilization alerts
+//   const [downloadUtilizationAlerts, setDownloadUtilizationAlerts] = useState([]);
+//   const [downloadUtilizationCount, setDownloadUtilizationCount] = useState(0);
 
-//   let dataToDisplay = [];
-//   let columnsToDisplay = [];
+//   // Chart state
+//   const [chartData, setChartData] = useState({
+//     labels: [],
+//     datasets: []
+//   });
+//   const [chartLoading, setChartLoading] = useState(true);
 
-//   switch (cardKey) {
-//     case "max_alert":
-//       dataToDisplay = maxUtilizationAlert;
-//       columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
-//       break;
-//     case "min_alert":
-//       dataToDisplay = minUtilizationAlert;
-//       columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
-//       break;
-//     case "icmp_alert":
-//       dataToDisplay = icmpAlert;
-//       columnsToDisplay = getICMPAlertColumns(handleRunPause, handleResolveClick);
-//       break;
-//     case "partners":
-//       dataToDisplay = partnerSummary;
-//       columnsToDisplay = PARTNER_COLUMNS;
-//       break;
-//     case "aggregators":
-//       dataToDisplay = aggregatorSummary;
-//       columnsToDisplay = AGGREGATOR_COLUMNS;
-//       break;
-//     default:
-//       dataToDisplay = [];
-//       columnsToDisplay = PARTNER_COLUMNS;
-//   }
+//   // Fetch chart data
+//   const fetchChartData = async () => {
+//     try {
+//       setChartLoading(true);
+//       const response = await fetchPartnerUtilizationLast7Days();
+//       console.log("Chart API Response:", response);
+      
+//       if (response.status && response.data) {
+//         const transformedData = transformUtilizationDataForChart(response.data);
+//         setChartData(transformedData);
+//       } else {
+//         console.error("Failed to fetch chart data:", response.message);
+//         setChartData({
+//           labels: [],
+//           datasets: []
+//         });
+//       }
+//     } catch (error) {
+//       console.error("Error fetching chart data:", error);
+//       setChartData({
+//         labels: [],
+//         datasets: []
+//       });
+//     } finally {
+//       setChartLoading(false);
+//     }
+//   };
 
-//   setTableData(dataToDisplay);
-//   setTableColumns(columnsToDisplay);
-// };
+//   // Transform API data to chart.js format
+//   const transformUtilizationDataForChart = (apiData) => {
+//     if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+//       return {
+//         labels: [],
+//         datasets: []
+//       };
+//     }
+
+//     return {
+//       labels: apiData.map(item => item.formatted_date || item.date),
+//       datasets: [
+//         {
+//           label: "Max Download (Mbps)",
+//           data: apiData.map(item => item.max_download_mbps || 0),
+//           borderColor: "#ef4444",
+//           backgroundColor: "rgba(239, 68, 68, 0.2)",
+//           tension: 0.3,
+//           fill: false,
+//           borderWidth: 2,
+//         },
+//         {
+//           label: "Max Upload (Mbps)",
+//           data: apiData.map(item => item.max_upload_mbps || 0),
+//           borderColor: "#06b6d4",
+//           backgroundColor: "rgba(6, 182, 212, 0.2)",
+//           tension: 0.3,
+//           fill: false,
+//           borderWidth: 2,
+//         },
+//       ],
+//     };
+//   };
+
+//   // Fetch download utilization alerts
+//   const fetchDownloadUtilizationAlerts = async () => {
+//     try {
+//       const response = await fetchPartnerDownloadUtilizationAlert();
+//       console.log("Download Utilization API Response:", response);
+      
+//       if (response.status && response.data) {
+//         setDownloadUtilizationAlerts(response.data);
+//         setDownloadUtilizationCount(response.row_count || response.data.length);
+        
+//         // Initialize alert status map for download utilization alerts
+//         const downloadAlertMap = new Map();
+//         response.data.forEach(alert => {
+//           downloadAlertMap.set(alert.nttn_work_order_id, "running");
+//         });
+//         setAlertStatusMap(prev => new Map([...prev, ...downloadAlertMap]));
+//       } else {
+//         console.error("Failed to fetch download utilization alerts:", response.message);
+//         setDownloadUtilizationAlerts([]);
+//         setDownloadUtilizationCount(0);
+//       }
+//     } catch (error) {
+//       console.error("Error fetching download utilization alerts:", error);
+//       setDownloadUtilizationAlerts([]);
+//       setDownloadUtilizationCount(0);
+//     }
+//   };
 
 //   const fetchAllDashboardData = async () => {
 //     try {
 //       setInitialLoading(true);
       
-//       // Create individual API calls with error handling
 //       const apiCalls = [
 //         getPartnerInfos().catch(error => {
 //           console.error("Partner Infos API error:", error);
-//           return { data: [] }; // Return empty data on error
+//           return { data: [] };
 //         }),
 //         getAggregators().catch(error => {
 //           console.error("Aggregators API error:", error);
-//           return []; // Return empty array on error
+//           return [];
 //         }),
 //         getMaxUtilizationAlert().catch(error => {
 //           console.error("Max Utilization API error:", error);
-//           return []; // Return empty array on error
+//           return [];
 //         }),
 //         getMinUtilizationAlert().catch(error => {
 //           console.error("Min Utilization API error:", error);
-//           return []; // Return empty array on error
+//           return [];
 //         }),
 //         getICMPAlert().catch(error => {
 //           console.error("ICMP Alert API error:", error);
-//           return { data: [] }; // Return empty data on error
+//           return { data: [] };
 //         }),
 //         getMinMaxUtilizationLastSevenDays().catch(error => {
 //           console.error("Min Max Utilization API error:", error);
-//           return []; // Return empty array on error
+//           return [];
 //         }),
 //         fetchPartnerAggreatorSummary().catch(error => {
 //           console.error("Aggregator Summary API error:", error);
-//           return { aggregator_summary: [], aggregator_count: 0 }; // Return empty data on error
+//           return { aggregator_summary: [], aggregator_count: 0 };
 //         }),
-//         fetchPartnerPartnerCountSummary().catch(error => { // Add partner API call
+//         fetchPartnerPartnerCountSummary().catch(error => {
 //           console.error("Partner Summary API error:", error);
-//           return { aggregator_summary: [], aggregator_count: 0 }; // Return empty data on error
+//           return { aggregator_summary: [], aggregator_count: 0 };
 //         })
 //       ];
 
@@ -621,7 +636,7 @@
 //         icmpResponse,
 //         minMaxUtilResponse,
 //         aggregatorSummaryResponse,
-//         partnerSummaryResponse // Add partner response
+//         partnerSummaryResponse
 //       ] = await Promise.all(apiCalls);
 
 //       setPartnerInfos(infoResponse.data || []);
@@ -631,13 +646,14 @@
 //       setIcmpAlert(icmpResponse.data || []);
 //       setMinMaxUtilizationSevenDays(minMaxUtilResponse || []);
       
-//       // Set aggregator data from API response
 //       setAggregatorSummary(aggregatorSummaryResponse.aggregator_summary || []);
 //       setAggregatorCount(aggregatorSummaryResponse.aggregator_count || 0);
       
-//       // Set partner data from API response
 //       setPartnerSummary(partnerSummaryResponse.aggregator_summary || []);
 //       setPartnerCount(partnerSummaryResponse.aggregator_count || 0);
+
+//       // Fetch download utilization alerts
+//       await fetchDownloadUtilizationAlerts();
 //     } catch (err) {
 //       console.error("Dashboard API call error:", err);
 //     } finally {
@@ -647,32 +663,8 @@
 
 //   useEffect(() => {
 //     fetchAllDashboardData();
+//     fetchChartData();
 //   }, []);
-
-//   // Combine utilization and ICMP alert data into one status map
-//   const [alertStatusMap, setAlertStatusMap] = useState(() => {
-//     const utilMap = new Map(
-//       UTILIZATION_SOURCE_DATA.map((d) => [d.nttn_link_id, d.alert_status])
-//     );
-//     const icmpMap = new Map(
-//       ICMP_ALERT_SOURCE_DATA.map((d) => [d.nttn_link_id, d.alert_status])
-//     );
-//     return new Map([...utilMap, ...icmpMap]);
-//   });
-
-//   const [dynamicTableColumns, setDynamicTableColumns] = useState([]);
-//   const [dynamicTableTitle, setDynamicTableTitle] = useState(
-//     "Select a card to view data"
-//   );
-
-//   const [tableIsLoading, setTableIsLoading] = useState(false);
-
-//   const [actionFilter, setActionFilter] = useState("all");
-
-//   const [showResolveModal, setShowResolveModal] = useState(false);
-//   const [alertToResolve, setAlertToResolve] = useState(null);
-
-//   const [chartData] = useState(mockMinMaxChartData);
 
 //   useEffect(() => {
 //     const timer = setTimeout(() => {
@@ -681,49 +673,23 @@
 //     return () => clearTimeout(timer);
 //   }, []);
 
-//   const { totalMetrics, currentAlerts } = useMemo(() => {
-//   // Utilization Alerts
-//   const maxUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-//     (d) => d.utilization_pct > 100
-//   );
-//   const minUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-//     (d) => d.utilization_pct < 20
-//   );
-
-//   // ICMP Alerts
-//   const icmpAlerts = ICMP_ALERT_SOURCE_DATA;
-
-//   // Count only 'running' alerts for the cards
-//   const currentMaxUtilAlerts = maxUtilAlerts.filter(
-//     (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-//   );
-//   const currentMinUtilAlerts = minUtilAlerts.filter(
-//     (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-//   );
-//   const currentIcmpAlerts = icmpAlerts.filter(
-//     (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-//   );
-
-//   return {
-//     totalMetrics: {
-//       maxAlertCount: currentMaxUtilAlerts.length,
-//       minAlertCount: currentMinUtilAlerts.length,
-//       icmpAlertCount: currentIcmpAlerts.length,
-//       partnerCount: partnerCount, // Use API data
-//       aggregatorCount: aggregatorCount, // Use API data
-//     },
-//     // For internal use to determine base data count
-//     currentAlerts: {
-//       maxAlerts: maxUtilAlerts,
-//       minAlerts: minUtilAlerts,
-//       icmpAlerts: icmpAlerts,
-//     },
-//   };
-// }, [alertStatusMap, partnerCount, aggregatorCount]);
+//   const { totalMetrics } = useMemo(() => {
+//     return {
+//       totalMetrics: {
+//         maxDownloadAlertCount: downloadUtilizationCount,
+//         maxUploadAlertCount: 0, // You can add upload alerts when available
+//         minDownloadAlertCount: 0,
+//         minUploadAlertCount: 0,
+//         icmpAlertCount: icmpAlert.length,
+//         partnerCount: partnerCount,
+//         aggregatorCount: aggregatorCount,
+//       },
+//     };
+//   }, [downloadUtilizationCount, icmpAlert.length, partnerCount, aggregatorCount]);
 
 //   const { dynamicTableData, baseAlertCount } = useMemo(() => {
 //     let baseAlertData = [];
-//     let titlePrefix = "";
+//     let titlePrefix = '';
 
 //     if (activeCard === "partners") {
 //       return {
@@ -738,25 +704,30 @@
 //       };
 //     }
 
-//     if (activeCard === "max_alert") {
-//       baseAlertData = currentAlerts.maxAlerts;
-//       titlePrefix = "Max Utilization";
-//     } else if (activeCard === "min_alert") {
-//       baseAlertData = currentAlerts.minAlerts;
-//       titlePrefix = "Min Utilization";
+//     // Handle download utilization alerts
+//     if (activeCard === "max_download_alert") {
+//       baseAlertData = downloadUtilizationAlerts;
+//       titlePrefix = "Max Download Utilization";
+//     } else if (activeCard === "max_upload_alert") {
+//       baseAlertData = []; // Add when you have upload alerts
+//       titlePrefix = "Max Upload Utilization";
+//     } else if (activeCard === "min_download_alert") {
+//       baseAlertData = []; // Add when you have min download alerts
+//       titlePrefix = "Min Download Utilization";
+//     } else if (activeCard === "min_upload_alert") {
+//       baseAlertData = []; // Add when you have min upload alerts
+//       titlePrefix = "Min Upload Utilization";
 //     } else if (activeCard === "icmp_alert") {
-//       baseAlertData = currentAlerts.icmpAlerts;
+//       baseAlertData = icmpAlert;
 //       titlePrefix = "ICMP";
 //     } else {
 //       return { dynamicTableData: [], baseAlertCount: 0 };
 //     }
 
-//     // baseAlertCount is the total number of links that *have* alerts
 //     const countBeforeFilter = baseAlertData.length;
 
 //     const dataWithCurrentStatus = baseAlertData.map((row) => {
-//       const currentStatus =
-//         alertStatusMap.get(row.nttn_link_id) ?? row.alert_status;
+//       const currentStatus = alertStatusMap.get(row.nttn_work_order_id || row.nttn_link_id) || "running";
 //       return { ...row, current_alert_status: currentStatus };
 //     });
 
@@ -786,16 +757,14 @@
 //       dynamicTableData: finalFilteredData,
 //       baseAlertCount: countBeforeFilter,
 //     };
-//   }, [activeCard, actionFilter, alertStatusMap, currentAlerts, aggregatorSummary]);
+//   }, [activeCard, actionFilter, alertStatusMap, downloadUtilizationAlerts, icmpAlert, aggregatorSummary, partnerSummary]);
 
-//   /* --- Action Handlers (UNCHANGED) --- */
-
-//   // Handler for the Run/Pause/Resolve status update
-//   const handleRunPause = useCallback((nttnLinkId, newStatus) => {
+//   /* --- Action Handlers --- */
+//   const handleRunPause = useCallback((alertId, newStatus) => {
 //     setTableIsLoading(true);
 //     setAlertStatusMap((prev) => {
 //       const next = new Map(prev);
-//       next.set(nttnLinkId, newStatus);
+//       next.set(alertId, newStatus);
 //       return next;
 //     });
 //     setTimeout(() => {
@@ -803,16 +772,15 @@
 //     }, 300);
 //   }, []);
 
-//   // Handler to open the Resolve modal
 //   const handleResolveClick = useCallback((row) => {
 //     setAlertToResolve(row);
 //     setShowResolveModal(true);
 //   }, []);
 
-//   // Handler for confirming resolution from the modal (still sets to 'resolved')
 //   const handleConfirmResolve = useCallback(() => {
 //     if (alertToResolve) {
-//       handleRunPause(alertToResolve.nttn_link_id, "resolved");
+//       const alertId = alertToResolve.nttn_work_order_id || alertToResolve.nttn_link_id;
+//       handleRunPause(alertId, "resolved");
 //     }
 //     setShowResolveModal(false);
 //     setAlertToResolve(null);
@@ -820,7 +788,7 @@
 
 //   const handleActionFilterClick = useCallback(
 //     (filter) => {
-//       if (!["max_alert", "min_alert", "icmp_alert"].includes(activeCard))
+//       if (!["max_download_alert", "max_upload_alert", "min_download_alert", "min_upload_alert", "icmp_alert"].includes(activeCard))
 //         return;
 //       setTableIsLoading(true);
 //       setActionFilter(filter);
@@ -831,43 +799,80 @@
 //     [activeCard]
 //   );
 
-//   //   const handleStatCardClick = useCallback(
-//   //     (type) => {
-//   //       setTableIsLoading(true);
-//   //       setActiveCard(type);
-
-//   //       const isAlertCard = ["max_alert", "min_alert", "icmp_alert"].includes(
-//   //         type
-//   //       );
-//   //       const initialActionFilter = isAlertCard ? "running" : null;
-//   //       setActionFilter(initialActionFilter);
-
-//   //       let columns = [];
-//   //       if (type === "max_alert" || type === "min_alert") {
-//   //         columns = getUtilizationColumns(handleRunPause, handleResolveClick);
-//   //       } else if (type === "icmp_alert") {
-//   //         columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
-//   //       } else if (type === "partners") {
-//   //         columns = PARTNER_COLUMNS;
-//   //       } else if (type === "aggregators") {
-//   //         columns = AGGREGATOR_COLUMNS;
-//   //       }
-
-//   //       setTimeout(() => {
-//   //         setDynamicTableColumns(columns);
-//   //         setTableIsLoading(false);
-//   //       }, 300);
-//   //     },
-//   //     [handleRunPause, handleResolveClick]
-//   //   );
+//   const handleStatCardClick = useCallback((type) => {
+//     setTableIsLoading(true);
+//     setActiveCard(type);
+    
+//     const isAlertCard = ['max_download_alert', 'max_upload_alert', 'min_download_alert', 'min_upload_alert', 'icmp_alert'].includes(type);
+//     const initialActionFilter = isAlertCard ? 'running' : null;
+//     setActionFilter(initialActionFilter); 
+    
+//     let columns = [];
+//     if (type === 'max_download_alert') {
+//       columns = getDownloadUtilizationColumns(handleRunPause, handleResolveClick); 
+//     } else if (type === 'max_upload_alert' || type === 'min_download_alert' || type === 'min_upload_alert') {
+//       columns = getUtilizationColumns(handleRunPause, handleResolveClick);
+//     } else if (type === 'icmp_alert') { 
+//       columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
+//     } else if (type === 'partners') {
+//       columns = PARTNER_COLUMNS;
+//     } else if (type === 'aggregators') {
+//       columns = AGGREGATOR_COLUMNS;
+//     }
+    
+//     setTimeout(() => {
+//       setDynamicTableColumns(columns);
+//       setTableIsLoading(false);
+//     }, 300);
+//   }, [handleRunPause, handleResolveClick]);
 
 //   const utilizationChartOptions = useMemo(
 //     () => ({
 //       responsive: true,
 //       maintainAspectRatio: false,
-//       plugins: { legend: { position: "top" } },
+//       plugins: { 
+//         legend: { 
+//           position: "top",
+//           labels: {
+//             usePointStyle: true,
+//             padding: 20,
+//           }
+//         },
+//         tooltip: {
+//           callbacks: {
+//             label: function(context) {
+//               let label = context.dataset.label || '';
+//               if (label) {
+//                 label += ': ';
+//               }
+//               if (context.parsed.y !== null) {
+//                 label += `${context.parsed.y} Mbps`;
+//               }
+//               return label;
+//             }
+//           }
+//         }
+//       },
 //       scales: {
-//         y: { min: 0, max: 120, ticks: { callback: (value) => value + "%" } },
+//         x: {
+//           grid: {
+//             display: false
+//           }
+//         },
+//         y: { 
+//           beginAtZero: true,
+//           title: {
+//             display: true,
+//             text: 'Mbps'
+//           },
+//           grid: {
+//             color: 'rgba(0, 0, 0, 0.1)',
+//           }
+//         },
+//       },
+//       interaction: {
+//         intersect: false,
+//         mode: 'index',
 //       },
 //     }),
 //     []
@@ -886,14 +891,14 @@
 //       </div>
 
 //       <div className='space-y-4'>
-//         <div className='grid grid-cols-4 gap-4'>
+//         <div className="flex gap-4">
 //           {initialLoading ? (
 //             Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
 //           ) : (
 //             <>
 //               <HealthStatCard
 //                 title='Max Download Utilization Alert'
-//                 value={totalMetrics.maxAlertCount}
+//                 value={totalMetrics.maxDownloadAlertCount}
 //                 subLabel='Download Utilization threshold exceeded'
 //                 icon={ArrowDown}
 //                 iconBgClass='bg-red-100'
@@ -908,7 +913,7 @@
 
 //               <HealthStatCard
 //                 title='Max Upload Utilization Alert'
-//                 value={totalMetrics.maxAlertCount}
+//                 value={totalMetrics.maxUploadAlertCount}
 //                 subLabel='Upload Utilization threshold exceeded'
 //                 icon={ArrowUp}
 //                 iconBgClass='bg-red-100'
@@ -920,59 +925,43 @@
 //                 }
 //                 onClick={() => handleStatCardClick("max_upload_alert")}
 //               />
-//               {/* Max Utilization Alert */}
+
 //               <HealthStatCard
 //                 title='Min Download Alert'
-//                 value={totalMetrics.maxAlertCount}
-//                 subLabel='Utilization threshold exceeded'
+//                 value={totalMetrics.minDownloadAlertCount}
+//                 subLabel='Under utilization detected'
 //                 icon={ArrowDown}
 //                 iconBgClass='bg-blue-100'
 //                 iconTextClass='text-blue-600'
 //                 valueClass={
-//                   activeCard === "max_alert"
+//                   activeCard === "min_download_alert"
 //                     ? "text-blue-700 underline"
 //                     : "text-blue-600"
 //                 }
-//                 onClick={() => handleStatCardClick("max_alert")}
+//                 onClick={() => handleStatCardClick("min_download_alert")}
 //               />
 
-//               {/* Min Utilization Alert */}
 //               <HealthStatCard
 //                 title='Min Upload Alert'
-//                 value={totalMetrics.minAlertCount}
+//                 value={totalMetrics.minUploadAlertCount}
 //                 subLabel='Under utilization detected'
 //                 icon={ArrowUp}
 //                 iconBgClass='bg-cyan-100'
 //                 iconTextClass='text-cyan-600'
 //                 valueClass={
-//                   activeCard === "min_alert"
+//                   activeCard === "min_upload_alert"
 //                     ? "text-cyan-700 underline"
 //                     : "text-cyan-600"
 //                 }
-//                 onClick={() => handleStatCardClick("min_alert")}
+//                 onClick={() => handleStatCardClick("min_upload_alert")}
 //               />
 
 //               {/* ICMP Alert Card */}
-
 //               <HealthStatCard
 //                 title='ICMP Latency Alerts'
-//                 value={icmpAlert?.length}
+//                 value={totalMetrics.icmpAlertCount}
 //                 subLabel='Network issues detected'
 //                 icon={Clock}
-//                 iconBgClass='bg-orange-100'
-//                 iconTextClass='text-orange-600'
-//                 valueClass={
-//                   activeCard === "icmp_alert"
-//                     ? "text-orange-700 underline"
-//                     : "text-orange-600"
-//                 }
-//                 onClick={() => handleStatCardClick("icmp_alert")}
-//               />
-//               <HealthStatCard
-//                 title='ICMP Timeout Alerts'
-//                 value={icmpAlert?.length}
-//                 subLabel='Network issues detected'
-//                 icon={WifiOff}
 //                 iconBgClass='bg-orange-100'
 //                 iconTextClass='text-orange-600'
 //                 valueClass={
@@ -986,7 +975,7 @@
 //               {/* Partners */}
 //               <HealthStatCard
 //                 title='Partners'
-//                 value={partnerCount} // Use API data instead of partnerInfos?.length
+//                 value={totalMetrics.partnerCount}
 //                 subLabel='Total number of partners'
 //                 icon={Users}
 //                 iconBgClass='bg-indigo-100'
@@ -1002,7 +991,7 @@
 //               {/* Aggregators */}
 //               <HealthStatCard
 //                 title='Aggregators'
-//                 value={aggregatorCount} // Use API data
+//                 value={totalMetrics.aggregatorCount}
 //                 subLabel='Total number of aggregators'
 //                 icon={Layers}
 //                 iconBgClass='bg-yellow-100'
@@ -1027,7 +1016,7 @@
 //           </h2>
 
 //           {/* Filter Buttons */}
-//           {["max_alert", "min_alert", "icmp_alert"].includes(activeCard) &&
+//           {["max_download_alert", "max_upload_alert", "min_download_alert", "min_upload_alert", "icmp_alert"].includes(activeCard) &&
 //             baseAlertCount > 0 && (
 //               <div className='flex space-x-2'>
 //                 <Button
@@ -1037,7 +1026,6 @@
 //                   leftIcon={Filter}>
 //                   All
 //                 </Button>
-//                 {/* Unresolved Filter (includes running and paused for table view) */}
 //                 <Button
 //                   variant={actionFilter === "unresolved" ? "solid" : "ghost"}
 //                   onClick={() => handleActionFilterClick("unresolved")}
@@ -1079,49 +1067,68 @@
 //             selection={true}
 //             onSelectionChange={() => {}}
 //             initialPageSize={5}
-//             rowKey='nttn_link_id'
+//             rowKey={(row) => row.nttn_work_order_id || row.nttn_link_id || row.id}
 //           />
 //         )}
 //       </div>
 
-//       <div>
-//         <DataTable
-//           data={tableData}
-//           columns={tableColumns}
-//           selection={true}
-//           onSelectionChange={() => {}}
-//           initialPageSize={5}
-//           rowKey='id' // Changed to 'id' for aggregator data
-//         />
-//       </div>
-
-//       {/* Utilization Chart (UNCHANGED) */}
+//       {/* Updated Utilization Chart Section */}
 //       <div className='space-y-4'>
-//         <h2 className='text-xl font-semibold text-gray-800'>
-//           Min & Max Utilization (Last 7 Days)
-//         </h2>
+//         <div className="flex justify-between items-center">
+//           <h2 className='text-xl font-semibold text-gray-800'>
+//             Max Download & Upload Utilization (Last 7 Days)
+//           </h2>
+//           <Button
+//             variant="ghost"
+//             size="sm"
+//             onClick={fetchChartData}
+//             disabled={chartLoading}
+//             leftIcon={RefreshCw}
+//             className={chartLoading ? "animate-spin" : ""}
+//           >
+//             {chartLoading ? "Refreshing..." : "Refresh Data"}
+//           </Button>
+//         </div>
 //         <div className='bg-white p-6 border border-gray-200 rounded-lg shadow-sm h-96 relative'>
 //           <div className='h-[calc(100%-40px)]'>
-//             <Chart
-//               type='line'
-//               data={chartData}
-//               options={utilizationChartOptions}
-//               className='h-full'
-//               initialLoading={initialLoading}
-//               fallbackMessage='No utilization logs found.'
-//             />
+//             {chartLoading ? (
+//               <div className="flex items-center justify-center h-full">
+//                 <div className="text-center">
+//                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+//                   <p className="text-gray-500 mt-2">Loading chart data...</p>
+//                 </div>
+//               </div>
+//             ) : chartData && chartData.labels && chartData.labels.length > 0 ? (
+//               <Chart
+//                 type='line'
+//                 data={chartData}
+//                 options={utilizationChartOptions}
+//                 className='h-full'
+//                 initialLoading={false}
+//                 fallbackMessage='No utilization data found.'
+//               />
+//             ) : (
+//               <div className="flex items-center justify-center h-full">
+//                 <p className="text-gray-500">No utilization data available for the last 7 days</p>
+//               </div>
+//             )}
 //           </div>
 //         </div>
+//         {chartData && chartData.labels && chartData.labels.length > 0 && (
+//           <div className="text-sm text-gray-500 text-center">
+//             Showing maximum download and upload speeds in Mbps for the last 7 days
+//           </div>
+//         )}
 //       </div>
 
-//       {/* Confirmation Modal Render (UNCHANGED) */}
+//       {/* Confirmation Modal Render */}
 //       <ConfirmationModal
 //         isOpen={showResolveModal}
 //         onClose={() => setShowResolveModal(false)}
 //         onConfirm={handleConfirmResolve}
 //         title='Confirm Alert Resolution'
 //         message='Are you sure you want to mark this alert as resolved? This action will remove it from the active alert count.'
-//         linkId={alertToResolve?.nttn_link_id}
+//         linkId={alertToResolve?.nttn_work_order_id || alertToResolve?.nttn_link_id}
 //       />
 //     </div>
 //   );
@@ -1170,7 +1177,11 @@ import {
 import { 
   fetchPartnerAggreatorSummary, 
   fetchPartnerPartnerCountSummary, 
-  fetchPartnerUtilizationLast7Days 
+  fetchPartnerUtilizationLast7Days,
+  fetchPartnerDownloadUtilizationAlert,
+  fetchPartnerUploadUtilizationAlert,
+  fetchPartnerMinDownloadUtilizationAlert,
+  fetchPartnerMinUploadUtilizationAlert
 } from "../services/partner-link/partnerDashboard";
 
 /* -------------------------------------------------
@@ -1296,70 +1307,7 @@ const ConfirmationModal = ({
 };
 
 /* -------------------------------------------------
-   2. MOCK DATA (UPDATED: UTILIZATION_SOURCE_DATA MODIFIED)
-   ------------------------------------------------- */
-const randUtil = (min, max) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-
-const getInitialStatus = (i) => {
-  // 20% resolved, 20% paused, 60% running initially
-  if (i % 5 === 0) return "resolved";
-  if (i % 5 === 1) return "paused";
-  return "running";
-};
-
-// MODIFIED MOCK DATA
-const UTILIZATION_SOURCE_DATA = Array.from({ length: 20 }, (_, i) => ({
-  id: i + 1,
-  partner_name: `Partner ${String.fromCharCode(65 + i)}`,
-  nttn_link_id: `NTTN-${1000 + i}`,
-  purchased_capacity: `${((i % 5) + 1) * 10} Gbps`,
-  alert_status: getInitialStatus(i),
-  utilization_pct:
-    i < 3 ? randUtil(105, 120) : i >= 17 ? randUtil(0, 15) : randUtil(40, 95),
-  location: `Zone ${i % 4}`,
-  // 👇 NEW CONFIGURATION FIELDS ADDED
-  daily_triggers: randUtil(1, 4),
-  alert_duration_days: randUtil(3, 10),
-}));
-
-// UPDATED: Mock data for ICMP Alerts with alert_value and frequency
-const ICMP_ALERT_SOURCE_DATA = Array.from({ length: 12 }, (_, i) => {
-  const isTimeout = i % 4 === 0;
-
-  return {
-    id: i + 1,
-    partner_name: `Partner ${String.fromCharCode(75 + i)}`,
-    nttn_link_id: `ICMP-${2000 + i}`,
-    last_ping_time: `${(i % 5) + 1} mins ago`,
-    alert_status: getInitialStatus(i),
-    location: `Zone ${i % 3}`,
-    icmp_status: isTimeout ? "Timeout" : "High Latency",
-    // NEW REQUIRED FIELDS
-    alert_value: isTimeout
-      ? `${randUtil(3, 10)} Consecutive Failures`
-      : `${randUtil(150, 400)}ms Latency`,
-    frequency: `${randUtil(3, 20)} times in ${randUtil(1, 7)} days`,
-  };
-});
-
-const mockPartnerData = Array.from({ length: 25 }, (_, i) => ({
-  id: i + 1,
-  partner_name: `Partner ${i + 1}`,
-  contact_person: `Contact ${i + 1}`,
-  location: `City ${i % 5}`,
-  status: i % 4 === 0 ? "Inactive" : "Active",
-}));
-
-const mockAggregatorData = Array.from({ length: 8 }, (_, i) => ({
-  id: i + 1,
-  aggregator_name: `Aggregator Group ${i + 1}`,
-  num_partners: 10 + i * 5,
-  purchase_capacity: `${(i + 1) * 20} Gbps`,
-}));
-
-/* -------------------------------------------------
-   3. COLUMN DEFINITION FUNCTION (MODIFIED: getICMPAlertColumns)
+   3. COLUMN DEFINITION FUNCTION (UPDATED FOR ALL UTILIZATION TYPES)
    ------------------------------------------------- */
 
 // Reusable action column render function (UNCHANGED)
@@ -1404,18 +1352,18 @@ const renderAlertActions = (row, handleRunPause, handleResolveClick) => {
     <div className='flex justify-center space-x-2'>
       {/* Run/Pause Toggle Button */}
       <Button
-        key={`${row.nttn_link_id}-runpause`}
+        key={`${row.nttn_work_order_id}-runpause`}
         variant='ghost'
         size='sm'
         className={clsx(runPauseColorClass, "border")}
-        onClick={() => handleRunPause(row.nttn_link_id, nextRunPauseStatus)}
+        onClick={() => handleRunPause(row.nttn_work_order_id, nextRunPauseStatus)}
         leftIcon={RunPauseIcon}>
         {runPauseLabel}
       </Button>
 
       {/* Resolve Button */}
       <Button
-        key={`${row.nttn_link_id}-resolve`}
+        key={`${row.nttn_work_order_id}-resolve`}
         variant='ghost'
         size='sm'
         className='text-green-600 border-green-200 hover:bg-green-50 border'
@@ -1427,7 +1375,239 @@ const renderAlertActions = (row, handleRunPause, handleResolveClick) => {
   );
 };
 
-// Utilization Columns (UNCHANGED)
+// Columns for Download Utilization Alerts (Max)
+const getDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+  { key: "client_name", header: "Client Name" },
+  { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+  { key: "nas_ip", header: "NAS IP" },
+  { key: "interface_port", header: "Interface Port" },
+  { 
+    key: "request_capacity", 
+    header: "Request Capacity",
+    render: (val) => `${safeCell(val)} Mbps`
+  },
+  {
+    key: "consecutive_days",
+    header: "Alert Configuration",
+    render: (v) => (
+      <div className='text-sm text-gray-700'>
+        {safeCell(v)}
+      </div>
+    ),
+  },
+  {
+    key: "avg_utilization_percent",
+    header: "Avg Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct > 100) {
+        color = "text-red-600 font-bold";
+      } else if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "max_utilization_percent",
+    header: "Max Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct > 100) {
+        color = "text-red-600 font-bold";
+      } else if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    align: "center",
+    width: "18rem",
+    isSortable: false,
+    render: (v, row) =>
+      renderAlertActions(row, handleRunPause, handleResolveClick),
+  },
+];
+
+// Columns for Upload Utilization Alerts (Max)
+const getUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+  { key: "client_name", header: "Client Name" },
+  { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+  { key: "nas_ip", header: "NAS IP" },
+  { key: "interface_port", header: "Interface Port" },
+  { 
+    key: "request_capacity", 
+    header: "Request Capacity",
+    render: (val) => `${safeCell(val)} Mbps`
+  },
+  {
+    key: "consecutive_days",
+    header: "Alert Configuration",
+    render: (v) => (
+      <div className='text-sm text-gray-700'>
+        {safeCell(v)}
+      </div>
+    ),
+  },
+  {
+    key: "avg_utilization_percent",
+    header: "Avg Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct > 100) {
+        color = "text-red-600 font-bold";
+      } else if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "max_utilization_percent",
+    header: "Max Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct > 100) {
+        color = "text-red-600 font-bold";
+      } else if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    align: "center",
+    width: "18rem",
+    isSortable: false,
+    render: (v, row) =>
+      renderAlertActions(row, handleRunPause, handleResolveClick),
+  },
+];
+
+// Columns for Min Download Utilization Alerts
+const getMinDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+  { key: "client_name", header: "Client Name" },
+  { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+  { key: "nas_ip", header: "NAS IP" },
+  { key: "interface_port", header: "Interface Port" },
+  { 
+    key: "request_capacity", 
+    header: "Request Capacity",
+    render: (val) => `${safeCell(val)} Mbps`
+  },
+  {
+    key: "consecutive_days",
+    header: "Alert Configuration",
+    render: (v) => (
+      <div className='text-sm text-gray-700'>
+        {safeCell(v)}
+      </div>
+    ),
+  },
+  {
+    key: "avg_utilization_percent",
+    header: "Avg Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct > 100) {
+        color = "text-red-600 font-bold";
+      } else if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "min_utilization_percent",
+    header: "Min Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    align: "center",
+    width: "18rem",
+    isSortable: false,
+    render: (v, row) =>
+      renderAlertActions(row, handleRunPause, handleResolveClick),
+  },
+];
+
+// Columns for Min Upload Utilization Alerts
+const getMinUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+  { key: "client_name", header: "Client Name" },
+  { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+  { key: "nas_ip", header: "NAS IP" },
+  { key: "interface_port", header: "Interface Port" },
+  { 
+    key: "request_capacity", 
+    header: "Request Capacity",
+    render: (val) => `${safeCell(val)} Mbps`
+  },
+  {
+    key: "consecutive_days",
+    header: "Alert Configuration",
+    render: (v) => (
+      <div className='text-sm text-gray-700'>
+        {safeCell(v)}
+      </div>
+    ),
+  },
+  {
+    key: "avg_utilization_percent",
+    header: "Avg Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct > 100) {
+        color = "text-red-600 font-bold";
+      } else if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "min_utilization_percent",
+    header: "Min Utilization (%)",
+    render: (v) => {
+      const pct = parseFloat(v);
+      let color = "text-gray-800";
+      if (pct < 20) {
+        color = "text-cyan-600 font-bold";
+      }
+      return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+    },
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    align: "center",
+    width: "18rem",
+    isSortable: false,
+    render: (v, row) =>
+      renderAlertActions(row, handleRunPause, handleResolveClick),
+  },
+];
+
+// Utilization Columns (For other utilization alerts)
 const getUtilizationColumns = (handleRunPause, handleResolveClick) => [
   { key: "partner_name", header: "Partner Name" },
   { key: "nttn_link_id", header: "NTTN Link ID " },
@@ -1435,7 +1615,6 @@ const getUtilizationColumns = (handleRunPause, handleResolveClick) => [
   {
     key: "alert_config",
     header: "Alert Configuration",
-    // This column will render the new fields (daily_triggers, alert_duration_days)
     render: (v, row) => (
       <div className='text-sm text-gray-700'>
         {safeCell(row.daily_triggers)} times / day
@@ -1495,7 +1674,6 @@ const getICMPAlertColumns = (handleRunPause, handleResolveClick) => [
       </span>
     ),
   },
-  // MODIFIED COLUMN: Alert Value
   {
     key: "alert_value",
     header: "Alert Value",
@@ -1504,23 +1682,18 @@ const getICMPAlertColumns = (handleRunPause, handleResolveClick) => [
 
       if (typeof v === "string") {
         if (row.icmp_status === "High Latency" && v.includes("ms Latency")) {
-          // High Latency: Extract only the numeric value and 'ms' unit (e.g., '320ms')
           displayValue = v.replace("ms Latency", " ms").trim();
         } else if (row.icmp_status === "Timeout") {
-          // 1. Calculate simulated duration (assuming 12 seconds per failure)
           const failureCountMatch = v.match(/(\d+)/);
           const count = failureCountMatch
             ? parseInt(failureCountMatch[0], 10)
             : 5;
           const simulatedDurationSeconds = count * 12;
 
-          // 2. Apply the conversion logic
           if (simulatedDurationSeconds >= 60) {
-            // Convert to minutes, rounded to one decimal place
             const durationMinutes = (simulatedDurationSeconds / 60).toFixed(1);
             displayValue = `${durationMinutes} min`;
           } else {
-            // Display in seconds
             displayValue = `${simulatedDurationSeconds} sec`;
           }
         }
@@ -1533,7 +1706,6 @@ const getICMPAlertColumns = (handleRunPause, handleResolveClick) => [
       );
     },
   },
-  // NEW COLUMN: Frequency (UNCHANGED)
   {
     key: "frequency",
     header: "Frequency",
@@ -1586,7 +1758,7 @@ const PARTNER_COLUMNS = [
       <span
         className={clsx(
           "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-          v === "active" || v === "Active" // Handle both 'active' and 'Active'
+          v === "active" || v === "Active"
             ? "bg-green-100 text-green-800"
             : "bg-red-100 text-red-800"
         )}>
@@ -1603,11 +1775,22 @@ const PARTNER_COLUMNS = [
 export default function PartnerDashboard() {
   const navigate = useNavigate();
   const [initialLoading, setInitialLoading] = useState(true);
-  const [activeCard, setActiveCard] = useState(null);
-  const [tableColumns, setTableColumns] = useState([]);
-  const [tableData, setTableData] = useState([]);
 
-  // 1. Dedicated states for each API response
+  const [alertStatusMap, setAlertStatusMap] = useState(new Map());
+
+  const [dynamicTableColumns, setDynamicTableColumns] = useState([]);
+  const [dynamicTableTitle, setDynamicTableTitle] = useState(
+    "Select a card to view data"
+  );
+  const [activeCard, setActiveCard] = useState(null);
+  const [tableIsLoading, setTableIsLoading] = useState(false);
+  
+  const [actionFilter, setActionFilter] = useState("all");
+
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [alertToResolve, setAlertToResolve] = useState(null);
+
+  // API states
   const [partnerInfos, setPartnerInfos] = useState([]);
   const [aggregators, setAggregators] = useState([]);
   const [maxUtilizationAlert, setMaxUtilizationAlert] = useState([]);
@@ -1621,7 +1804,20 @@ export default function PartnerDashboard() {
   const [partnerSummary, setPartnerSummary] = useState([]);
   const [partnerCount, setPartnerCount] = useState(0);
 
-  // NEW: State for chart data - initialize as empty object instead of null
+  // Utilization Alert States
+  const [downloadUtilizationAlerts, setDownloadUtilizationAlerts] = useState([]);
+  const [downloadUtilizationCount, setDownloadUtilizationCount] = useState(0);
+  
+  const [uploadUtilizationAlerts, setUploadUtilizationAlerts] = useState([]);
+  const [uploadUtilizationCount, setUploadUtilizationCount] = useState(0);
+  
+  const [minDownloadUtilizationAlerts, setMinDownloadUtilizationAlerts] = useState([]);
+  const [minDownloadUtilizationCount, setMinDownloadUtilizationCount] = useState(0);
+  
+  const [minUploadUtilizationAlerts, setMinUploadUtilizationAlerts] = useState([]);
+  const [minUploadUtilizationCount, setMinUploadUtilizationCount] = useState(0);
+
+  // Chart state
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: []
@@ -1636,12 +1832,10 @@ export default function PartnerDashboard() {
       console.log("Chart API Response:", response);
       
       if (response.status && response.data) {
-        // Transform API data to chart format
         const transformedData = transformUtilizationDataForChart(response.data);
         setChartData(transformedData);
       } else {
         console.error("Failed to fetch chart data:", response.message);
-        // Set empty chart data
         setChartData({
           labels: [],
           datasets: []
@@ -1649,7 +1843,6 @@ export default function PartnerDashboard() {
       }
     } catch (error) {
       console.error("Error fetching chart data:", error);
-      // Set empty chart data on error
       setChartData({
         labels: [],
         datasets: []
@@ -1674,7 +1867,7 @@ export default function PartnerDashboard() {
         {
           label: "Max Download (Mbps)",
           data: apiData.map(item => item.max_download_mbps || 0),
-          borderColor: "#ef4444", // red-500
+          borderColor: "#ef4444",
           backgroundColor: "rgba(239, 68, 68, 0.2)",
           tension: 0.3,
           fill: false,
@@ -1683,7 +1876,7 @@ export default function PartnerDashboard() {
         {
           label: "Max Upload (Mbps)",
           data: apiData.map(item => item.max_upload_mbps || 0),
-          borderColor: "#06b6d4", // cyan-500
+          borderColor: "#06b6d4",
           backgroundColor: "rgba(6, 182, 212, 0.2)",
           tension: 0.3,
           fill: false,
@@ -1693,79 +1886,111 @@ export default function PartnerDashboard() {
     };
   };
 
-  const handleStatCardClick = (cardKey) => {
-    setActiveCard(cardKey);
+  // Fetch all utilization alerts
+  const fetchAllUtilizationAlerts = async () => {
+    try {
+      const [
+        downloadResponse,
+        uploadResponse,
+        minDownloadResponse,
+        minUploadResponse
+      ] = await Promise.all([
+        fetchPartnerDownloadUtilizationAlert().catch(error => {
+          console.error("Download Utilization API error:", error);
+          return { status: false, data: [], row_count: 0 };
+        }),
+        fetchPartnerUploadUtilizationAlert().catch(error => {
+          console.error("Upload Utilization API error:", error);
+          return { status: false, data: [], row_count: 0 };
+        }),
+        fetchPartnerMinDownloadUtilizationAlert().catch(error => {
+          console.error("Min Download Utilization API error:", error);
+          return { status: false, data: [], row_count: 0 };
+        }),
+        fetchPartnerMinUploadUtilizationAlert().catch(error => {
+          console.error("Min Upload Utilization API error:", error);
+          return { status: false, data: [], row_count: 0 };
+        })
+      ]);
 
-    let dataToDisplay = [];
-    let columnsToDisplay = [];
+      // Set download alerts
+      if (downloadResponse.status && downloadResponse.data) {
+        setDownloadUtilizationAlerts(downloadResponse.data);
+        setDownloadUtilizationCount(downloadResponse.row_count || downloadResponse.data.length);
+      }
 
-    switch (cardKey) {
-      case "max_alert":
-        dataToDisplay = maxUtilizationAlert;
-        columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
-        break;
-      case "min_alert":
-        dataToDisplay = minUtilizationAlert;
-        columnsToDisplay = getUtilizationColumns(handleRunPause, handleResolveClick);
-        break;
-      case "icmp_alert":
-        dataToDisplay = icmpAlert;
-        columnsToDisplay = getICMPAlertColumns(handleRunPause, handleResolveClick);
-        break;
-      case "partners":
-        dataToDisplay = partnerSummary;
-        columnsToDisplay = PARTNER_COLUMNS;
-        break;
-      case "aggregators":
-        dataToDisplay = aggregatorSummary;
-        columnsToDisplay = AGGREGATOR_COLUMNS;
-        break;
-      default:
-        dataToDisplay = [];
-        columnsToDisplay = PARTNER_COLUMNS;
+      // Set upload alerts
+      if (uploadResponse.status && uploadResponse.data) {
+        setUploadUtilizationAlerts(uploadResponse.data);
+        setUploadUtilizationCount(uploadResponse.row_count || uploadResponse.data.length);
+      }
+
+      // Set min download alerts
+      if (minDownloadResponse.status && minDownloadResponse.data) {
+        setMinDownloadUtilizationAlerts(minDownloadResponse.data);
+        setMinDownloadUtilizationCount(minDownloadResponse.row_count || minDownloadResponse.data.length);
+      }
+
+      // Set min upload alerts
+      if (minUploadResponse.status && minUploadResponse.data) {
+        setMinUploadUtilizationAlerts(minUploadResponse.data);
+        setMinUploadUtilizationCount(minUploadResponse.row_count || minUploadResponse.data.length);
+      }
+
+      // Initialize alert status map for all utilization alerts
+      const allAlertsMap = new Map();
+      
+      [downloadResponse.data, uploadResponse.data, minDownloadResponse.data, minUploadResponse.data]
+        .flat()
+        .forEach(alert => {
+          if (alert.nttn_work_order_id) {
+            allAlertsMap.set(alert.nttn_work_order_id, "running");
+          }
+        });
+      
+      setAlertStatusMap(prev => new Map([...prev, ...allAlertsMap]));
+
+    } catch (error) {
+      console.error("Error fetching utilization alerts:", error);
     }
-
-    setTableData(dataToDisplay);
-    setTableColumns(columnsToDisplay);
   };
 
   const fetchAllDashboardData = async () => {
     try {
       setInitialLoading(true);
       
-      // Create individual API calls with error handling
       const apiCalls = [
         getPartnerInfos().catch(error => {
           console.error("Partner Infos API error:", error);
-          return { data: [] }; // Return empty data on error
+          return { data: [] };
         }),
         getAggregators().catch(error => {
           console.error("Aggregators API error:", error);
-          return []; // Return empty array on error
+          return [];
         }),
         getMaxUtilizationAlert().catch(error => {
           console.error("Max Utilization API error:", error);
-          return []; // Return empty array on error
+          return [];
         }),
         getMinUtilizationAlert().catch(error => {
           console.error("Min Utilization API error:", error);
-          return []; // Return empty array on error
+          return [];
         }),
         getICMPAlert().catch(error => {
           console.error("ICMP Alert API error:", error);
-          return { data: [] }; // Return empty data on error
+          return { data: [] };
         }),
         getMinMaxUtilizationLastSevenDays().catch(error => {
           console.error("Min Max Utilization API error:", error);
-          return []; // Return empty array on error
+          return [];
         }),
         fetchPartnerAggreatorSummary().catch(error => {
           console.error("Aggregator Summary API error:", error);
-          return { aggregator_summary: [], aggregator_count: 0 }; // Return empty data on error
+          return { aggregator_summary: [], aggregator_count: 0 };
         }),
-        fetchPartnerPartnerCountSummary().catch(error => { // Add partner API call
+        fetchPartnerPartnerCountSummary().catch(error => {
           console.error("Partner Summary API error:", error);
-          return { aggregator_summary: [], aggregator_count: 0 }; // Return empty data on error
+          return { aggregator_summary: [], aggregator_count: 0 };
         })
       ];
 
@@ -1777,7 +2002,7 @@ export default function PartnerDashboard() {
         icmpResponse,
         minMaxUtilResponse,
         aggregatorSummaryResponse,
-        partnerSummaryResponse // Add partner response
+        partnerSummaryResponse
       ] = await Promise.all(apiCalls);
 
       setPartnerInfos(infoResponse.data || []);
@@ -1787,13 +2012,14 @@ export default function PartnerDashboard() {
       setIcmpAlert(icmpResponse.data || []);
       setMinMaxUtilizationSevenDays(minMaxUtilResponse || []);
       
-      // Set aggregator data from API response
       setAggregatorSummary(aggregatorSummaryResponse.aggregator_summary || []);
       setAggregatorCount(aggregatorSummaryResponse.aggregator_count || 0);
       
-      // Set partner data from API response
       setPartnerSummary(partnerSummaryResponse.aggregator_summary || []);
       setPartnerCount(partnerSummaryResponse.aggregator_count || 0);
+
+      // Fetch all utilization alerts
+      await fetchAllUtilizationAlerts();
     } catch (err) {
       console.error("Dashboard API call error:", err);
     } finally {
@@ -1803,31 +2029,8 @@ export default function PartnerDashboard() {
 
   useEffect(() => {
     fetchAllDashboardData();
-    fetchChartData(); // Fetch chart data on component mount
+    fetchChartData();
   }, []);
-
-  // Combine utilization and ICMP alert data into one status map
-  const [alertStatusMap, setAlertStatusMap] = useState(() => {
-    const utilMap = new Map(
-      UTILIZATION_SOURCE_DATA.map((d) => [d.nttn_link_id, d.alert_status])
-    );
-    const icmpMap = new Map(
-      ICMP_ALERT_SOURCE_DATA.map((d) => [d.nttn_link_id, d.alert_status])
-    );
-    return new Map([...utilMap, ...icmpMap]);
-  });
-
-  const [dynamicTableColumns, setDynamicTableColumns] = useState([]);
-  const [dynamicTableTitle, setDynamicTableTitle] = useState(
-    "Select a card to view data"
-  );
-
-  const [tableIsLoading, setTableIsLoading] = useState(false);
-
-  const [actionFilter, setActionFilter] = useState("all");
-
-  const [showResolveModal, setShowResolveModal] = useState(false);
-  const [alertToResolve, setAlertToResolve] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1836,49 +2039,31 @@ export default function PartnerDashboard() {
     return () => clearTimeout(timer);
   }, []);
 
-  const { totalMetrics, currentAlerts } = useMemo(() => {
-    // Utilization Alerts
-    const maxUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-      (d) => d.utilization_pct > 100
-    );
-    const minUtilAlerts = UTILIZATION_SOURCE_DATA.filter(
-      (d) => d.utilization_pct < 20
-    );
-
-    // ICMP Alerts
-    const icmpAlerts = ICMP_ALERT_SOURCE_DATA;
-
-    // Count only 'running' alerts for the cards
-    const currentMaxUtilAlerts = maxUtilAlerts.filter(
-      (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-    );
-    const currentMinUtilAlerts = minUtilAlerts.filter(
-      (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-    );
-    const currentIcmpAlerts = icmpAlerts.filter(
-      (d) => alertStatusMap.get(d.nttn_link_id) === "running"
-    );
-
+  const { totalMetrics } = useMemo(() => {
     return {
       totalMetrics: {
-        maxAlertCount: currentMaxUtilAlerts.length,
-        minAlertCount: currentMinUtilAlerts.length,
-        icmpAlertCount: currentIcmpAlerts.length,
-        partnerCount: partnerCount, // Use API data
-        aggregatorCount: aggregatorCount, // Use API data
-      },
-      // For internal use to determine base data count
-      currentAlerts: {
-        maxAlerts: maxUtilAlerts,
-        minAlerts: minUtilAlerts,
-        icmpAlerts: icmpAlerts,
+        maxDownloadAlertCount: downloadUtilizationCount,
+        maxUploadAlertCount: uploadUtilizationCount,
+        minDownloadAlertCount: minDownloadUtilizationCount,
+        minUploadAlertCount: minUploadUtilizationCount,
+        icmpAlertCount: icmpAlert.length,
+        partnerCount: partnerCount,
+        aggregatorCount: aggregatorCount,
       },
     };
-  }, [alertStatusMap, partnerCount, aggregatorCount]);
+  }, [
+    downloadUtilizationCount,
+    uploadUtilizationCount,
+    minDownloadUtilizationCount,
+    minUploadUtilizationCount,
+    icmpAlert.length,
+    partnerCount,
+    aggregatorCount
+  ]);
 
   const { dynamicTableData, baseAlertCount } = useMemo(() => {
     let baseAlertData = [];
-    let titlePrefix = "";
+    let titlePrefix = '';
 
     if (activeCard === "partners") {
       return {
@@ -1893,25 +2078,30 @@ export default function PartnerDashboard() {
       };
     }
 
-    if (activeCard === "max_alert") {
-      baseAlertData = currentAlerts.maxAlerts;
-      titlePrefix = "Max Utilization";
-    } else if (activeCard === "min_alert") {
-      baseAlertData = currentAlerts.minAlerts;
-      titlePrefix = "Min Utilization";
+    // Handle all utilization alert types
+    if (activeCard === "max_download_alert") {
+      baseAlertData = downloadUtilizationAlerts;
+      titlePrefix = "Max Download Utilization";
+    } else if (activeCard === "max_upload_alert") {
+      baseAlertData = uploadUtilizationAlerts;
+      titlePrefix = "Max Upload Utilization";
+    } else if (activeCard === "min_download_alert") {
+      baseAlertData = minDownloadUtilizationAlerts;
+      titlePrefix = "Min Download Utilization";
+    } else if (activeCard === "min_upload_alert") {
+      baseAlertData = minUploadUtilizationAlerts;
+      titlePrefix = "Min Upload Utilization";
     } else if (activeCard === "icmp_alert") {
-      baseAlertData = currentAlerts.icmpAlerts;
+      baseAlertData = icmpAlert;
       titlePrefix = "ICMP";
     } else {
       return { dynamicTableData: [], baseAlertCount: 0 };
     }
 
-    // baseAlertCount is the total number of links that *have* alerts
     const countBeforeFilter = baseAlertData.length;
 
     const dataWithCurrentStatus = baseAlertData.map((row) => {
-      const currentStatus =
-        alertStatusMap.get(row.nttn_link_id) ?? row.alert_status;
+      const currentStatus = alertStatusMap.get(row.nttn_work_order_id || row.nttn_link_id) || "running";
       return { ...row, current_alert_status: currentStatus };
     });
 
@@ -1941,16 +2131,25 @@ export default function PartnerDashboard() {
       dynamicTableData: finalFilteredData,
       baseAlertCount: countBeforeFilter,
     };
-  }, [activeCard, actionFilter, alertStatusMap, currentAlerts, aggregatorSummary, partnerSummary]);
+  }, [
+    activeCard,
+    actionFilter,
+    alertStatusMap,
+    downloadUtilizationAlerts,
+    uploadUtilizationAlerts,
+    minDownloadUtilizationAlerts,
+    minUploadUtilizationAlerts,
+    icmpAlert,
+    aggregatorSummary,
+    partnerSummary
+  ]);
 
-  /* --- Action Handlers (UNCHANGED) --- */
-
-  // Handler for the Run/Pause/Resolve status update
-  const handleRunPause = useCallback((nttnLinkId, newStatus) => {
+  /* --- Action Handlers --- */
+  const handleRunPause = useCallback((alertId, newStatus) => {
     setTableIsLoading(true);
     setAlertStatusMap((prev) => {
       const next = new Map(prev);
-      next.set(nttnLinkId, newStatus);
+      next.set(alertId, newStatus);
       return next;
     });
     setTimeout(() => {
@@ -1958,16 +2157,15 @@ export default function PartnerDashboard() {
     }, 300);
   }, []);
 
-  // Handler to open the Resolve modal
   const handleResolveClick = useCallback((row) => {
     setAlertToResolve(row);
     setShowResolveModal(true);
   }, []);
 
-  // Handler for confirming resolution from the modal (still sets to 'resolved')
   const handleConfirmResolve = useCallback(() => {
     if (alertToResolve) {
-      handleRunPause(alertToResolve.nttn_link_id, "resolved");
+      const alertId = alertToResolve.nttn_work_order_id || alertToResolve.nttn_link_id;
+      handleRunPause(alertId, "resolved");
     }
     setShowResolveModal(false);
     setAlertToResolve(null);
@@ -1975,7 +2173,7 @@ export default function PartnerDashboard() {
 
   const handleActionFilterClick = useCallback(
     (filter) => {
-      if (!["max_alert", "min_alert", "icmp_alert"].includes(activeCard))
+      if (!["max_download_alert", "max_upload_alert", "min_download_alert", "min_upload_alert", "icmp_alert"].includes(activeCard))
         return;
       setTableIsLoading(true);
       setActionFilter(filter);
@@ -1985,6 +2183,37 @@ export default function PartnerDashboard() {
     },
     [activeCard]
   );
+
+  const handleStatCardClick = useCallback((type) => {
+    setTableIsLoading(true);
+    setActiveCard(type);
+    
+    const isAlertCard = ['max_download_alert', 'max_upload_alert', 'min_download_alert', 'min_upload_alert', 'icmp_alert'].includes(type);
+    const initialActionFilter = isAlertCard ? 'running' : null;
+    setActionFilter(initialActionFilter); 
+    
+    let columns = [];
+    if (type === 'max_download_alert') {
+      columns = getDownloadUtilizationColumns(handleRunPause, handleResolveClick); 
+    } else if (type === 'max_upload_alert') {
+      columns = getUploadUtilizationColumns(handleRunPause, handleResolveClick);
+    } else if (type === 'min_download_alert') {
+      columns = getMinDownloadUtilizationColumns(handleRunPause, handleResolveClick);
+    } else if (type === 'min_upload_alert') {
+      columns = getMinUploadUtilizationColumns(handleRunPause, handleResolveClick);
+    } else if (type === 'icmp_alert') { 
+      columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
+    } else if (type === 'partners') {
+      columns = PARTNER_COLUMNS;
+    } else if (type === 'aggregators') {
+      columns = AGGREGATOR_COLUMNS;
+    }
+    
+    setTimeout(() => {
+      setDynamicTableColumns(columns);
+      setTableIsLoading(false);
+    }, 300);
+  }, [handleRunPause, handleResolveClick]);
 
   const utilizationChartOptions = useMemo(
     () => ({
@@ -2051,14 +2280,14 @@ export default function PartnerDashboard() {
       </div>
 
       <div className='space-y-4'>
-        <div className='grid grid-cols-4 gap-4'>
+        <div className="flex gap-4">
           {initialLoading ? (
             Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
           ) : (
             <>
               <HealthStatCard
                 title='Max Download Utilization Alert'
-                value={totalMetrics.maxAlertCount}
+                value={totalMetrics.maxDownloadAlertCount}
                 subLabel='Download Utilization threshold exceeded'
                 icon={ArrowDown}
                 iconBgClass='bg-red-100'
@@ -2073,7 +2302,7 @@ export default function PartnerDashboard() {
 
               <HealthStatCard
                 title='Max Upload Utilization Alert'
-                value={totalMetrics.maxAlertCount}
+                value={totalMetrics.maxUploadAlertCount}
                 subLabel='Upload Utilization threshold exceeded'
                 icon={ArrowUp}
                 iconBgClass='bg-red-100'
@@ -2085,59 +2314,43 @@ export default function PartnerDashboard() {
                 }
                 onClick={() => handleStatCardClick("max_upload_alert")}
               />
-              {/* Max Utilization Alert */}
+
               <HealthStatCard
                 title='Min Download Alert'
-                value={totalMetrics.maxAlertCount}
-                subLabel='Utilization threshold exceeded'
+                value={totalMetrics.minDownloadAlertCount}
+                subLabel='Under utilization detected'
                 icon={ArrowDown}
                 iconBgClass='bg-blue-100'
                 iconTextClass='text-blue-600'
                 valueClass={
-                  activeCard === "max_alert"
+                  activeCard === "min_download_alert"
                     ? "text-blue-700 underline"
                     : "text-blue-600"
                 }
-                onClick={() => handleStatCardClick("max_alert")}
+                onClick={() => handleStatCardClick("min_download_alert")}
               />
 
-              {/* Min Utilization Alert */}
               <HealthStatCard
                 title='Min Upload Alert'
-                value={totalMetrics.minAlertCount}
+                value={totalMetrics.minUploadAlertCount}
                 subLabel='Under utilization detected'
                 icon={ArrowUp}
                 iconBgClass='bg-cyan-100'
                 iconTextClass='text-cyan-600'
                 valueClass={
-                  activeCard === "min_alert"
+                  activeCard === "min_upload_alert"
                     ? "text-cyan-700 underline"
                     : "text-cyan-600"
                 }
-                onClick={() => handleStatCardClick("min_alert")}
+                onClick={() => handleStatCardClick("min_upload_alert")}
               />
 
               {/* ICMP Alert Card */}
-
               <HealthStatCard
                 title='ICMP Latency Alerts'
-                value={icmpAlert?.length}
+                value={totalMetrics.icmpAlertCount}
                 subLabel='Network issues detected'
                 icon={Clock}
-                iconBgClass='bg-orange-100'
-                iconTextClass='text-orange-600'
-                valueClass={
-                  activeCard === "icmp_alert"
-                    ? "text-orange-700 underline"
-                    : "text-orange-600"
-                }
-                onClick={() => handleStatCardClick("icmp_alert")}
-              />
-              <HealthStatCard
-                title='ICMP Timeout Alerts'
-                value={icmpAlert?.length}
-                subLabel='Network issues detected'
-                icon={WifiOff}
                 iconBgClass='bg-orange-100'
                 iconTextClass='text-orange-600'
                 valueClass={
@@ -2151,7 +2364,7 @@ export default function PartnerDashboard() {
               {/* Partners */}
               <HealthStatCard
                 title='Partners'
-                value={partnerCount} // Use API data instead of partnerInfos?.length
+                value={totalMetrics.partnerCount}
                 subLabel='Total number of partners'
                 icon={Users}
                 iconBgClass='bg-indigo-100'
@@ -2167,7 +2380,7 @@ export default function PartnerDashboard() {
               {/* Aggregators */}
               <HealthStatCard
                 title='Aggregators'
-                value={aggregatorCount} // Use API data
+                value={totalMetrics.aggregatorCount}
                 subLabel='Total number of aggregators'
                 icon={Layers}
                 iconBgClass='bg-yellow-100'
@@ -2192,7 +2405,7 @@ export default function PartnerDashboard() {
           </h2>
 
           {/* Filter Buttons */}
-          {["max_alert", "min_alert", "icmp_alert"].includes(activeCard) &&
+          {["max_download_alert", "max_upload_alert", "min_download_alert", "min_upload_alert", "icmp_alert"].includes(activeCard) &&
             baseAlertCount > 0 && (
               <div className='flex space-x-2'>
                 <Button
@@ -2202,7 +2415,6 @@ export default function PartnerDashboard() {
                   leftIcon={Filter}>
                   All
                 </Button>
-                {/* Unresolved Filter (includes running and paused for table view) */}
                 <Button
                   variant={actionFilter === "unresolved" ? "solid" : "ghost"}
                   onClick={() => handleActionFilterClick("unresolved")}
@@ -2244,20 +2456,9 @@ export default function PartnerDashboard() {
             selection={true}
             onSelectionChange={() => {}}
             initialPageSize={5}
-            rowKey='nttn_link_id'
+            rowKey={(row) => row.nttn_work_order_id || row.nttn_link_id || row.id}
           />
         )}
-      </div>
-
-      <div>
-        <DataTable
-          data={tableData}
-          columns={tableColumns}
-          selection={true}
-          onSelectionChange={() => {}}
-          initialPageSize={5}
-          rowKey='id' // Changed to 'id' for aggregator data
-        />
       </div>
 
       {/* Updated Utilization Chart Section */}
@@ -2309,14 +2510,14 @@ export default function PartnerDashboard() {
         )}
       </div>
 
-      {/* Confirmation Modal Render (UNCHANGED) */}
+      {/* Confirmation Modal Render */}
       <ConfirmationModal
         isOpen={showResolveModal}
         onClose={() => setShowResolveModal(false)}
         onConfirm={handleConfirmResolve}
         title='Confirm Alert Resolution'
         message='Are you sure you want to mark this alert as resolved? This action will remove it from the active alert count.'
-        linkId={alertToResolve?.nttn_link_id}
+        linkId={alertToResolve?.nttn_work_order_id || alertToResolve?.nttn_link_id}
       />
     </div>
   );

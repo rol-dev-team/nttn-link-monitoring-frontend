@@ -916,7 +916,7 @@ export default function SelectField({
           aria-controls={listboxId}
           aria-disabled={disabled}
           className={clsx(
-            'input input-bordered w-full rounded-lg bg-white relative flex items-center justify-between',
+            'border border-gray-300 input input-bordered w-full rounded-lg bg-white relative flex items-center justify-between',
             'focus-within:outline-none focus-within:ring-0 focus-within:shadow-none focus-within:border-base-300',
             'outline-none ring-0',
             hasError && 'input-error',

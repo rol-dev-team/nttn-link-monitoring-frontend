@@ -242,7 +242,6 @@
 //   fetchClientDetails();
 // }, [formik.values.cat_id, formik.values.client_id]);
 
-
 // console.log('edi: ',initialValues);
 // console.log('formik values: ',formik.values);
 
@@ -325,7 +324,7 @@
 //             />
 //             <div className='p-4 bg-gray-50 rounded-lg border border-gray-200 col-span-full'>
 //               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 items-center gap-4 text-sm'>
-                
+
 //                 <div className='flex items-center space-x-2'>
 //                   <Globe size={16} className='text-blue-500' />
 //                   <p>
@@ -421,43 +420,27 @@
 
 // export default SurveyForm;
 
-
-import React, { useState, useEffect } from "react";
-import { useFormik, FormikProvider } from "formik";
-import Button from "../ui/Button";
-import InputField from "../fields/InputField";
-import SelectField from "../fields/SelectField";
-import {
-  ArrowLeft,
-  MapPin,
-  Building,
-  Pin,
-  Globe,
-  CircleCheck,
-  Calendar,
-} from "lucide-react";
-import { fetchSBUs } from "../../services/sbu";
-import { fetchLinkTypes } from "../../services/linkType";
-import { fetchAggregators } from "../../services/aggregator";
-import { fetchKams } from "../../services/kam";
-import { fetchNTTNs } from "../../services/nttn";
-import { fetchCategories } from "../../services/category";
-import {
-  fetchCategoriesBySBU,
-  fetchClientsCategoryWise,
-} from "../../services/client";
-import { surveySchema } from "../../validations/surveyValidation";
-import DatePickerField from "./../fields/DatePickerField";
-import { fetchClientDetailCategoryAndClientWise } from "../../services/survey";
+import React, { useState, useEffect } from 'react';
+import { useFormik, FormikProvider } from 'formik';
+import Button from '../ui/Button';
+import InputField from '../fields/InputField';
+import SelectField from '../fields/SelectField';
+import { ArrowLeft, MapPin, Building, Pin, Globe, CircleCheck, Calendar } from 'lucide-react';
+import { fetchSBUs } from '../../services/sbu';
+import { fetchLinkTypes } from '../../services/linkType';
+import { fetchAggregators } from '../../services/aggregator';
+import { fetchKams } from '../../services/kam';
+import { fetchNTTNs } from '../../services/nttn';
+import { fetchCategories } from '../../services/category';
+import { fetchCategoriesBySBU, fetchClientsCategoryWise } from '../../services/client';
+import { surveySchema } from '../../validations/surveyValidation';
+import DatePickerField from './../fields/DatePickerField';
+import { fetchClientDetailCategoryAndClientWise } from '../../services/survey';
 
 const FormSection = ({ title, children }) => (
-  <fieldset className='col-span-full border-t border-gray-300 pt-6 mt-6'>
-    <legend className='px-2 text-xl font-semibold text-gray-900'>
-      {title}
-    </legend>
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4'>
-      {children}
-    </div>
+  <fieldset className="col-span-full border-t border-gray-300 pt-6 mt-6">
+    <legend className="px-2 text-xl font-semibold text-gray-900">{title}</legend>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4">{children}</div>
   </fieldset>
 );
 
@@ -468,29 +451,23 @@ const defaultFormValues = {
   aggregator_id: null,
   kam_id: null,
   nttn_id: null,
-  nttn_survey_id: "",
-  nttn_lat: "",
-  nttn_long: "",
+  nttn_survey_id: '',
+  nttn_lat: '',
+  nttn_long: '',
   cat_id: null,
   client_id: null,
   client_lat: null,
   client_long: null,
-  mac_user: "",
-  status: "active",
-  submission: "",
-  division: "",
-  district: "",
-  thana: "",
-  address: "",
+  mac_user: '',
+  status: 'active',
+  submission: '',
+  division: '',
+  district: '',
+  thana: '',
+  address: '',
 };
 
-const SurveyForm = ({
-  initialValues,
-  isEditMode,
-  onSubmit,
-  onCancel,
-  showToast,
-}) => {
+const SurveyForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
   const [sbuOptions, setSbuOptions] = useState([]);
   const [linkTypeOptions, setLinkTypeOptions] = useState([]);
   const [aggregatorOptions, setAggregatorOptions] = useState([]);
@@ -509,7 +486,7 @@ const SurveyForm = ({
       try {
         await onSubmit(values, { resetForm });
       } catch (error) {
-        showToast(error?.response?.data?.message || "Save failed!", "error");
+        showToast(error?.response?.data?.message || 'Save failed!', 'error');
       } finally {
         setIsSubmitting(false);
       }
@@ -520,44 +497,34 @@ const SurveyForm = ({
   useEffect(() => {
     const loadStaticData = async () => {
       try {
-        const [sbuRes, linkTypeRes, aggregatorRes, kamRes, nttnRes, catRes] =
-          await Promise.all([
-            fetchSBUs(),
-            fetchLinkTypes(),
-            fetchAggregators(),
-            fetchKams(),
-            fetchNTTNs(),
-            fetchCategories(),
-          ]);
+        const [sbuRes, linkTypeRes, aggregatorRes, kamRes, nttnRes, catRes] = await Promise.all([
+          fetchSBUs(),
+          fetchLinkTypes(),
+          fetchAggregators(),
+          fetchKams(),
+          fetchNTTNs(),
+          fetchCategories(),
+        ]);
 
-        setSbuOptions(
-          sbuRes.map((item) => ({ value: item.id, label: item.sbu_name }))
-        );
-        setLinkTypeOptions(
-          linkTypeRes.map((item) => ({ value: item.id, label: item.type_name }))
-        );
+        setSbuOptions(sbuRes.map((item) => ({ value: item.id, label: item.sbu_name })));
+        setLinkTypeOptions(linkTypeRes.map((item) => ({ value: item.id, label: item.type_name })));
         setAggregatorOptions(
           aggregatorRes.map((item) => ({
             value: item.id,
             label: item.aggregator_name,
           }))
         );
-        setKamOptions(
-          kamRes.map((item) => ({ value: item.id, label: item.kam_name }))
-        );
-        setNttnOptions(
-          nttnRes.data.map((item) => ({ value: item.id, label: item.nttn_name }))
-        );
+        setKamOptions(kamRes.map((item) => ({ value: item.id, label: item.kam_name })));
+        setNttnOptions(nttnRes.data.map((item) => ({ value: item.id, label: item.nttn_name })));
       } catch (err) {
         showToast(
-          err?.response?.data?.message ||
-            "Failed to load static data for survey form!",
-          "error"
+          err?.response?.data?.message || 'Failed to load static data for survey form!',
+          'error'
         );
       }
     };
     loadStaticData();
-  }, [showToast,isEditMode]);
+  }, [showToast, isEditMode]);
 
   // fetch sbu wise categories
   useEffect(() => {
@@ -577,9 +544,8 @@ const SurveyForm = ({
         );
       } catch (err) {
         showToast(
-          err?.response?.data?.message ||
-            "Failed to load clients for the selected category!",
-          "error"
+          err?.response?.data?.message || 'Failed to load clients for the selected category!',
+          'error'
         );
         setCategoryOptions([]);
       }
@@ -596,7 +562,7 @@ const SurveyForm = ({
         return;
       }
       try {
-        const {data} = await fetchClientsCategoryWise(categoryId);
+        const { data } = await fetchClientsCategoryWise(categoryId);
         setClientOptions(
           data.map((item) => ({
             value: item.id,
@@ -611,9 +577,8 @@ const SurveyForm = ({
         );
       } catch (err) {
         showToast(
-          err?.response?.data?.message ||
-            "Failed to load clients for the selected category!",
-          "error"
+          err?.response?.data?.message || 'Failed to load clients for the selected category!',
+          'error'
         );
         setClientOptions([]);
       }
@@ -623,212 +588,198 @@ const SurveyForm = ({
 
   // Handle client-related fields from user interaction ONLY
   const handleClientChange = (selectedValue) => {
-    formik.setFieldValue("client_id", selectedValue);
+    formik.setFieldValue('client_id', selectedValue);
   };
 
   const handleCategoryChange = (selectedValue) => {
-    formik.setFieldValue("cat_id", selectedValue);
+    formik.setFieldValue('cat_id', selectedValue);
   };
 
   useEffect(() => {
-  const fetchClientDetails = async () => {
-    const { cat_id, client_id } = formik.values;
+    const fetchClientDetails = async () => {
+      const { cat_id, client_id } = formik.values;
 
-    // Only call API when both IDs are selected
-    if (!cat_id || !client_id) return;
+      // Only call API when both IDs are selected
+      if (!cat_id || !client_id) return;
 
-    try {
-      const payload = {
-        category_id: cat_id,
-        client_id: client_id,
-      };
+      try {
+        const payload = {
+          category_id: cat_id,
+          client_id: client_id,
+        };
 
-      const response = await fetchClientDetailCategoryAndClientWise(payload);
-      const data = Array.isArray(response.data) ? response.data[0] : response.data;
+        const response = await fetchClientDetailCategoryAndClientWise(payload);
+        const data = Array.isArray(response.data) ? response.data[0] : response.data;
 
-      formik.setFieldValue("division", data.division_name || "");
-      formik.setFieldValue("district", data.district_name || "");
-      formik.setFieldValue("thana", data.thana_name || "");
-      formik.setFieldValue("address", data.address || "");
+        formik.setFieldValue('division', data.division_name || '');
+        formik.setFieldValue('district', data.district_name || '');
+        formik.setFieldValue('thana', data.thana_name || '');
+        formik.setFieldValue('address', data.address || '');
+      } catch (err) {
+        showToast(
+          err?.response?.data?.message ||
+            'Failed to fetch client details for selected category & client!',
+          'error'
+        );
+      }
+    };
 
-    } catch (err) {
-      showToast(
-        err?.response?.data?.message ||
-          "Failed to fetch client details for selected category & client!",
-        "error"
-      );
-    }
-  };
-
-  fetchClientDetails();
-}, [formik.values.cat_id, formik.values.client_id]);
-
-
+    fetchClientDetails();
+  }, [formik.values.cat_id, formik.values.client_id]);
 
   return (
-    <div className='p-4'>
-      <div className='flex items-center space-x-2 mb-4 md:mb-8'>
+    <div className="p-4">
+      <div className="flex items-center space-x-2 mb-4 md:mb-8">
         <Button
-          variant='icon'
-          type='button'
+          variant="icon"
+          type="button"
           onClick={onCancel}
-          title='Go Back'
-          className='p-1 text-gray-600 hover:text-gray-900 transition-transform hover:scale-110'>
+          title="Go Back"
+          className="p-1 text-gray-600 hover:text-gray-900 transition-transform hover:scale-110"
+        >
           <ArrowLeft size={24} />
         </Button>
         <div>
-          <h1 className='text-2xl font-bold text-gray-900'>
-            {isEditMode ? "Edit Survey" : "Add Survey"}
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isEditMode ? 'Edit Survey' : 'Add Survey'}
           </h1>
-          <p className='text-gray-500'>
-            Fill in the details to {isEditMode ? "update" : "add a new"} survey
-            record.
+          <p className="text-gray-500">
+            Fill in the details to {isEditMode ? 'update' : 'add a new'} survey record.
           </p>
         </div>
       </div>
 
       <FormikProvider value={formik}>
-        <form className='space-y-6' onSubmit={formik.handleSubmit}>
-          <FormSection title='Basic Info'>
+        <form className="space-y-6" onSubmit={formik.handleSubmit}>
+          <FormSection title="Basic Info">
             <SelectField
-              name='sbu_id'
-              placeholder='SBU'
+              name="sbu_id"
+              placeholder="SBU"
               options={sbuOptions}
-              onChange={(val) => formik.setFieldValue("sbu_id", val)}
+              onChange={(val) => formik.setFieldValue('sbu_id', val)}
               searchable
             />
             <SelectField
-              name='link_type_id'
-              placeholder='Link Type'
+              name="link_type_id"
+              placeholder="Link Type"
               options={linkTypeOptions}
-              onChange={(val) => formik.setFieldValue("link_type_id", val)}
+              onChange={(val) => formik.setFieldValue('link_type_id', val)}
               searchable
             />
             <SelectField
-              name='aggregator_id'
-              placeholder='Aggregator'
+              name="aggregator_id"
+              placeholder="Aggregator"
               options={aggregatorOptions}
-              onChange={(val) => formik.setFieldValue("aggregator_id", val)}
+              onChange={(val) => formik.setFieldValue('aggregator_id', val)}
               searchable
             />
             <SelectField
-              name='kam_id'
-              placeholder='KAM'
+              name="kam_id"
+              placeholder="KAM"
               options={kamOptions}
-              onChange={(val) => formik.setFieldValue("kam_id", val)}
+              onChange={(val) => formik.setFieldValue('kam_id', val)}
               searchable
             />
           </FormSection>
 
-          <FormSection title='Client Details'>
+          <FormSection title="Client Details">
             <SelectField
-              name='cat_id'
-              placeholder='Category'
+              name="cat_id"
+              placeholder="Category"
               options={categoryOptions}
               onChange={(val) => handleCategoryChange(val)}
               searchable
             />
             <SelectField
-              name='client_id'
-              placeholder='Client Name'
+              name="client_id"
+              placeholder="Client Name"
               options={clientOptions}
               onChange={(val) => handleClientChange(val)}
               searchable
               isDisabled={!formik.values.cat_id}
             />
-            <InputField name='client_lat' label='Client Latitude' type='text' />
-            <InputField
-              name='client_long'
-              label='Client Longitude'
-              type='text'
-            />
-            <div className='p-4 bg-gray-50 rounded-lg border border-gray-200 col-span-full'>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 items-center gap-4 text-sm'>
-                
-                <div className='flex items-center space-x-2'>
-                  <Globe size={16} className='text-blue-500' />
+            <InputField name="client_lat" label="Client Latitude" type="text" />
+            <InputField name="client_long" label="Client Longitude" type="text" />
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 col-span-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 items-center gap-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <Globe size={16} className="text-blue-500" />
                   <p>
-                    <strong className='text-gray-800'>Division:</strong>{" "}
-                    {formik.values.division || "N/A"}
+                    <strong className="text-gray-800">Division:</strong>{' '}
+                    {formik.values.division || 'N/A'}
                   </p>
                 </div>
-                <div className='flex items-center space-x-2'>
-                  <Building size={16} className='text-green-500' />
+                <div className="flex items-center space-x-2">
+                  <Building size={16} className="text-green-500" />
                   <p>
-                    <strong className='text-gray-800'>District:</strong>{" "}
-                    {formik.values.district || "N/A"}
+                    <strong className="text-gray-800">District:</strong>{' '}
+                    {formik.values.district || 'N/A'}
                   </p>
                 </div>
-                <div className='flex items-center space-x-2'>
-                  <Pin size={16} className='text-red-500' />
+                <div className="flex items-center space-x-2">
+                  <Pin size={16} className="text-red-500" />
                   <p>
-                    <strong className='text-gray-800'>Thana:</strong>{" "}
-                    {formik.values.thana || "N/A"}
+                    <strong className="text-gray-800">Thana:</strong> {formik.values.thana || 'N/A'}
                   </p>
                 </div>
-                <div className='flex items-center space-x-2'>
-                  <Building size={16} className='text-purple-500' />
-                  <p className='truncate'>
-                    <strong className='text-gray-800'>Address:</strong>{" "}
-                    {formik.values.address || "N/A"}
+                <div className="flex items-center space-x-2">
+                  <Building size={16} className="text-purple-500" />
+                  <p className="truncate">
+                    <strong className="text-gray-800">Address:</strong>{' '}
+                    {formik.values.address || 'N/A'}
                   </p>
                 </div>
               </div>
             </div>
           </FormSection>
 
-          <FormSection title='NTTN Details'>
+          <FormSection title="NTTN Details">
             <SelectField
-              name='nttn_id'
-              placeholder='NTTN Name'
+              name="nttn_id"
+              placeholder="NTTN Name"
               options={nttnOptions}
-              onChange={(val) => formik.setFieldValue("nttn_id", val)}
+              onChange={(val) => formik.setFieldValue('nttn_id', val)}
               searchable
             />
-            <InputField
-              name='nttn_survey_id'
-              label='NTTN Provider ID'
-              type='text'
-            />
-            <InputField name='nttn_lat' label='NTTN Latitude' type='text' />
-            <InputField name='nttn_long' label='NTTN Longitude' type='text' />
+            <InputField name="nttn_survey_id" label="NTTN Provider ID" type="text" />
+            <InputField name="nttn_lat" label="NTTN Latitude" type="text" />
+            <InputField name="nttn_long" label="NTTN Longitude" type="text" />
           </FormSection>
 
-          <fieldset className='col-span-full border-t border-gray-300 pt-6 mt-6'>
-            <legend className='px-2 text-xl font-semibold text-gray-900'>
-              Additional Details
-            </legend>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 pt-4'>
-              <InputField name='mac_user' label='MAC Users' type='text' />
+          <fieldset className="col-span-full border-t border-gray-300 pt-6 mt-6">
+            <legend className="px-2 text-xl font-semibold text-gray-900">Additional Details</legend>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 pt-4">
+              <InputField name="mac_user" label="MAC Users" type="text" />
               <SelectField
-                name='status'
-                placeholder='Status'
+                name="status"
+                placeholder="Status"
                 options={[
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
                 ]}
-                onChange={(val) => formik.setFieldValue("status", val)}
+                onChange={(val) => formik.setFieldValue('status', val)}
               />
 
               <DatePickerField
-                name='submission'
-                placeholder='Submission Date'
-                field={{ name: "submission", value: formik.values.submission }}
+                name="submission"
+                placeholder="Submission Date"
+                field={{ name: 'submission', value: formik.values.submission }}
                 form={formik}
               />
             </div>
           </fieldset>
 
-          <div className='flex w-full justify-end mt-8 space-x-3'>
-            <Button intent='cancel' type='button' onClick={onCancel}>
+          <div className="flex w-full justify-end mt-8 space-x-3">
+            <Button intent="cancel" type="button" onClick={onCancel}>
               Cancel
             </Button>
             <Button
-              intent='submit'
-              type='submit'
+              intent="submit"
+              type="submit"
               loading={isSubmitting}
-              loadingText='Saving...'
-              disabled={isSubmitting || !formik.isValid}>
+              loadingText="Saving..."
+              disabled={isSubmitting || !formik.isValid}
+            >
               Save
             </Button>
           </div>

@@ -5,7 +5,7 @@ import Chart from '../components/ui/elements/Chart';
 import DateField from '../components/ui/fields/DateField';
 import SelectField from '../components/ui/fields/SelectField';
 import { fetchSurveysByDateRange } from '../services/survey';
-import { fetchWorkOrders } from '../services/workOrder';
+import { fetchWorkOrdersLaravel } from '../services/workOrder';
 import { fetchNTTNs } from '../services/nttn';
 import { fetchCategories } from '../services/category';
 import { fetchBWModifications } from '../services/bwModification';
@@ -197,7 +197,7 @@ function WorkOrderByNttnChart() {
       created_at: [dates[0].toISOString().slice(0, 10), dates[1].toISOString().slice(0, 10)],
     };
 
-    Promise.all([fetchWorkOrders(dateFilter), fetchNTTNs()])
+    Promise.all([fetchWorkOrdersLaravel(dateFilter), fetchNTTNs()])
       .then(([ordersResponse, nList]) => {
         const orders = Array.isArray(ordersResponse) ? ordersResponse : ordersResponse.data || [];
         const finalNttns = Array.isArray(nList) ? nList : nList.data || [];
@@ -340,7 +340,7 @@ function SurveyVsWorkOrderChart() {
     // Fetch surveys by date range; fetch work orders broadly (for client-side filtering)
     Promise.all([
       fetchSurveysByDateRange(dates[0], dates[1]),
-      fetchWorkOrders(),
+      fetchWorkOrdersLaravel(),
     ])
       .then(([surveysResp, ordersResp]) => {
         setSurveyResponse(surveysResp);
@@ -558,12 +558,14 @@ function BWModificationChart() {
   );
 }
 
+
+
+
 /* ================================================================== */
-/* 5.  NEW: Work-Orders by Client Category (30 Days)                  */
+/* 5.  Work-Orders by Client Category (30 Days) - UPDATED            */
 /* ================================================================== */
 function WorkOrderByClientCategoryChart() {
   const [rawWorkOrders, setRawWorkOrders] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fixed date range for the last 30 days
@@ -571,36 +573,37 @@ function WorkOrderByClientCategoryChart() {
 
   useEffect(() => {
     setLoading(true);
-    // Note: Fetching work orders broadly for client-side filtering + fetching categories
-    Promise.all([fetchWorkOrders(), fetchCategories()])
-      .then(([ordersResp, cList]) => {
+    
+    // Fetch work orders broadly for client-side filtering
+    fetchWorkOrdersLaravel()
+      .then((ordersResp) => {
         const orders = Array.isArray(ordersResp) ? ordersResp : ordersResp.data || [];
-        const finalCategories = Array.isArray(cList) ? cList : cList.data || [];
         setRawWorkOrders(orders);
-        setCategories(finalCategories);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const data = useMemo(() => {
-    if (!rawWorkOrders.length || !categories.length) return null;
+    if (!rawWorkOrders.length) return null;
 
     const start = dateRange[0].getTime();
     const end = dateRange[1].getTime();
 
-    // 1. Filter work orders to the last 30 days
+    // 1. Filter work orders to the last 30 days using service_handover or created_at
     const filteredOrders = rawWorkOrders.filter(w => {
-      const d = parseISO(w.requested_delivery || w.service_handover || w.submition || w.created_at);
+      const d = parseISO(w.service_handover || w.created_at);
       if (!isValid(d)) return false;
       const time = d.getTime();
       return time >= start && time <= end;
     });
 
-    // 2. Count by Category Name (Mapping from ID is error-prone, so we use the name from survey_data if available)
+    if (!filteredOrders.length) return null;
+
+    // 2. Count by Category Name - using cat_name from the API response
     const counts = filteredOrders.reduce((acc, w) => {
-      const name = categories.find(c => c.id === w.survey_data?.client_category_id)?.name || w.survey_data?.client_category;
-      if (name && name.trim()) {
-        const key = name.trim();
+      const categoryName = w.cat_name;
+      if (categoryName && categoryName.trim()) {
+        const key = categoryName.trim();
         acc[key] = (acc[key] || 0) + 1;
       }
       return acc;
@@ -625,7 +628,40 @@ function WorkOrderByClientCategoryChart() {
         hoverOffset: 4,
       }]
     };
-  }, [rawWorkOrders, categories, dateRange]);
+  }, [rawWorkOrders, dateRange]);
+
+  // Custom tooltip to show count and percentage
+  const chartOptions = useMemo(() => ({
+    plugins: {
+      legend: { 
+        position: 'right',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || '';
+            const value = context.parsed;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            
+            // Remove the percentage from label since we'll show it in tooltip
+            const cleanLabel = label.substring(0, label.lastIndexOf(' ('));
+            
+            return [
+              `Category: ${cleanLabel}`,
+              `Count: ${value}`,
+              `Percentage: ${percentage}%`
+            ];
+          }
+        }
+      }
+    },
+    maintainAspectRatio: false,
+  }), []);
 
   return (
     <div className="relative h-[450px] bg-white rounded-xl shadow-md p-10 flex flex-col">
@@ -643,21 +679,7 @@ function WorkOrderByClientCategoryChart() {
             type="pie"
             data={data}
             fallbackMessage="No work orders found in the last 30 days"
-            options={{
-              plugins: {
-                legend: { position: 'right' },
-                tooltip: { // Custom tooltip to show count and percentage
-                  callbacks: {
-                    label: (ctx) => {
-                      const label = data.labels[ctx.dataIndex];
-                      const count = data.datasets[0].data[ctx.dataIndex];
-                      // Replace the final parenthesis with the formatted string
-                      return `${label.substring(0, label.lastIndexOf('('))} (Count: ${count}, ${label.substring(label.lastIndexOf('(') + 1)}`;
-                    }
-                  }
-                }
-              },
-            }}
+            options={chartOptions}
           />
         </div>
       )}
@@ -666,11 +688,10 @@ function WorkOrderByClientCategoryChart() {
 }
 
 /* ================================================================== */
-/* 6.  NEW: Surveys by Client Category (30 Days)                      */
+/* 6.  Surveys by Client Category (30 Days) - UPDATED                */
 /* ================================================================== */
 function SurveyByClientCategoryChart() {
   const [rawSurveys, setRawSurveys] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fixed date range for the last 30 days
@@ -678,27 +699,26 @@ function SurveyByClientCategoryChart() {
 
   useEffect(() => {
     setLoading(true);
-    // Fetch surveys pre-filtered by date range
-    Promise.all([fetchSurveysByDateRange(dateRange[0], dateRange[1]), fetchCategories()])
-      .then(([surveysResp, cList]) => {
+    
+    // Fetch surveys for the last 30 days
+    fetchSurveysByDateRange(dateRange[0], dateRange[1])
+      .then((surveysResp) => {
         const surveys = Array.isArray(surveysResp) ? surveysResp : surveysResp.data || [];
-        const finalCategories = Array.isArray(cList) ? cList : cList.data || [];
         setRawSurveys(surveys);
-        setCategories(finalCategories);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const data = useMemo(() => {
-    if (!rawSurveys.length || !categories.length) return null;
+    if (!rawSurveys.length) return null;
 
-    // 1. Surveys are already filtered by date
-
-    // 2. Count by Category Name (Use the name field directly)
-    const counts = rawSurveys.reduce((acc, s) => {
-      const name = s.client_category || categories.find(c => c.id === s.client_category_id)?.name;
-      if (name && name.trim()) {
-        acc[name.trim()] = (acc[name.trim()] || 0) + 1;
+    // 1. Surveys are already filtered by date range from the API
+    // 2. Count by Category Name - using cat_name from the API response
+    const counts = rawSurveys.reduce((acc, survey) => {
+      const categoryName = survey.cat_name;
+      if (categoryName && categoryName.trim()) {
+        const key = categoryName.trim();
+        acc[key] = (acc[key] || 0) + 1;
       }
       return acc;
     }, {});
@@ -720,9 +740,47 @@ function SurveyByClientCategoryChart() {
         data: chartData,
         backgroundColor: genColors(chartLabels.length),
         hoverOffset: 4,
+        borderWidth: 2,
+        borderColor: '#fff',
       }]
     };
-  }, [rawSurveys, categories]);
+  }, [rawSurveys]);
+
+  const chartOptions = useMemo(() => ({
+    plugins: {
+      legend: { 
+        position: 'right',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || '';
+            const value = context.parsed;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            
+            // Remove the percentage from label for cleaner tooltip
+            const cleanLabel = label.substring(0, label.lastIndexOf(' ('));
+            
+            return [
+              `Category: ${cleanLabel}`,
+              `Surveys: ${value}`,
+              `Percentage: ${percentage}%`
+            ];
+          }
+        }
+      }
+    },
+    maintainAspectRatio: false,
+    cutout: '50%', // Makes it a doughnut chart
+  }), []);
 
   return (
     <div className="relative h-[450px] bg-white rounded-xl shadow-md p-10 flex flex-col">
@@ -740,20 +798,7 @@ function SurveyByClientCategoryChart() {
             type="doughnut"
             data={data}
             fallbackMessage="No surveys found in the last 30 days"
-            options={{
-              plugins: {
-                legend: { position: 'right' },
-                tooltip: { // Custom tooltip to show count and percentage
-                  callbacks: {
-                    label: (ctx) => {
-                      const label = data.labels[ctx.dataIndex];
-                      const count = data.datasets[0].data[ctx.dataIndex];
-                      return `${label.substring(0, label.lastIndexOf('('))} (Count: ${count}, ${label.substring(label.lastIndexOf('(') + 1)}`;
-                    }
-                  }
-                }
-              },
-            }}
+            options={chartOptions}
           />
         </div>
       )}
@@ -773,7 +818,7 @@ function useDashboardData() {
     // Fetch 60 days of surveys for the trend calculation, and broad data for WOs/NTTNs/Categories
     Promise.all([
       fetchSurveysByDateRange(sixtyDaysAgo, today),
-      fetchWorkOrders(), // Broad fetch for trend calc
+      fetchWorkOrdersLaravel(), // Broad fetch for trend calc
       fetchNTTNs(),
       fetchCategories(),
     ])

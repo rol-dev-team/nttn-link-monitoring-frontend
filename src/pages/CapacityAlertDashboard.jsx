@@ -291,7 +291,7 @@ export default function CapacityAlertDashboard() {
             {
                 key: "nas_ip",
                 header: "Client Name",
-                render: (_, row) => row.activation_plan?.nas_ip || "N/A",
+                render: (_, row) => row.activation_plan?.client_id || "N/A",
                 className: "min-w-[150px]",
             },
             {

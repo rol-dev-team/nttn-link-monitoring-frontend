@@ -34,3 +34,50 @@ export const fetchPartnerUtilizationLast7Days = async () => {
         throw error;
     }
 };
+
+
+
+
+export const fetchPartnerDownloadUtilizationAlert = async () => {
+    try {
+        const response = await axiosInstance.get("/max-download-utilization-alert");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+
+
+
+
+export const fetchPartnerUploadUtilizationAlert = async () => {
+    try {
+        const response = await axiosInstance.get("/max-upload-utilization-alert");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+
+
+
+export const fetchPartnerMinDownloadUtilizationAlert = async () => {
+    try {
+        const response = await axiosInstance.get("/min-download-utilization-alert");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// ✅ Upload (Min)
+export const fetchPartnerMinUploadUtilizationAlert = async () => {
+    try {
+        const response = await axiosInstance.get("/min-upload-utilization-alert");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

@@ -38,7 +38,10 @@
 //   fetchPartnerAggreatorSummary, 
 //   fetchPartnerPartnerCountSummary, 
 //   fetchPartnerUtilizationLast7Days,
-//   fetchPartnerDownloadUtilizationAlert
+//   fetchPartnerDownloadUtilizationAlert,
+//   fetchPartnerUploadUtilizationAlert,
+//   fetchPartnerMinDownloadUtilizationAlert,
+//   fetchPartnerMinUploadUtilizationAlert
 // } from "../services/partner-link/partnerDashboard";
 
 // /* -------------------------------------------------
@@ -164,7 +167,7 @@
 // };
 
 // /* -------------------------------------------------
-//    3. COLUMN DEFINITION FUNCTION (UPDATED FOR DOWNLOAD UTILIZATION)
+//    3. COLUMN DEFINITION FUNCTION (UPDATED FOR ALL UTILIZATION TYPES)
 //    ------------------------------------------------- */
 
 // // Reusable action column render function (UNCHANGED)
@@ -232,7 +235,7 @@
 //   );
 // };
 
-// // NEW: Columns for Download Utilization Alerts
+// // Columns for Download Utilization Alerts (Max)
 // const getDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
 //   { key: "client_name", header: "Client Name" },
 //   { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
@@ -275,6 +278,179 @@
 //       if (pct > 100) {
 //         color = "text-red-600 font-bold";
 //       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "actions",
+//     header: "Actions",
+//     align: "center",
+//     width: "18rem",
+//     isSortable: false,
+//     render: (v, row) =>
+//       renderAlertActions(row, handleRunPause, handleResolveClick),
+//   },
+// ];
+
+// // Columns for Upload Utilization Alerts (Max)
+// const getUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+//   { key: "client_name", header: "Client Name" },
+//   { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+//   { key: "nas_ip", header: "NAS IP" },
+//   { key: "interface_port", header: "Interface Port" },
+//   { 
+//     key: "request_capacity", 
+//     header: "Request Capacity",
+//     render: (val) => `${safeCell(val)} Mbps`
+//   },
+//   {
+//     key: "consecutive_days",
+//     header: "Alert Configuration",
+//     render: (v) => (
+//       <div className='text-sm text-gray-700'>
+//         {safeCell(v)}
+//       </div>
+//     ),
+//   },
+//   {
+//     key: "avg_utilization_percent",
+//     header: "Avg Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct > 100) {
+//         color = "text-red-600 font-bold";
+//       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "max_utilization_percent",
+//     header: "Max Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct > 100) {
+//         color = "text-red-600 font-bold";
+//       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "actions",
+//     header: "Actions",
+//     align: "center",
+//     width: "18rem",
+//     isSortable: false,
+//     render: (v, row) =>
+//       renderAlertActions(row, handleRunPause, handleResolveClick),
+//   },
+// ];
+
+// // Columns for Min Download Utilization Alerts
+// const getMinDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+//   { key: "client_name", header: "Client Name" },
+//   { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+//   { key: "nas_ip", header: "NAS IP" },
+//   { key: "interface_port", header: "Interface Port" },
+//   { 
+//     key: "request_capacity", 
+//     header: "Request Capacity",
+//     render: (val) => `${safeCell(val)} Mbps`
+//   },
+//   {
+//     key: "consecutive_days",
+//     header: "Alert Configuration",
+//     render: (v) => (
+//       <div className='text-sm text-gray-700'>
+//         {safeCell(v)}
+//       </div>
+//     ),
+//   },
+//   {
+//     key: "avg_utilization_percent",
+//     header: "Avg Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct > 100) {
+//         color = "text-red-600 font-bold";
+//       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "min_utilization_percent",
+//     header: "Min Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "actions",
+//     header: "Actions",
+//     align: "center",
+//     width: "18rem",
+//     isSortable: false,
+//     render: (v, row) =>
+//       renderAlertActions(row, handleRunPause, handleResolveClick),
+//   },
+// ];
+
+// // Columns for Min Upload Utilization Alerts
+// const getMinUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
+//   { key: "client_name", header: "Client Name" },
+//   { key: "nttn_work_order_id", header: "NTTN Work Order ID" },
+//   { key: "nas_ip", header: "NAS IP" },
+//   { key: "interface_port", header: "Interface Port" },
+//   { 
+//     key: "request_capacity", 
+//     header: "Request Capacity",
+//     render: (val) => `${safeCell(val)} Mbps`
+//   },
+//   {
+//     key: "consecutive_days",
+//     header: "Alert Configuration",
+//     render: (v) => (
+//       <div className='text-sm text-gray-700'>
+//         {safeCell(v)}
+//       </div>
+//     ),
+//   },
+//   {
+//     key: "avg_utilization_percent",
+//     header: "Avg Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct > 100) {
+//         color = "text-red-600 font-bold";
+//       } else if (pct < 20) {
+//         color = "text-cyan-600 font-bold";
+//       }
+//       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
+//     },
+//   },
+//   {
+//     key: "min_utilization_percent",
+//     header: "Min Utilization (%)",
+//     render: (v) => {
+//       const pct = parseFloat(v);
+//       let color = "text-gray-800";
+//       if (pct < 20) {
 //         color = "text-cyan-600 font-bold";
 //       }
 //       return <span className={clsx("font-mono text-sm", color)}>{safeCell(v)}%</span>;
@@ -488,9 +664,18 @@
 //   const [partnerSummary, setPartnerSummary] = useState([]);
 //   const [partnerCount, setPartnerCount] = useState(0);
 
-//   // NEW: State for download utilization alerts
+//   // Utilization Alert States
 //   const [downloadUtilizationAlerts, setDownloadUtilizationAlerts] = useState([]);
 //   const [downloadUtilizationCount, setDownloadUtilizationCount] = useState(0);
+  
+//   const [uploadUtilizationAlerts, setUploadUtilizationAlerts] = useState([]);
+//   const [uploadUtilizationCount, setUploadUtilizationCount] = useState(0);
+  
+//   const [minDownloadUtilizationAlerts, setMinDownloadUtilizationAlerts] = useState([]);
+//   const [minDownloadUtilizationCount, setMinDownloadUtilizationCount] = useState(0);
+  
+//   const [minUploadUtilizationAlerts, setMinUploadUtilizationAlerts] = useState([]);
+//   const [minUploadUtilizationCount, setMinUploadUtilizationCount] = useState(0);
 
 //   // Chart state
 //   const [chartData, setChartData] = useState({
@@ -561,31 +746,72 @@
 //     };
 //   };
 
-//   // Fetch download utilization alerts
-//   const fetchDownloadUtilizationAlerts = async () => {
+//   // Fetch all utilization alerts
+//   const fetchAllUtilizationAlerts = async () => {
 //     try {
-//       const response = await fetchPartnerDownloadUtilizationAlert();
-//       console.log("Download Utilization API Response:", response);
-      
-//       if (response.status && response.data) {
-//         setDownloadUtilizationAlerts(response.data);
-//         setDownloadUtilizationCount(response.row_count || response.data.length);
-        
-//         // Initialize alert status map for download utilization alerts
-//         const downloadAlertMap = new Map();
-//         response.data.forEach(alert => {
-//           downloadAlertMap.set(alert.nttn_work_order_id, "running");
-//         });
-//         setAlertStatusMap(prev => new Map([...prev, ...downloadAlertMap]));
-//       } else {
-//         console.error("Failed to fetch download utilization alerts:", response.message);
-//         setDownloadUtilizationAlerts([]);
-//         setDownloadUtilizationCount(0);
+//       const [
+//         downloadResponse,
+//         uploadResponse,
+//         minDownloadResponse,
+//         minUploadResponse
+//       ] = await Promise.all([
+//         fetchPartnerDownloadUtilizationAlert().catch(error => {
+//           console.error("Download Utilization API error:", error);
+//           return { status: false, data: [], row_count: 0 };
+//         }),
+//         fetchPartnerUploadUtilizationAlert().catch(error => {
+//           console.error("Upload Utilization API error:", error);
+//           return { status: false, data: [], row_count: 0 };
+//         }),
+//         fetchPartnerMinDownloadUtilizationAlert().catch(error => {
+//           console.error("Min Download Utilization API error:", error);
+//           return { status: false, data: [], row_count: 0 };
+//         }),
+//         fetchPartnerMinUploadUtilizationAlert().catch(error => {
+//           console.error("Min Upload Utilization API error:", error);
+//           return { status: false, data: [], row_count: 0 };
+//         })
+//       ]);
+
+//       // Set download alerts
+//       if (downloadResponse.status && downloadResponse.data) {
+//         setDownloadUtilizationAlerts(downloadResponse.data);
+//         setDownloadUtilizationCount(downloadResponse.row_count || downloadResponse.data.length);
 //       }
+
+//       // Set upload alerts
+//       if (uploadResponse.status && uploadResponse.data) {
+//         setUploadUtilizationAlerts(uploadResponse.data);
+//         setUploadUtilizationCount(uploadResponse.row_count || uploadResponse.data.length);
+//       }
+
+//       // Set min download alerts
+//       if (minDownloadResponse.status && minDownloadResponse.data) {
+//         setMinDownloadUtilizationAlerts(minDownloadResponse.data);
+//         setMinDownloadUtilizationCount(minDownloadResponse.row_count || minDownloadResponse.data.length);
+//       }
+
+//       // Set min upload alerts
+//       if (minUploadResponse.status && minUploadResponse.data) {
+//         setMinUploadUtilizationAlerts(minUploadResponse.data);
+//         setMinUploadUtilizationCount(minUploadResponse.row_count || minUploadResponse.data.length);
+//       }
+
+//       // Initialize alert status map for all utilization alerts
+//       const allAlertsMap = new Map();
+      
+//       [downloadResponse.data, uploadResponse.data, minDownloadResponse.data, minUploadResponse.data]
+//         .flat()
+//         .forEach(alert => {
+//           if (alert.nttn_work_order_id) {
+//             allAlertsMap.set(alert.nttn_work_order_id, "running");
+//           }
+//         });
+      
+//       setAlertStatusMap(prev => new Map([...prev, ...allAlertsMap]));
+
 //     } catch (error) {
-//       console.error("Error fetching download utilization alerts:", error);
-//       setDownloadUtilizationAlerts([]);
-//       setDownloadUtilizationCount(0);
+//       console.error("Error fetching utilization alerts:", error);
 //     }
 //   };
 
@@ -652,8 +878,8 @@
 //       setPartnerSummary(partnerSummaryResponse.aggregator_summary || []);
 //       setPartnerCount(partnerSummaryResponse.aggregator_count || 0);
 
-//       // Fetch download utilization alerts
-//       await fetchDownloadUtilizationAlerts();
+//       // Fetch all utilization alerts
+//       await fetchAllUtilizationAlerts();
 //     } catch (err) {
 //       console.error("Dashboard API call error:", err);
 //     } finally {
@@ -677,15 +903,23 @@
 //     return {
 //       totalMetrics: {
 //         maxDownloadAlertCount: downloadUtilizationCount,
-//         maxUploadAlertCount: 0, // You can add upload alerts when available
-//         minDownloadAlertCount: 0,
-//         minUploadAlertCount: 0,
+//         maxUploadAlertCount: uploadUtilizationCount,
+//         minDownloadAlertCount: minDownloadUtilizationCount,
+//         minUploadAlertCount: minUploadUtilizationCount,
 //         icmpAlertCount: icmpAlert.length,
 //         partnerCount: partnerCount,
 //         aggregatorCount: aggregatorCount,
 //       },
 //     };
-//   }, [downloadUtilizationCount, icmpAlert.length, partnerCount, aggregatorCount]);
+//   }, [
+//     downloadUtilizationCount,
+//     uploadUtilizationCount,
+//     minDownloadUtilizationCount,
+//     minUploadUtilizationCount,
+//     icmpAlert.length,
+//     partnerCount,
+//     aggregatorCount
+//   ]);
 
 //   const { dynamicTableData, baseAlertCount } = useMemo(() => {
 //     let baseAlertData = [];
@@ -704,18 +938,18 @@
 //       };
 //     }
 
-//     // Handle download utilization alerts
+//     // Handle all utilization alert types
 //     if (activeCard === "max_download_alert") {
 //       baseAlertData = downloadUtilizationAlerts;
 //       titlePrefix = "Max Download Utilization";
 //     } else if (activeCard === "max_upload_alert") {
-//       baseAlertData = []; // Add when you have upload alerts
+//       baseAlertData = uploadUtilizationAlerts;
 //       titlePrefix = "Max Upload Utilization";
 //     } else if (activeCard === "min_download_alert") {
-//       baseAlertData = []; // Add when you have min download alerts
+//       baseAlertData = minDownloadUtilizationAlerts;
 //       titlePrefix = "Min Download Utilization";
 //     } else if (activeCard === "min_upload_alert") {
-//       baseAlertData = []; // Add when you have min upload alerts
+//       baseAlertData = minUploadUtilizationAlerts;
 //       titlePrefix = "Min Upload Utilization";
 //     } else if (activeCard === "icmp_alert") {
 //       baseAlertData = icmpAlert;
@@ -757,7 +991,18 @@
 //       dynamicTableData: finalFilteredData,
 //       baseAlertCount: countBeforeFilter,
 //     };
-//   }, [activeCard, actionFilter, alertStatusMap, downloadUtilizationAlerts, icmpAlert, aggregatorSummary, partnerSummary]);
+//   }, [
+//     activeCard,
+//     actionFilter,
+//     alertStatusMap,
+//     downloadUtilizationAlerts,
+//     uploadUtilizationAlerts,
+//     minDownloadUtilizationAlerts,
+//     minUploadUtilizationAlerts,
+//     icmpAlert,
+//     aggregatorSummary,
+//     partnerSummary
+//   ]);
 
 //   /* --- Action Handlers --- */
 //   const handleRunPause = useCallback((alertId, newStatus) => {
@@ -810,8 +1055,12 @@
 //     let columns = [];
 //     if (type === 'max_download_alert') {
 //       columns = getDownloadUtilizationColumns(handleRunPause, handleResolveClick); 
-//     } else if (type === 'max_upload_alert' || type === 'min_download_alert' || type === 'min_upload_alert') {
-//       columns = getUtilizationColumns(handleRunPause, handleResolveClick);
+//     } else if (type === 'max_upload_alert') {
+//       columns = getUploadUtilizationColumns(handleRunPause, handleResolveClick);
+//     } else if (type === 'min_download_alert') {
+//       columns = getMinDownloadUtilizationColumns(handleRunPause, handleResolveClick);
+//     } else if (type === 'min_upload_alert') {
+//       columns = getMinUploadUtilizationColumns(handleRunPause, handleResolveClick);
 //     } else if (type === 'icmp_alert') { 
 //       columns = getICMPAlertColumns(handleRunPause, handleResolveClick);
 //     } else if (type === 'partners') {
@@ -891,7 +1140,9 @@
 //       </div>
 
 //       <div className='space-y-4'>
-//         <div className="flex gap-4">
+//         {/* <div className="flex gap-4"> */}
+//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
 //           {initialLoading ? (
 //             Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
 //           ) : (
@@ -957,6 +1208,21 @@
 //               />
 
 //               {/* ICMP Alert Card */}
+//               <HealthStatCard
+//                 title='ICMP Latency Alerts'
+//                 value={totalMetrics.icmpAlertCount}
+//                 subLabel='Network issues detected'
+//                 icon={Clock}
+//                 iconBgClass='bg-orange-100'
+//                 iconTextClass='text-orange-600'
+//                 valueClass={
+//                   activeCard === "icmp_alert"
+//                     ? "text-orange-700 underline"
+//                     : "text-orange-600"
+//                 }
+//                 onClick={() => handleStatCardClick("icmp_alert")}
+//               />
+
 //               <HealthStatCard
 //                 title='ICMP Latency Alerts'
 //                 value={totalMetrics.icmpAlertCount}
@@ -1138,6 +1404,9 @@
 
 
 
+
+
+
 // src/pages/PartnerDashboard.jsx
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
@@ -1307,12 +1576,12 @@ const ConfirmationModal = ({
 };
 
 /* -------------------------------------------------
-   3. COLUMN DEFINITION FUNCTION (UPDATED FOR ALL UTILIZATION TYPES)
+   3. COLUMN DEFINITION FUNCTION (UPDATED WITH STATUS COLUMN)
    ------------------------------------------------- */
 
-// Reusable action column render function (UNCHANGED)
+// Reusable action column render function (UPDATED)
 const renderAlertActions = (row, handleRunPause, handleResolveClick) => {
-  const status = row.current_alert_status;
+  const status = row.current_alert_status || row.status;
   const isResolved = status === "resolved";
 
   // --- 1. Run/Pause Button Logic ---
@@ -1323,8 +1592,7 @@ const renderAlertActions = (row, handleRunPause, handleResolveClick) => {
     RunPauseIcon = Pause;
     runPauseColorClass = "text-yellow-600 border-yellow-200 hover:bg-yellow-50";
     nextRunPauseStatus = "paused";
-  } else {
-    // status === 'paused' or 'resolved' (though resolved is handled below)
+  } else if (status === "paused") {
     runPauseLabel = "Run";
     RunPauseIcon = Play;
     runPauseColorClass = "text-blue-600 border-blue-200 hover:bg-blue-50";
@@ -1372,6 +1640,40 @@ const renderAlertActions = (row, handleRunPause, handleResolveClick) => {
         Resolve
       </Button>
     </div>
+  );
+};
+
+// Status badge renderer
+const renderStatusBadge = (status) => {
+  let badgeClass = "";
+  let displayText = "";
+
+  switch (status) {
+    case "running":
+      badgeClass = "bg-green-100 text-green-800";
+      displayText = "Running";
+      break;
+    case "paused":
+      badgeClass = "bg-yellow-100 text-yellow-800";
+      displayText = "Paused";
+      break;
+    case "resolved":
+      badgeClass = "bg-gray-100 text-gray-800";
+      displayText = "Resolved";
+      break;
+    default:
+      badgeClass = "bg-gray-100 text-gray-800";
+      displayText = "Unknown";
+  }
+
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
+        badgeClass
+      )}>
+      {displayText}
+    </span>
   );
 };
 
@@ -1424,14 +1726,19 @@ const getDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
     },
   },
   {
-    key: "actions",
-    header: "Actions",
-    align: "center",
-    width: "18rem",
-    isSortable: false,
-    render: (v, row) =>
-      renderAlertActions(row, handleRunPause, handleResolveClick),
+    key: "status",
+    header: "Status",
+    render: (v, row) => renderStatusBadge(row.current_alert_status || row.status),
   },
+  // {
+  //   key: "actions",
+  //   header: "Actions",
+  //   align: "center",
+  //   width: "18rem",
+  //   isSortable: false,
+  //   render: (v, row) =>
+  //     renderAlertActions(row, handleRunPause, handleResolveClick),
+  // },
 ];
 
 // Columns for Upload Utilization Alerts (Max)
@@ -1483,14 +1790,19 @@ const getUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
     },
   },
   {
-    key: "actions",
-    header: "Actions",
-    align: "center",
-    width: "18rem",
-    isSortable: false,
-    render: (v, row) =>
-      renderAlertActions(row, handleRunPause, handleResolveClick),
+    key: "status",
+    header: "Status",
+    render: (v, row) => renderStatusBadge(row.current_alert_status || row.status),
   },
+  // {
+  //   key: "actions",
+  //   header: "Actions",
+  //   align: "center",
+  //   width: "18rem",
+  //   isSortable: false,
+  //   render: (v, row) =>
+  //     renderAlertActions(row, handleRunPause, handleResolveClick),
+  // },
 ];
 
 // Columns for Min Download Utilization Alerts
@@ -1540,14 +1852,19 @@ const getMinDownloadUtilizationColumns = (handleRunPause, handleResolveClick) =>
     },
   },
   {
-    key: "actions",
-    header: "Actions",
-    align: "center",
-    width: "18rem",
-    isSortable: false,
-    render: (v, row) =>
-      renderAlertActions(row, handleRunPause, handleResolveClick),
+    key: "status",
+    header: "Status",
+    render: (v, row) => renderStatusBadge(row.current_alert_status || row.status),
   },
+  // {
+  //   key: "actions",
+  //   header: "Actions",
+  //   align: "center",
+  //   width: "18rem",
+  //   isSortable: false,
+  //   render: (v, row) =>
+  //     renderAlertActions(row, handleRunPause, handleResolveClick),
+  // },
 ];
 
 // Columns for Min Upload Utilization Alerts
@@ -1597,14 +1914,19 @@ const getMinUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
     },
   },
   {
-    key: "actions",
-    header: "Actions",
-    align: "center",
-    width: "18rem",
-    isSortable: false,
-    render: (v, row) =>
-      renderAlertActions(row, handleRunPause, handleResolveClick),
+    key: "status",
+    header: "Status",
+    render: (v, row) => renderStatusBadge(row.current_alert_status || row.status),
   },
+  // {
+  //   key: "actions",
+  //   header: "Actions",
+  //   align: "center",
+  //   width: "18rem",
+  //   isSortable: false,
+  //   render: (v, row) =>
+  //     renderAlertActions(row, handleRunPause, handleResolveClick),
+  // },
 ];
 
 // Utilization Columns (For other utilization alerts)
@@ -1645,14 +1967,19 @@ const getUtilizationColumns = (handleRunPause, handleResolveClick) => [
     },
   },
   {
-    key: "actions",
-    header: "Actions",
-    align: "center",
-    width: "18rem",
-    isSortable: false,
-    render: (v, row) =>
-      renderAlertActions(row, handleRunPause, handleResolveClick),
+    key: "status",
+    header: "Status",
+    render: (v, row) => renderStatusBadge(row.current_alert_status),
   },
+  // {
+  //   key: "actions",
+  //   header: "Actions",
+  //   align: "center",
+  //   width: "18rem",
+  //   isSortable: false,
+  //   render: (v, row) =>
+  //     renderAlertActions(row, handleRunPause, handleResolveClick),
+  // },
 ];
 
 // MODIFIED: Columns for ICMP Alerts with custom rendering for 'alert_value'
@@ -1714,6 +2041,11 @@ const getICMPAlertColumns = (handleRunPause, handleResolveClick) => [
     ),
   },
   { key: "last_ping_time", header: "Last Ping" },
+  {
+    key: "status",
+    header: "Status",
+    render: (v, row) => renderStatusBadge(row.current_alert_status),
+  },
   {
     key: "actions",
     header: "Actions",
@@ -1937,14 +2269,15 @@ export default function PartnerDashboard() {
         setMinUploadUtilizationCount(minUploadResponse.row_count || minUploadResponse.data.length);
       }
 
-      // Initialize alert status map for all utilization alerts
+      // Initialize alert status map for all utilization alerts using API status
       const allAlertsMap = new Map();
       
       [downloadResponse.data, uploadResponse.data, minDownloadResponse.data, minUploadResponse.data]
         .flat()
         .forEach(alert => {
           if (alert.nttn_work_order_id) {
-            allAlertsMap.set(alert.nttn_work_order_id, "running");
+            // Use the status from API response directly
+            allAlertsMap.set(alert.nttn_work_order_id, alert.status || "running");
           }
         });
       
@@ -2040,22 +2373,40 @@ export default function PartnerDashboard() {
   }, []);
 
   const { totalMetrics } = useMemo(() => {
+    // Count only running alerts for the cards
+    const runningDownloadAlerts = downloadUtilizationAlerts.filter(alert => 
+      (alertStatusMap.get(alert.nttn_work_order_id) || alert.status) === "running"
+    ).length;
+    
+    const runningUploadAlerts = uploadUtilizationAlerts.filter(alert => 
+      (alertStatusMap.get(alert.nttn_work_order_id) || alert.status) === "running"
+    ).length;
+    
+    const runningMinDownloadAlerts = minDownloadUtilizationAlerts.filter(alert => 
+      (alertStatusMap.get(alert.nttn_work_order_id) || alert.status) === "running"
+    ).length;
+    
+    const runningMinUploadAlerts = minUploadUtilizationAlerts.filter(alert => 
+      (alertStatusMap.get(alert.nttn_work_order_id) || alert.status) === "running"
+    ).length;
+
     return {
       totalMetrics: {
-        maxDownloadAlertCount: downloadUtilizationCount,
-        maxUploadAlertCount: uploadUtilizationCount,
-        minDownloadAlertCount: minDownloadUtilizationCount,
-        minUploadAlertCount: minUploadUtilizationCount,
+        maxDownloadAlertCount: runningDownloadAlerts,
+        maxUploadAlertCount: runningUploadAlerts,
+        minDownloadAlertCount: runningMinDownloadAlerts,
+        minUploadAlertCount: runningMinUploadAlerts,
         icmpAlertCount: icmpAlert.length,
         partnerCount: partnerCount,
         aggregatorCount: aggregatorCount,
       },
     };
   }, [
-    downloadUtilizationCount,
-    uploadUtilizationCount,
-    minDownloadUtilizationCount,
-    minUploadUtilizationCount,
+    downloadUtilizationAlerts,
+    uploadUtilizationAlerts,
+    minDownloadUtilizationAlerts,
+    minUploadUtilizationAlerts,
+    alertStatusMap,
     icmpAlert.length,
     partnerCount,
     aggregatorCount
@@ -2101,10 +2452,11 @@ export default function PartnerDashboard() {
     const countBeforeFilter = baseAlertData.length;
 
     const dataWithCurrentStatus = baseAlertData.map((row) => {
-      const currentStatus = alertStatusMap.get(row.nttn_work_order_id || row.nttn_link_id) || "running";
+      const currentStatus = alertStatusMap.get(row.nttn_work_order_id || row.nttn_link_id) || row.status || "running";
       return { ...row, current_alert_status: currentStatus };
     });
 
+    // Apply status-based filtering
     const finalFilteredData = dataWithCurrentStatus.filter((row) => {
       const status = row.current_alert_status;
       if (actionFilter === "all") return true;
@@ -2280,7 +2632,7 @@ export default function PartnerDashboard() {
       </div>
 
       <div className='space-y-4'>
-        <div className="flex gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {initialLoading ? (
             Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
           ) : (
@@ -2361,6 +2713,21 @@ export default function PartnerDashboard() {
                 onClick={() => handleStatCardClick("icmp_alert")}
               />
 
+              <HealthStatCard
+                title='ICMP Timeout Alerts'
+                value={totalMetrics.icmpAlertCount}
+                subLabel='Network issues detected'
+                icon={WifiOff}
+                iconBgClass='bg-orange-100'
+                iconTextClass='text-orange-600'
+                valueClass={
+                  activeCard === "icmp_alert"
+                    ? "text-orange-700 underline"
+                    : "text-orange-600"
+                }
+                onClick={() => handleStatCardClick("icmp_alert")}
+              />
+
               {/* Partners */}
               <HealthStatCard
                 title='Partners'
@@ -2405,7 +2772,7 @@ export default function PartnerDashboard() {
           </h2>
 
           {/* Filter Buttons */}
-          {["max_download_alert", "max_upload_alert", "min_download_alert", "min_upload_alert", "icmp_alert"].includes(activeCard) &&
+          {/* {["max_download_alert", "max_upload_alert", "min_download_alert", "min_upload_alert", "icmp_alert"].includes(activeCard) &&
             baseAlertCount > 0 && (
               <div className='flex space-x-2'>
                 <Button
@@ -2444,7 +2811,7 @@ export default function PartnerDashboard() {
                   Resolved
                 </Button>
               </div>
-            )}
+            )} */}
         </div>
 
         {tableIsLoading || initialLoading ? (

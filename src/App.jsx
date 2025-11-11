@@ -194,6 +194,7 @@ const NasInterfacePage = lazy(() => import('./pages/NasInterface'));
 const NasDropDevicePage = lazy(() => import('./pages/NasDropDevice'));
 const NttnDashboard = lazy(() => import('./pages/NTTDashboard'));
 const Dashboard2 = lazy(() => import('./pages/Dashboard2'));
+const AlertLog = lazy(() => import('./pages/AlertLog'));
 
 // React Query Client Setup
 const queryClient = new QueryClient({
@@ -280,6 +281,7 @@ export default function App() {
                   {/* Partner-Link project routes */}
                   <Route path="nttn/dashboard" element={<NttnDashboard />} />
                   <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="alert-log" element={<AlertLog />} />
                   <Route path="test" element={<Dashboard2 />} />
                   <Route path="capacity-alert" element={<CapacityAlertDashboard />} />
                   <Route path="technical-kam" element={<TechnicalKAMDashboard />} />

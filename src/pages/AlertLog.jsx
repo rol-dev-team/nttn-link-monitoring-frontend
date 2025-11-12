@@ -10,24 +10,25 @@ import {
   fetchWorkOrderDetailsForPartner,
 } from '../services/partner-link/txToPartner';
 import { getAlertLogs } from '../services/partner-link/alertLogApi';
+import DataTable from '../components/table/DataTable';
 
-// Mock Alert Log Data (Time series data for 7 hours/days)
-const MOCK_ALERT_DATA = [
-  { timestamp: '2023-11-05T00:00:00Z', alert_count: 5 },
-  { timestamp: '2023-11-06T00:00:00Z', alert_count: 12 },
-  { timestamp: '2023-11-07T00:00:00Z', alert_count: 8 },
-  { timestamp: '2023-11-08T00:00:00Z', alert_count: 20 },
-  { timestamp: '2023-11-09T00:00:00Z', alert_count: 15 },
-  { timestamp: '2023-11-10T00:00:00Z', alert_count: 25 },
-  { timestamp: '2023-11-11T00:00:00Z', alert_count: 18 },
+const TableSkeleton = () => <div className="h-[400px] bg-gray-200 rounded-xl animate-pulse"></div>;
+
+const alertTypeOptions = [
+  { label: 'Max Download', value: 'max_download' },
+  { label: 'Max Upload', value: 'max_upload' },
+  { label: 'Min Download', value: 'min_download' },
+  { label: 'Min Upload', value: 'min_upload' },
+  { label: 'ICMP Latency', value: 'icmp_latency' },
+  { label: 'ICMP Timeout', value: 'icmp_timeout' },
 ];
-
 /* =============================================================================
    CONSTANTS
    ============================================================================= */
 const today = new Date();
 const validationSchema = Yup.object().shape({
   nttnId: Yup.string().required('NTTN Link is required'),
+  alertType: Yup.string().required('Alert Type is required'),
   dateRange: Yup.array()
     .of(Yup.date().nullable())
     .test('both-required', 'Please select start and end dates', (value) => {
@@ -128,7 +129,7 @@ const chartOptions = {
   scales: {
     x: { title: { display: true, text: 'Time Period', font: { size: 14, weight: 'bold' } } },
     y: {
-      title: { display: true, text: 'Alert Count', font: { size: 14, weight: 'bold' } },
+      title: { display: true, text: 'Max Utilization', font: { size: 14, weight: 'bold' } },
       beginAtZero: true,
     },
   },
@@ -153,7 +154,7 @@ const AlertLog = () => {
         const { data } = await fetchCategoryWiseClientPartner();
         setNttnLinkIdOptions(
           data.map((item) => ({
-            label: `${item.nttn_work_order_id} (${item.client_name})`,
+            label: `${item.client_name} - ${item.nttn_work_order_id} `,
             value: item.work_order_id,
           }))
         );
@@ -167,6 +168,7 @@ const AlertLog = () => {
   const formik = useFormik({
     initialValues: {
       nttnId: '',
+      alertType: '',
       dateRange: [null, null],
     },
     validationSchema,
@@ -175,16 +177,15 @@ const AlertLog = () => {
       setAlertData([]);
       setPartnerInfos(null);
 
-      const payload = {
-        nttnId: values.nttnId,
-        startDate: values.dateRange[0] ? values.dateRange[0].toISOString() : null,
-        endDate: values.dateRange[1] ? values.dateRange[1].toISOString() : null,
-      };
-
       try {
         const { data: partnerData } = await fetchWorkOrderDetailsForPartner(values.nttnId);
         setPartnerInfos(partnerData);
-        console.log('Fetched Partner Infos:', partnerData);
+        const payload = {
+          activation_plan_id: partnerData?.activation_plan_id,
+          alertType: values.alertType,
+          startDate: values.dateRange[0] ? values.dateRange[0].toISOString() : null,
+          endDate: values.dateRange[1] ? values.dateRange[1].toISOString() : null,
+        };
         const { data } = await getAlertLogs(payload);
         setAlertData(data);
       } catch (err) {
@@ -195,16 +196,35 @@ const AlertLog = () => {
     },
   });
 
+  const columns = [
+    { key: 'client_name', header: 'Partner Name' },
+    { key: 'type', header: 'Type' },
+    { key: 'nas_ip', header: 'NAS IP' },
+    { key: 'interface_port', header: 'Interface Port' },
+    { key: 'request_capacity', header: 'Request Capacity' },
+    { key: 'nttn_work_order_id', header: 'NTTN Work Order' },
+    { key: 'consecutive_days', header: 'Consecutive Days' },
+    { key: 'max_utilization_percent', header: 'Max Utilization %' },
+    { key: 'collected_at', header: 'Collected At' },
+    // { key: 'status', header: 'Status' },
+    // { key: 'created_at', header: 'Created At' },
+    // { key: 'updated_at', header: 'Updated At' },
+  ];
+
   const alertChartData = useMemo(() => {
     return alertData.map((item) => ({
-      x: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      y: item.alert_count,
+      x: new Date(item.collected_at).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+      y: item.max_utilization_percent,
     }));
   }, [alertData]);
 
-  // --- Data Fetching Effect (Initial Load) ---
-
-  // --- Component Render ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
@@ -233,6 +253,21 @@ const AlertLog = () => {
               />
               {formik.touched.nttnId && formik.errors.nttnId && (
                 <p className="text-xs text-red-500 mt-1">{formik.errors.nttnId}</p>
+              )}
+            </div>
+            {/* Alert Type Selector */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+                Alert Type*
+              </label>
+              <Select
+                value={formik.values.alertType}
+                onChange={(value) => formik.setFieldValue('alertType', value)}
+                options={alertTypeOptions}
+                placeholder="Select Alert Type"
+              />
+              {formik.touched.alertType && formik.errors.alertType && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.alertType}</p>
               )}
             </div>
 
@@ -306,9 +341,9 @@ const AlertLog = () => {
             <div className="bg-white rounded-2xl shadow-md p-4 border border-gray-100">
               <div className="flex items-center gap-2 mb-2">
                 <Bell className="w-5 h-5 text-red-600" />
-                <h3 className="text-lg font-semibold text-gray-800">Alerts Over Time</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Alerts</h3>
               </div>
-              <p className="text-sm text-gray-500 mb-3">Daily or hourly count of system alerts.</p>
+              <p className="text-sm text-gray-500 mb-3">Daily count of system alerts.</p>
               <div className="h-[300px]">
                 <Chart
                   type="line"
@@ -327,6 +362,24 @@ const AlertLog = () => {
             </p>
           </div>
         )}
+
+        <div>
+          {isLoading ? (
+            <TableSkeleton />
+          ) : (
+            <DataTable
+              title="Alert Logs"
+              data={alertData}
+              columns={columns}
+              searchable={true}
+              showId={true}
+              selection={true}
+              pageSizeOptions={[5, 10, 20, 500]}
+              initialPageSize={5}
+              stickyHeader={true}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

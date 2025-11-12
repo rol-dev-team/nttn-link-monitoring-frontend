@@ -302,6 +302,7 @@ const getDownloadUtilizationColumns = (handleRunPause, handleResolveClick) => [
       return <span className={clsx('font-mono text-sm', color)}>{safeCell(v)}%</span>;
     },
   },
+  { key: 'max_download_collected_at', header: 'Collected At' },
   // {
   //   key: 'status',
   //   header: 'Status',
@@ -349,6 +350,7 @@ const getUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
       return <span className={clsx('font-mono text-sm', color)}>{safeCell(v)}%</span>;
     },
   },
+  { key: 'max_download_collected_at', header: 'Collected At' },
 
   // {
   //   key: "actions",
@@ -390,6 +392,7 @@ const getMinDownloadUtilizationColumns = (handleRunPause, handleResolveClick) =>
       return <span className={clsx('font-mono text-sm', color)}>{safeCell(v)}%</span>;
     },
   },
+  { key: 'max_download_collected_at', header: 'Collected At' },
 
   // {
   //   key: "actions",
@@ -431,7 +434,7 @@ const getMinUploadUtilizationColumns = (handleRunPause, handleResolveClick) => [
       return <span className={clsx('font-mono text-sm', color)}>{safeCell(v)}%</span>;
     },
   },
-
+  { key: 'max_download_collected_at', header: 'Collected At' },
   // {
   //   key: "actions",
   //   header: "Actions",
@@ -1474,7 +1477,7 @@ export default function PartnerDashboard() {
       </div>
 
       {/* Updated Utilization Chart Section */}
-      <div className="space-y-4">
+      <div className="space-y-4 hidden">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">
             Max Download & Upload Utilization (Last 7 Days)

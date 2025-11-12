@@ -5,32 +5,11 @@ import { Search, Bell, Calendar, Clock, ChevronDown, AlertCircle, TrendingUp } f
 import Chart from '../components/charts/Chart'; // Assuming this is a Chart.js wrapper component
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-
-// --- Mocking API Functions for a Runnable Example ---
-const MOCK_NTTN_OPTIONS = [
-  { label: 'NTTN-LINK-001 (Partner A)', value: 'wo-a123' },
-  { label: 'NTTN-LINK-002 (Partner B)', value: 'wo-b456' },
-  { label: 'NTTN-LINK-003 (Partner C)', value: 'wo-c789' },
-];
-
-const mockFetchCategoryWiseClientPartner = () =>
-  new Promise((resolve) => {
-    setTimeout(
-      () =>
-        resolve({
-          data: MOCK_NTTN_OPTIONS.map((opt) => ({
-            nttn_work_order_id: opt.label,
-            work_order_id: opt.value,
-          })),
-        }),
-      500
-    );
-  });
-
-const mockFetchWorkOrderDetailsForPartner = (nttnId) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve({ data: { activation_plan_id: `act-${nttnId}` } }), 300);
-  });
+import {
+  fetchCategoryWiseClientPartner,
+  fetchWorkOrderDetailsForPartner,
+} from '../services/partner-link/txToPartner';
+import { getAlertLogs } from '../services/partner-link/alertLogApi';
 
 // Mock Alert Log Data (Time series data for 7 hours/days)
 const MOCK_ALERT_DATA = [
@@ -42,17 +21,6 @@ const MOCK_ALERT_DATA = [
   { timestamp: '2023-11-10T00:00:00Z', alert_count: 25 },
   { timestamp: '2023-11-11T00:00:00Z', alert_count: 18 },
 ];
-
-const mockGetAlertMonitoring = (params) =>
-  new Promise((resolve) => {
-    console.log('Mock Alert API called with:', params);
-    setTimeout(() => resolve({ data: MOCK_ALERT_DATA }), 1000);
-  });
-
-// Using mocks
-const fetchCategoryWiseClientPartner = mockFetchCategoryWiseClientPartner;
-const fetchWorkOrderDetailsForPartner = mockFetchWorkOrderDetailsForPartner;
-const getAlertMonitoring = mockGetAlertMonitoring;
 
 /* =============================================================================
    CONSTANTS
@@ -176,8 +144,25 @@ const AlertLog = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [alertData, setAlertData] = useState([]);
   const [partnerInfos, setPartnerInfos] = useState(null);
-  const [lastUpdate, setLastUpdate] = useState(null); // Kept the state, but not used in JSX
+  const [lastUpdate, setLastUpdate] = useState(null);
 
+  // --- Fetch NTTN Link Options on Mount ---
+  useEffect(() => {
+    const boot = async () => {
+      try {
+        const { data } = await fetchCategoryWiseClientPartner();
+        setNttnLinkIdOptions(
+          data.map((item) => ({
+            label: `${item.nttn_work_order_id} (${item.client_name})`,
+            value: item.work_order_id,
+          }))
+        );
+      } catch (e) {
+        console.error('Error fetching NTTN links:', e);
+      }
+    };
+    boot();
+  }, []);
   // --- Formik Setup ---
   const formik = useFormik({
     initialValues: {
@@ -190,19 +175,18 @@ const AlertLog = () => {
       setAlertData([]);
       setPartnerInfos(null);
 
+      const payload = {
+        nttnId: values.nttnId,
+        startDate: values.dateRange[0] ? values.dateRange[0].toISOString() : null,
+        endDate: values.dateRange[1] ? values.dateRange[1].toISOString() : null,
+      };
+
       try {
         const { data: partnerData } = await fetchWorkOrderDetailsForPartner(values.nttnId);
         setPartnerInfos(partnerData);
-
-        // Fetch Alert Monitoring Data
-        const [startDate, endDate] = values.dateRange;
-        const alertRes = await getAlertMonitoring({
-          partner_activation_id: partnerData.activation_plan_id,
-          date_range: [startDate.toISOString(), endDate.toISOString()],
-        });
-
-        setAlertData(alertRes.data || []);
-        setLastUpdate(new Date());
+        console.log('Fetched Partner Infos:', partnerData);
+        const { data } = await getAlertLogs(payload);
+        setAlertData(data);
       } catch (err) {
         console.error('Error during data fetching:', err);
       } finally {
@@ -211,10 +195,6 @@ const AlertLog = () => {
     },
   });
 
-  // --- Derived State (Simplified) ---
-  // The 'isHistoricalMode' variable is no longer necessary as it's not displayed.
-
-  // Transform alertData into chart-ready format
   const alertChartData = useMemo(() => {
     return alertData.map((item) => ({
       x: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -223,19 +203,6 @@ const AlertLog = () => {
   }, [alertData]);
 
   // --- Data Fetching Effect (Initial Load) ---
-  useEffect(() => {
-    const boot = async () => {
-      try {
-        const { data } = await fetchCategoryWiseClientPartner();
-        setNttnLinkIdOptions(
-          data.map((item) => ({ label: item.nttn_work_order_id, value: item.work_order_id }))
-        );
-      } catch (e) {
-        console.error('Error fetching NTTN links:', e);
-      }
-    };
-    boot();
-  }, []);
 
   // --- Component Render ---
   return (

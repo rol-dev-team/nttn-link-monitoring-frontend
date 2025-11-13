@@ -1303,7 +1303,7 @@ export default function PartnerDashboard() {
           ) : (
             <>
               <HealthStatCard
-                title="Max Download Utilization Alert"
+                title="Max Download Alert"
                 value={totalMetrics.maxDownloadAlertCount}
                 subLabel="Download Utilization threshold exceeded"
                 icon={ArrowDown}
@@ -1316,7 +1316,7 @@ export default function PartnerDashboard() {
               />
 
               <HealthStatCard
-                title="Max Upload Utilization Alert"
+                title="Max Upload Alert"
                 value={totalMetrics.maxUploadAlertCount}
                 subLabel="Upload Utilization threshold exceeded"
                 icon={ArrowUp}

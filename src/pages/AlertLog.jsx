@@ -227,7 +227,7 @@ const AlertLog = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
+      <div className="w-full mx-auto p-6 space-y-6">
         {/* Header - SIMPLIFIED */}
         <header className="pb-4 border-b border-gray-200">
           <h1 className="text-3xl font-bold text-gray-900">Alert Log</h1>

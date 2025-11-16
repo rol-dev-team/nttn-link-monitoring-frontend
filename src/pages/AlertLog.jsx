@@ -326,14 +326,11 @@ const AlertLog = () => {
           >
             {/* NTTN Link Selector */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                NTTN Link ID*
-              </label>
               <Select
                 value={formik.values.nttnId}
                 onChange={(value) => formik.setFieldValue('nttnId', value)}
                 options={nttnLinkIdOptions}
-                placeholder="Select NTTN Link"
+                placeholder="Select NTTN Link*"
               />
               {formik.touched.nttnId && formik.errors.nttnId && (
                 <p className="text-xs text-red-500 mt-1">{formik.errors.nttnId}</p>
@@ -341,14 +338,11 @@ const AlertLog = () => {
             </div>
             {/* Alert Type Selector */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                Alert Type*
-              </label>
               <Select
                 value={formik.values.alertType}
                 onChange={(value) => formik.setFieldValue('alertType', value)}
                 options={alertTypeOptions}
-                placeholder="Select Alert Type"
+                placeholder="Select Alert Type*"
               />
               {formik.touched.alertType && formik.errors.alertType && (
                 <p className="text-xs text-red-500 mt-1">{formik.errors.alertType}</p>
@@ -357,17 +351,13 @@ const AlertLog = () => {
 
             {/* Date Range Picker */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                Date Range*
-              </label>
-
               <DatePicker
                 selectsRange={true}
                 startDate={formik.values.dateRange[0]}
                 endDate={formik.values.dateRange[1]}
                 onChange={(update) => formik.setFieldValue('dateRange', update)}
                 maxDate={today}
-                placeholderText="Select date range"
+                placeholderText="Select date range*"
                 dateFormat="MMM dd, yyyy"
                 className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm
                             text-gray-900 text-sm font-medium
@@ -382,7 +372,6 @@ const AlertLog = () => {
 
             {/* Submit Button */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 opacity-0">Actions</label>
               <div className="flex gap-2">
                 <Button
                   type="submit"

@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { Trash2, PlusCircle, Plus, FileSpreadsheet } from 'lucide-react';
+import { Trash2, PlusCircle, Plus, FileSpreadsheet, ArrowLeft } from 'lucide-react';
 
 import TextInputField from '../components/fields/TextInputField';
 import Button from '../components/ui/Button';
@@ -244,11 +244,24 @@ const NasInterface = () => {
   // Form view
   return (
     <form onSubmit={formik.handleSubmit} className="p-6 space-y-8">
-      <h3 className="text-2xl font-semibold text-gray-800 border-b pb-4">
-        NAS Interface Configuration
-      </h3>
+      <header className="mb-10 pb-6 border-b border-gray-200 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            <Button
+              variant="ghost"
+              leftIcon={ArrowLeft}
+              onClick={() => setViewMode('table')}
+              className="-ml-4 text-lg font-semibold"
+              type="button"
+            ></Button>
+            NAS Interface Configuration
+          </h1>
+          <p className="text-sm text-gray-500 ml-10">Create nas interface configuration</p>
+        </div>
+      </header>
 
       <div className="space-y-4">
+        <h3 className="text-2xl font-semibold text-gray-800">NAS IP Selection</h3>
         <SelectInput
           name="activation_plan_id"
           formik={formik}
@@ -266,6 +279,8 @@ const NasInterface = () => {
           <p className="text-sm text-red-600">{formik.errors.activation_plan_id}</p>
         )}
       </div>
+
+      <hr className="border-gray-200 my-6" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <TextInputField
@@ -308,15 +323,7 @@ const NasInterface = () => {
         <p className="text-sm text-red-600 mt-1">{formik.errors.interface_configs}</p>
       )}
 
-      <div className="pt-6 border-t border-gray-200 flex justify-between">
-        <Button
-          type="button"
-          intent="secondary"
-          onClick={() => setViewMode('table')}
-          disabled={loading}
-        >
-          Back to Table
-        </Button>
+      <div className="pt-6 border-t border-gray-200 flex justify-end">
         <Button
           type="submit"
           intent="success"

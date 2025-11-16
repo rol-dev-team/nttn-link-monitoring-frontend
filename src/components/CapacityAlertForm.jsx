@@ -30,7 +30,7 @@ const ToggleField = ({ name, label, className, ...props }) => {
         </label>
         <input
           id={field.id || name}
-          className="toggle toggle-lg toggle-primary ml-3"
+          className="toggle toggle-lg ml-3 border text-gray-400 checked:text-blue-600 checked:border-blue-300"
           {...fieldProps}
         />
       </div>
@@ -134,7 +134,6 @@ export default function CapacityAlertForm({
         initialValues={getInitialValues(initialValues)}
         validationSchema={CapacityAlertSchema}
         onSubmit={(values, actions) => {
-          console.log('Form values:', values);
           onSubmit(values, actions);
         }}
         enableReinitialize={true}
@@ -179,11 +178,11 @@ export default function CapacityAlertForm({
                 </div>
 
                 {/* Help text */}
-                <p className="text-sm text-gray-500 mt-2">
+                {/* <p className="text-sm text-gray-500 mt-2">
                   {selectAllActive
                     ? 'Configuration will be applied to all available NAS IPs'
                     : 'Select one or more NAS IPs to apply this configuration'}
-                </p>
+                </p> */}
               </div>
               <hr className="border-gray-200 my-6" />
 
@@ -192,7 +191,7 @@ export default function CapacityAlertForm({
                 <h3 className="text-2xl font-semibold text-gray-800 mb-6">
                   Maximum Capacity Alert
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-14 gap-y-6">
                   <TextInputField
                     name="max_value_mbps"
                     placeholder="Threshold (%)"
@@ -222,7 +221,7 @@ export default function CapacityAlertForm({
                 <h3 className="text-2xl font-semibold text-gray-800 mb-6">
                   Minimum Capacity Alert
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-14 gap-y-6">
                   <TextInputField
                     name="min_value_mbps"
                     placeholder="Threshold (%)"

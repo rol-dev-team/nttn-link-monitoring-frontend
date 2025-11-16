@@ -529,7 +529,7 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
                   name="nttn_work_order_id"
                   options={clientOptions}
                   placeholder={loading ? 'Loading clients...' : 'Select Partner Name / Link ID'}
-                  className={'-mb-2'}
+                  className={''}
                   disabled={loading}
                   onChange={(selectedValue) => {
                     const selectedClient = clientOptions.find(
@@ -556,7 +556,7 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
 
               {/* Partner Details Section */}
               <div className="md:col-span-3">
-                <hr className="border-gray-200 my-7" />
+                <hr className="border-gray-200 mb-4" />
                 <h3 className="text-2xl font-semibold text-gray-800 -mt-2">Partner Information</h3>
               </div>
               <div className="md:col-span-3 mb-4">

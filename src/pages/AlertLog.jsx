@@ -117,24 +117,6 @@ const createLineChartData = (label, data, color) => ({
   ],
 });
 
-// Chart Options (adapted Y-axis)
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: true, position: 'top', labels: { font: { size: 14 } } },
-    tooltip: { enabled: true, mode: 'index', intersect: false },
-  },
-  interaction: { mode: 'nearest', axis: 'x', intersect: false },
-  scales: {
-    x: { title: { display: true, text: 'Time Period', font: { size: 14, weight: 'bold' } } },
-    y: {
-      title: { display: true, text: 'Max Utilization', font: { size: 14, weight: 'bold' } },
-      beginAtZero: true,
-    },
-  },
-};
-
 /* =============================================================================
    MAIN COMPONENT
    ============================================================================= */
@@ -196,22 +178,90 @@ const AlertLog = () => {
     },
   });
 
-  const columns = [
-    { key: 'client_name', header: 'Partner Name' },
-    { key: 'type', header: 'Type' },
-    { key: 'nas_ip', header: 'NAS IP' },
-    { key: 'interface_port', header: 'Interface Port' },
-    { key: 'request_capacity', header: 'Request Capacity' },
-    { key: 'nttn_work_order_id', header: 'NTTN Work Order' },
-    { key: 'consecutive_days', header: 'Consecutive Days' },
-    { key: 'max_utilization_percent', header: 'Max Utilization %' },
-    { key: 'collected_at', header: 'Collected At' },
-    // { key: 'status', header: 'Status' },
-    // { key: 'created_at', header: 'Created At' },
-    // { key: 'updated_at', header: 'Updated At' },
-  ];
+  // const columns = [
+  //   { key: 'client_name', header: 'Partner Name' },
+  //   { key: 'type', header: 'Type' },
+  //   { key: 'nas_ip', header: 'NAS IP' },
+  //   { key: 'interface_port', header: 'Interface Port' },
+  //   { key: 'request_capacity', header: 'Request Capacity' },
+  //   { key: 'nttn_work_order_id', header: 'NTTN Work Order' },
+  //   { key: 'consecutive_days', header: 'Consecutive Days' },
+  //   { key: 'max_utilization_percent', header: 'Max Utilization %' },
+  //   { key: 'collected_at', header: 'Collected At' },
+  // ];
+
+  // TYPE-WISE COLUMN CONFIG
+  const columnConfig = {
+    max_download: [
+      { key: 'client_name', header: 'Partner Name' },
+      { key: 'nas_ip', header: 'NAS IP' },
+      { key: 'interface_port', header: 'Interface Port' },
+      { key: 'max_utilization_percent', header: 'Max Download %' },
+      { key: 'collected_at', header: 'Collected At' },
+    ],
+
+    max_upload: [
+      { key: 'client_name', header: 'Partner Name' },
+      { key: 'nas_ip', header: 'NAS IP' },
+      { key: 'interface_port', header: 'Interface Port' },
+      { key: 'max_utilization_percent', header: 'Max Upload %' },
+      { key: 'collected_at', header: 'Collected At' },
+    ],
+
+    min_download: [
+      { key: 'client_name', header: 'Partner Name' },
+      { key: 'nas_ip', header: 'NAS IP' },
+      { key: 'interface_port', header: 'Interface Port' },
+      { key: 'max_utilization_percent', header: 'Min Download %' },
+      { key: 'collected_at', header: 'Collected At' },
+    ],
+
+    min_upload: [
+      { key: 'client_name', header: 'Partner Name' },
+      { key: 'nas_ip', header: 'NAS IP' },
+      { key: 'interface_port', header: 'Interface Port' },
+      { key: 'max_utilization_percent', header: 'Min Upload %' },
+      { key: 'collected_at', header: 'Collected At' },
+    ],
+
+    icmp_latency: [
+      { key: 'client_name', header: 'Partner Name' },
+      { key: 'nttn_work_order_id', header: 'NTTN Work Order' },
+      { key: 'latency_value', header: 'Latency Value' },
+      { key: 'collected_at', header: 'Collected At' },
+    ],
+
+    icmp_timeout: [
+      { key: 'client_name', header: 'Partner Name' },
+      { key: 'nttn_work_order_id', header: 'NTTN Work Order' },
+      { key: 'timeout_end', header: 'Timeout End' },
+      { key: 'timeout_duration', header: 'Timeout Duration (seconds)' },
+      { key: 'collected_at', header: 'Collected At' },
+    ],
+  };
+
+  // Compute columns based on selected alertType
+  const columns = useMemo(() => {
+    const type = formik.values.alertType;
+    return columnConfig[type] || [];
+  }, [alertData]);
+
+  const chartValueKey = {
+    max_download: 'max_utilization_percent',
+    max_upload: 'max_utilization_percent',
+    min_download: 'max_utilization_percent',
+    min_upload: 'max_utilization_percent',
+
+    icmp_latency: 'latency_value',
+    icmp_timeout: 'timeout_duration',
+  };
 
   const alertChartData = useMemo(() => {
+    if (!alertData.length) return [];
+
+    const type = formik.values.alertType;
+    const valueKey = chartValueKey[type] || null;
+
     return alertData.map((item) => ({
       x: new Date(item.collected_at).toLocaleString('en-US', {
         year: 'numeric',
@@ -221,9 +271,43 @@ const AlertLog = () => {
         minute: '2-digit',
         second: '2-digit',
       }),
-      y: item.max_utilization_percent,
+
+      // dynamic Y axis value
+      y: valueKey ? Number(item[valueKey]) : 0,
     }));
   }, [alertData]);
+
+  // const alertChartData = useMemo(() => {
+  //   return alertData.map((item) => ({
+  //     x: new Date(item.collected_at).toLocaleString('en-US', {
+  //       year: 'numeric',
+  //       month: 'short',
+  //       day: 'numeric',
+  //       hour: '2-digit',
+  //       minute: '2-digit',
+  //       second: '2-digit',
+  //     }),
+  //     y: item.max_utilization_percent,
+  //   }));
+  // }, [alertData]);
+
+  // Chart Options (adapted Y-axis)
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false, position: 'top', labels: { font: { size: 14 } } },
+      tooltip: { enabled: true, mode: 'index', intersect: false },
+    },
+    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    scales: {
+      x: { title: { display: true, text: 'Time Period', font: { size: 14, weight: 'bold' } } },
+      y: {
+        title: { display: true, text: formik.values.alertType, font: { size: 14, weight: 'bold' } },
+        beginAtZero: true,
+      },
+    },
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -343,7 +427,7 @@ const AlertLog = () => {
                 <Bell className="w-5 h-5 text-red-600" />
                 <h3 className="text-lg font-semibold text-gray-800">Alerts</h3>
               </div>
-              <p className="text-sm text-gray-500 mb-3">Daily count of system alerts.</p>
+              {/* <p className="text-sm text-gray-500 mb-3">Daily count of system alerts.</p> */}
               <div className="h-[300px]">
                 <Chart
                   type="line"

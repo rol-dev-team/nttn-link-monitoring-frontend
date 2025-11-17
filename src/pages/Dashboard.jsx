@@ -501,6 +501,7 @@ const getUtilizationColumns = (handleRunPause, handleResolveClick) => [
 const getTimeoutAlertColumns = (handleRunPause, handleResolveClick) => [
   { key: 'client_name', header: 'Partner Name' },
   { key: 'nttn_work_order_id', header: 'NTTN Link ID' },
+  // { key: 'last_latency_value', header: 'Last Latency' },
   // { key: 'activation_plan_id', header: 'Activation Plan ID' },
   // {
   //   key: 'day_count',
@@ -532,6 +533,8 @@ const getTimeoutAlertColumns = (handleRunPause, handleResolveClick) => [
 const getLatencyAlertColumns = (handleRunPause, handleResolveClick) => [
   { key: 'client_name', header: 'Partner Name' },
   { key: 'nttn_work_order_id', header: 'NTTN Link ID' },
+  { key: 'last_latency_value', header: 'Last Latency' },
+  { key: 'latency_threshold_ms', header: 'Latency Threshold' },
   // { key: 'activation_plan_id', header: 'Activation Plan ID' },
   // {
   //   key: 'day_count',

@@ -1027,39 +1027,48 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
                 readOnly
                 help="Auto-calculated (Capacity × Unit Rate)"
               />
+
+              <InputField
+                name="rate_id"
+                type="number"
+                label="Rate ID"
+                help="Auto-populated based on selected capacity and NTTN"
+                readOnly
+                className="hidden"
+              />
+
+
+
             </div>
-            <InputField
-              name="rate_id"
-              type="number"
-              label="Rate ID"
-              help="Auto-populated based on selected capacity and NTTN"
-              readOnly
-            />
+            
           </FormSection>
 
           <FormSection title="Additional Details" icon={Pin}>
-            <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-6">
-              <InputField name="mac_user" label="MAC Users" type="text" />
+            <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
+              <InputField name="mac_user" label="MAC Users(Survey)" type="text" disabled={true}/>
               <InputField 
                 name="work_order_mac_user" 
-                label="Work Order MAC User" 
+                label="MAC Users(Work Order)" 
                 type="text" 
-                help="Specific MAC user for this work order"
+                // help="Specific MAC user for this work order"
               />
               <InputField
                 name="vlan"
                 label="VLAN"
                 type="text"
               />
+              
+            </div>
+           
+            <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
+
               <DatePickerField
                 name="submission"
                 placeholder="Submission Date"
                 field={formik.getFieldProps('submission')}
                 form={formik}
               />
-            </div>
-           
-            <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-6">
+
               <DatePickerField
                 name="requested_delivery"
                 placeholder="Requested Delivery Date"

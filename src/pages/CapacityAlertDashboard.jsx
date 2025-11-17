@@ -36,9 +36,9 @@ export default function CapacityAlertDashboard() {
       if (response.status) {
         // FIXED: Using correct field names from PartnerActivationPlan
         const ips = response.data.map((plan) => ({
-          value: plan.id, // Using ID as value for activation_plan_id
+          value: plan.id,
           label: plan.nas_ip ? `${plan.work_order_id} (${plan.nas_ip})` : plan.work_order_id,
-          nas_ip: plan.nas_ip, // Store the actual NAS IP - FIXED FIELD NAME
+          nas_ip: plan.nas_ip,
         }));
         setNasIps(ips);
         console.log('Fetched NAS IPs:', ips); // Debug log
@@ -161,71 +161,79 @@ export default function CapacityAlertDashboard() {
   };
 
   // Form Submission Handler - UPDATED with better error handling
-  const handleFormSubmit = async (values, { resetForm }) => {
-    try {
-      let nasIpsToCreate = [];
+const handleFormSubmit = async (values, { resetForm }) => {
+  try {
+    let nasIpsToCreate = [];
 
-      if (values.select_all_nas) {
-        nasIpsToCreate = nasIps;
-      } else {
-        nasIpsToCreate = nasIps.filter((ip) => values.nas_ip_manual_select.includes(ip.value));
-      }
-
-      if (nasIpsToCreate.length === 0) {
-        throw new Error('No NAS IPs selected');
-      }
-
-      // Create configuration for each NAS IP
-      const results = [];
-      for (const nasIp of nasIpsToCreate) {
-        try {
-          const dataToSave = {
-            activation_plan_id: nasIp.value,
-            max_threshold_mbps: values.max_value_mbps,
-            max_frequency_per_day: values.max_frequency,
-            max_consecutive_days: values.max_affected_days,
-            min_threshold_mbps: values.min_value_mbps,
-            min_frequency_per_day: values.min_frequency,
-            min_consecutive_days: values.min_affected_days,
-          };
-
-          const response = await createCapacityAleart(dataToSave);
-
-          if (response.status) {
-            results.push({ success: true, data: response.data });
-          } else {
-            results.push({
-              success: false,
-              error: response.message,
-            });
-          }
-        } catch (error) {
-          console.error('Failed to create configuration for NAS IP:', nasIp.value, error);
-          results.push({ success: false, error: error.message });
-        }
-      }
-
-      const successful = results.filter((r) => r.success);
-      const failed = results.filter((r) => !r.success);
-
-      if (failed.length > 0) {
-        console.warn(`${failed.length} configurations failed to create`);
-        addToast(`${failed.length} configurations failed (possibly duplicates)`, 'warning');
-      }
-
-      if (successful.length > 0) {
-        addToast(`Successfully created ${successful.length} configuration(s)`, 'success');
-        fetchAlerts();
-        resetForm();
-        setViewMode('table');
-      } else {
-        throw new Error('All configurations failed to create');
-      }
-    } catch (err) {
-      console.error('Form submission error:', err);
-      addToast(err.message || 'Save failed.', 'error');
+    if (values.select_all_nas) {
+      // Use the nasOptions from the form
+      nasIpsToCreate = values.nasOptions || [];
+    } else {
+      // Use the nasOptions from the form to map selected IDs
+      nasIpsToCreate = (values.nasOptions || []).filter((option) => 
+        values.nas_ip_manual_select.includes(option.value)
+      );
     }
-  };
+
+    console.log('NAS IPs to create:', nasIpsToCreate); // Debug log
+
+    if (nasIpsToCreate.length === 0) {
+      throw new Error('No NAS IPs selected');
+    }
+
+    // Create configuration for each NAS IP
+    const results = [];
+    for (const nasIp of nasIpsToCreate) {
+      try {
+        const dataToSave = {
+          activation_plan_id: nasIp.value,
+          max_threshold_mbps: values.max_value_mbps,
+          max_frequency_per_day: values.max_frequency,
+          max_consecutive_days: values.max_affected_days,
+          min_threshold_mbps: values.min_value_mbps,
+          min_frequency_per_day: values.min_frequency,
+          min_consecutive_days: values.min_affected_days,
+        };
+
+        console.log('Creating configuration for:', nasIp.value, dataToSave); // Debug log
+
+        const response = await createCapacityAleart(dataToSave);
+
+        if (response.status) {
+          results.push({ success: true, data: response.data });
+        } else {
+          results.push({
+            success: false,
+            error: response.message,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to create configuration for NAS IP:', nasIp.value, error);
+        results.push({ success: false, error: error.message });
+      }
+    }
+
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
+
+    if (failed.length > 0) {
+      console.warn(`${failed.length} configurations failed to create`);
+      addToast(`${failed.length} configurations failed (possibly duplicates)`, 'warning');
+    }
+
+    if (successful.length > 0) {
+      addToast(`Successfully created ${successful.length} configuration(s)`, 'success');
+      fetchAlerts();
+      resetForm();
+      setViewMode('table');
+    } else {
+      throw new Error('All configurations failed to create');
+    }
+  } catch (err) {
+    console.error('Form submission error:', err);
+    addToast(err.message || 'Save failed.', 'error');
+  }
+};
 
   // DataTable Columns - FIXED FIELD NAMES
   const alertColumns = useMemo(
@@ -275,9 +283,9 @@ export default function CapacityAlertDashboard() {
             <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
               <Pencil className="h-4 w-4 text-indigo-500 hover:text-indigo-700" />
             </Button>
-            <Button variant="icon" size="sm" onClick={() => handleDelete(row.id)} title="Delete">
+            {/* <Button variant="icon" size="sm" onClick={() => handleDelete(row.id)} title="Delete">
               <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-            </Button>
+            </Button> */}
           </div>
         ),
       },

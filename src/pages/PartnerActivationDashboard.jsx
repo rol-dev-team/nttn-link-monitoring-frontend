@@ -281,14 +281,14 @@ const handleFormSubmit = async (values, { resetForm }) => {
                         >
                             <Pencil className="h-4 w-4 text-indigo-500 hover:text-indigo-700" />
                         </Button>
-                        <Button
+                        {/* <Button
                             variant="icon"
                             size="sm"
                             onClick={() => handleDelete(row.id)}
                             title="Delete"
                         >
                             <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                        </Button>
+                        </Button> */}
                     </div>
                 ),
             },

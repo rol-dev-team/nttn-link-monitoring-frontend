@@ -11,6 +11,16 @@ export const fetchCategoryWiseClientPartner = async () => {
 };
 
 
+export const fetchCategoryWiseClientPartnerWithNas = async () => {
+    try {
+        const response = await axiosInstance.get("/clients/by-category-nas");
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+
 
 
 export const fetchWorkOrderDetailsForPartner = async (workOrderId) => {

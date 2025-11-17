@@ -127,7 +127,10 @@ export default function ResourceMonitor({ onCancel }) {
       try {
         const { data } = await fetchCategoryWiseClientPartner();
         setNttnLinkIdOptions(
-          data.map((item) => ({ label: item.nttn_work_order_id, value: item.work_order_id }))
+          data.map((item) => ({
+            label: `${item.client_name} - ${item.nttn_work_order_id}`,
+            value: item.work_order_id,
+          }))
         );
       } catch (e) {
         console.error(e);
@@ -151,7 +154,7 @@ export default function ResourceMonitor({ onCancel }) {
           partner_activation_id: data.activation_plan_id,
           date_range: values.dateRange,
         });
-        console.log('Resource Monitoring Response:', resourceRes);
+
         setResourceData(resourceRes.data || []);
         setLastUpdate(new Date());
       } catch (err) {

@@ -1081,7 +1081,7 @@ const WorkOrder = () => {
           val ? moment(val).format("YYYY-MM-DD") : "Not Assigned",
       },
       {
-        key: "submition",
+        key: "submission",
         header: "Submission Date",
         render: (val) =>
           val ? moment(val).format("YYYY-MM-DD") : "Not Assigned",

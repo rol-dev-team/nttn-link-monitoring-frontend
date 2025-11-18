@@ -148,6 +148,8 @@ import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import NasInterface from './pages/NasInterface';
 import NasDropDevice from './pages/NasDropDevice';
+// import WorkOrderForm from './components/work-order/WorkOrderForm';
+// import WorkOrderForm from "./components/workorder/WorkOrderForm";
 
 // 2. Lazy Imports for all Page Components
 // Public Pages
@@ -168,6 +170,7 @@ const ResourceMonitor = lazy(() => import('./pages/ResourceMonitor'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Survey = lazy(() => import('./pages/Survey'));
 const WorkOrder = lazy(() => import('./pages/WorkOrder'));
+// const WorkOrderForm = lazy(() => import('./pages/WorkOrderForm'));
 const BWModify = lazy(() => import('./pages/BWModify'));
 const ShiftingCapacity = lazy(() => import('./pages/ShiftingCapacity'));
 // const Users = lazy(() => import("./pages/Users")); // Assuming Users is a component that needs lazy loading
@@ -297,6 +300,7 @@ export default function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/survey" element={<Survey />} />
                   <Route path="/work-order" element={<WorkOrder />} />
+                  {/* <Route path="/work-order-form" element={<WorkOrderForm />} /> */}
                   <Route path="/bw-modify" element={<BWModify />} />
                   <Route path="/capacity-shifting" element={<ShiftingCapacity />} />
                   {/* <Route path='/users' element={<Users />} /> */}

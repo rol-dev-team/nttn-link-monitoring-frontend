@@ -206,9 +206,10 @@ const WorkOrderTable = ({ records, onEdit, ratesData = [] }) => {
             <th className='border px-3 py-2 text-left'>Current Capacity</th>
             <th className='border px-3 py-2 text-left'>Rate ID</th>
             <th className='border px-3 py-2 text-left'>Work Order MAC User</th>
-            <th className='border px-3 py-2 text-left'>Submission</th>
+            
 
             {/* Dates */}
+            <th className='border px-3 py-2 text-left'>Submission</th>
             <th className='border px-3 py-2 text-left'>Requested Delivery</th>
             <th className='border px-3 py-2 text-left'>Service Handover</th>
 
@@ -256,9 +257,10 @@ const WorkOrderTable = ({ records, onEdit, ratesData = [] }) => {
                 <td className='border px-3 py-1'>{r.current_capacity || "N/A"}</td>
                 <td className='border px-3 py-1'>{rates.rateId}</td>
                 <td className='border px-3 py-1'>{r.work_order_mac_user || "N/A"}</td>
-                <td className='border px-3 py-1'>{r.submission ? moment(r.submission).format("YYYY-MM-DD") : "N/A"}</td>
+                
 
                 {/* Dates */}
+                <td className='border px-3 py-1'>{r.submission ? moment(r.submission).format("YYYY-MM-DD") : "N/A"}</td>
                 <td className='border px-3 py-1'>{r.requested_delivery ? moment(r.requested_delivery).format("YYYY-MM-DD") : "N/A"}</td>
                 <td className='border px-3 py-1'>{r.service_handover ? moment(r.service_handover).format("YYYY-MM-DD") : "N/A"}</td>
 

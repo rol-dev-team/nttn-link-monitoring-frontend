@@ -30,7 +30,7 @@ import { surveySchema } from "../../validations/surveyValidation";
 import { workOrderValidationSchema } from "../../validations/workOrderValidation";
 import { showToast } from "../constants/message";
 import { fetchRatesByNttn } from "../../services/rate";
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO, sub } from "date-fns";
 import { useAuth } from "../../app/AuthContext";
 
 const FormSection = ({ title, icon: Icon, children }) => (
@@ -110,7 +110,6 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
     client_long: "",
     mac_user: "",
     work_order_mac_user: "",
-    submission: "",
     division: "",
     district: "",
     thana: "",
@@ -127,6 +126,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
     vlan: "",
     remarks: "",
     status: "active",
+    submission: "",
     requested_delivery: "",
     service_handover: "",
     posted_by: "",
@@ -285,7 +285,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
 
     if (filledFields.size > 0) {
       console.log(`🎉 Successfully auto-filled ${filledFields.size} location fields.`);
-      showToast.success(`Auto-filled ${filledFields.size} client location fields`);
+      // showToast.success(`Auto-filled ${filledFields.size} client location fields`);
     } else {
       console.log('ℹ️ No location fields were auto-filled.');
     }
@@ -348,7 +348,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
     setAutoFilledFields(filledFields);
     
     if (filledFields.size > 0) {
-      showToast.success(`Auto-filled ${filledFields.size} fields from survey data`);
+      // showToast.success(`Auto-filled ${filledFields.size} fields from survey data`);
     }
   };
 
@@ -374,13 +374,13 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
       
       if (Array.isArray(surveysArray) && surveysArray.length > 0) {
         autoFillFromSurvey(surveysArray[0]);
-        showToast.success("Successfully loaded survey details.");
+        // showToast.success("Successfully loaded survey details.");
       } else {
-        showToast.error("No details found for the selected survey.");
+        // showToast.error("No details found for the selected survey.");
       }
     } catch (err) {
       console.error("💥 Error fetching survey details:", err);
-      showToast.error("Failed to fetch survey details");
+      // showToast.error("Failed to fetch survey details");
     }
   };
 
@@ -454,16 +454,16 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
         console.log('✅ Matching rate found:', matchingRate);
         formik.setFieldValue("unit_rate", matchingRate.rate);
         formik.setFieldValue("rate_id", matchingRate.id);
-        showToast.success(`Rate calculated: ${matchingRate.rate} per Mbps`);
+        // showToast.success(`Rate calculated: ${matchingRate.rate} per Mbps`);
       } else {
         console.log('❌ No matching rate found for capacity:', capacity);
         formik.setFieldValue("unit_rate", "");
         formik.setFieldValue("rate_id", "");
-        showToast.error("No rate found for the selected capacity range");
+        // showToast.error("No rate found for the selected capacity range");
       }
     } catch (err) {
       console.error("💥 Error calculating rates:", err);
-      showToast.error("Failed to calculate rates");
+      // showToast.error("Failed to calculate rates");
     } finally {
       setIsLoadingRates(false);
     }
@@ -521,7 +521,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
       } catch (err) {
         console.error("💥 Error fetching client details or surveys:", err);
         setSurveyOptions([]);
-        showToast.error("Failed to fetch client details or surveys"); 
+        // showToast.error("Failed to fetch client details or surveys"); 
       }
     };
     
@@ -1062,25 +1062,57 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
            
             <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
 
-              <DatePickerField
+
+            {/* <label className="label">
+              <span className="label-text font-medium">{label}</span>
+            </label> */}
+              {/* <DatePickerField
                 name="submission"
                 placeholder="Submission Date"
                 field={formik.getFieldProps('submission')}
                 form={formik}
-              />
+              /> */}
 
               <DatePickerField
+                name="submission"
+                label="Submission Date"
+                placeholder="Select date"
+                field={formik.getFieldProps('submission')}
+                form={formik}
+              />
+
+
+              {/* <DatePickerField
                 name="requested_delivery"
                 placeholder="Requested Delivery Date"
                 field={formik.getFieldProps('requested_delivery')}
                 form={formik}
-              />
+              /> */}
+
               <DatePickerField
+                name="requested_delivery"
+                label="Requested Delivery Date"
+                placeholder="Select date"
+                field={formik.getFieldProps('requested_delivery')}
+                form={formik}
+              />
+
+              {/* <DatePickerField
                 name="service_handover"
                 placeholder="Service Handover Date"
                 field={formik.getFieldProps('service_handover')}
                 form={formik}
+              /> */}
+
+
+              <DatePickerField
+                name="service_handover"
+                label="Service Handover Date"
+                placeholder="Select date"
+                field={formik.getFieldProps('service_handover')}
+                form={formik}
               />
+
               <div></div>
               <div></div>
             </div>

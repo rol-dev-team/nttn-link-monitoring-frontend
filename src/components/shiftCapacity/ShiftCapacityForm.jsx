@@ -1190,6 +1190,7 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
               label="Total Shifting Cost"
               type="number"
               step="0.01"
+              className="hidden"
               disabled
             />
             <InputField

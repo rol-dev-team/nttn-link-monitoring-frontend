@@ -1,39 +1,35 @@
 // pages/shiftCapacity/ShiftingCapacity.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
-import Button from "../components/ui/Button";
-import ShiftCapacityForm from "../components/shiftCapacity/ShiftCapacityForm";
-import DataTable from "../components/table/DataTable";
-import ToastContainer from "../components/ui/ToastContainer";
-import ExportButton from "../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import Button from '../components/ui/Button';
+import ShiftCapacityForm from '../components/shiftCapacity/ShiftCapacityForm';
+import DataTable from '../components/table/DataTable';
+import ToastContainer from '../components/ui/ToastContainer';
+import ExportButton from '../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
 
-
-import {
-  createShiftCapacity,
-} from "../services/shiftCapacity";
-import { fetchCapacityShifting } from "../services/capacityShiftingApi";
+import { createShiftCapacity } from '../services/shiftCapacity';
+import { fetchCapacityShifting } from '../services/capacityShiftingApi';
 
 const defaultInitialValues = {
-  nttn_provider: "",
-  client_category: "",
-  client: "",
-  nttn_link_id: "",
-  capacity: "",
-  capacity_cost: "",
-  shifting_bw: "",
-  after_shifting_capacity: "",
-  shifting_capacity: "",
-  shifting_client_category: "",
-  shifting_client: "",
-  shifting_unit_cost: "",
-  total_shifting_cost: "",
+  nttn_provider: '',
+  client_category: '',
+  client: '',
+  nttn_link_id: '',
+  capacity: '',
+  capacity_cost: '',
+  shifting_bw: '',
+  after_shifting_capacity: '',
+  shifting_capacity: '',
+  shifting_client_category: '',
+  shifting_client: '',
+  shifting_unit_cost: '',
+  total_shifting_cost: '',
+  shifting_unit_price_dropdown: '',
 };
 
-
-
 const ShiftingCapacity = () => {
-  const [capacityShiftingData,setCapacityShiftingData] = useState([]);
+  const [capacityShiftingData, setCapacityShiftingData] = useState([]);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -67,10 +63,10 @@ const ShiftingCapacity = () => {
         const { data } = await fetchCapacityShifting(filters);
         setCapacityShiftingData(data);
       } catch (error) {
-        console.error(" API call failed:", error);
+        console.error(' API call failed:', error);
       }
     };
-  
+
     getCapacityShiftingData();
   }, []);
 
@@ -83,8 +79,6 @@ const ShiftingCapacity = () => {
       initialValues: defaultInitialValues,
     });
 
-
-
   const closeForm = () =>
     setFormState({
       isOpen: false,
@@ -95,48 +89,44 @@ const ShiftingCapacity = () => {
 
   const handleSubmit = async (values) => {
     try {
-        await createShiftCapacity(values);
-        pushToast("Created successfully!", "success");
+      await createShiftCapacity(values);
+      pushToast('Created successfully!', 'success');
       closeForm();
     } catch (e) {
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
-
-
-
 
   /* ---------- columns with filter options ---------- */
 
   const columns = useMemo(
     () => [
       {
-        key: "from_client",
-        header: "From Client",
+        key: 'from_client',
+        header: 'From Client',
         isSortable: true,
       },
-      { key: "source_capacity", header: "Source Capacity", isSortable: true },
-     
+      { key: 'source_capacity', header: 'Source Capacity', isSortable: true },
+
       {
-        key: "to_client",
-        header: "To Client",
+        key: 'to_client',
+        header: 'To Client',
         isSortable: true,
       },
 
-      { key: "shifting_bw", header: "Shifting BW", isSortable: true },
-       {
-        key: "current_capacity",
-        header: "Current Capacity",
+      { key: 'shifting_bw', header: 'Shifting BW', isSortable: true },
+      {
+        key: 'current_capacity',
+        header: 'Current Capacity',
 
         isSortable: true,
       },
-      { key: "total_shifting_cost", header: "Total Cost", isSortable: true },
+      { key: 'total_shifting_cost', header: 'Total Cost', isSortable: true },
       {
-        key: "created_at",
-        header: "Date",
+        key: 'created_at',
+        header: 'Date',
         isSortable: true,
-      }
-      
+      },
     ],
     []
   );
@@ -144,7 +134,7 @@ const ShiftingCapacity = () => {
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (
-      <div className='p-8 bg-gray-100 min-h-screen'>
+      <div className="p-8 bg-gray-100 min-h-screen">
         <ShiftCapacityForm
           initialValues={formState.initialValues}
           isEditMode={formState.isEditMode}
@@ -158,36 +148,35 @@ const ShiftingCapacity = () => {
   }
 
   return (
-    <div className='p-8 bg-gray-100 min-h-screen'>
-      <div className='flex justify-between items-center pb-16'>
+    <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="flex justify-between items-center pb-16">
         <div>
-          <h1 className='text-2xl font-bold'>Capacity Shifting List</h1>
-          <p className='text-gray-500'>
-            View and manage capacity-shifting records.
-          </p>
+          <h1 className="text-2xl font-bold">Capacity Shifting List</h1>
+          <p className="text-gray-500">View and manage capacity-shifting records.</p>
         </div>
-        <div className='flex items-center gap-4'>
+        <div className="flex items-center gap-4">
           <ExportButton
             data={capacityShiftingData}
             columns={columns}
-            fileName='capacity_shifts'
-            intent='primary'
+            fileName="capacity_shifts"
+            intent="primary"
             leftIcon={FaFileExcel}
-            className='text-white bg-green-700 hover:bg-green-800 border-none'>
+            className="text-white bg-green-700 hover:bg-green-800 border-none"
+          >
             Export
           </ExportButton>
-          <Button intent='primary' onClick={openNew} leftIcon={Plus}>
+          <Button intent="primary" onClick={openNew} leftIcon={Plus}>
             Add Capacity Shift
           </Button>
         </div>
       </div>
 
       {loading ? (
-        <div className='flex justify-center items-center py-20 text-gray-500'>
+        <div className="flex justify-center items-center py-20 text-gray-500">
           <p>Loading records...</p>
         </div>
       ) : error ? (
-        <div className='flex justify-center items-center py-20 text-red-500'>
+        <div className="flex justify-center items-center py-20 text-red-500">
           <p>Error: {error}</p>
         </div>
       ) : (
@@ -202,9 +191,7 @@ const ShiftingCapacity = () => {
           page={pagination.page}
           pageSize={pagination.limit}
           setPage={(page) => setPagination((prev) => ({ ...prev, page }))}
-          setPageSize={(limit) =>
-            setPagination((prev) => ({ ...prev, limit, page: 1 }))
-          }
+          setPageSize={(limit) => setPagination((prev) => ({ ...prev, limit, page: 1 }))}
         />
       )}
 

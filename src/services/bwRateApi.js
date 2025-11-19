@@ -23,7 +23,7 @@ export const fetchSBwRates = async (filters = {}) => {
 
 export const getRatesByNttn = async (nttnId) => {
   try {
-    const response = await axiosInstance.get(`/rates/nttn/${nttnId}`);
+    const response = await axiosInstance.get(`/capacity-shifting/rates/nttn/${nttnId}`);
     return response.data;
   } catch (error) {
     throw error;

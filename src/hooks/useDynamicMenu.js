@@ -182,14 +182,13 @@ function buildMenuTreeFromElements(rows = []) {
     });
   });
 
-  console.log('Final menu structure:', result);
   return result;
 }
 
 export function useDynamicMenu() {
   const { menu: rows, token } = useAuth();
   const { hasPermission } = usePermissions();
-
+  console.log('useDynamicMenu', rows);
   const tree = useMemo(() => {
     if (!token) {
       console.log('No token available');

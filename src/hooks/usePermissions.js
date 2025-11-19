@@ -53,6 +53,7 @@ export function usePermissions() {
           'nttn_user',
           'partner_admin',
           'partner_user',
+          'nttn_customer',
         ].includes(String(r?.name).toLowerCase())
       )
     ) {

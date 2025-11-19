@@ -1,13 +1,13 @@
 // src/pages/link-type/LinkType.jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash } from "lucide-react";
 import Button from "../../components/ui/Button";
 import DataTable from "../../components/table/DataTable";
 import ToastContainer from "../../components/ui/ToastContainer";
 import ExportButton from "../../components/ui/ExportButton";
 import { FaFileExcel } from "react-icons/fa";
 import LinkTypeForm from "../../components/link-type/LinkTypeForm";
-import { createLinkType, fetchLinkTypes, updateLinkType } from "../../services/linkType";
+import { createLinkType, fetchLinkTypes, updateLinkType, deleteLinkType } from "../../services/linkType";
 
 
 const defaultInitialValues = { type_name: "" };
@@ -40,7 +40,7 @@ const LinkType = () => {
     setError(null);
     try {
       const raw = await fetchLinkTypes();
-      setRecords(raw);
+      setRecords(raw.data);
     } catch (e) {
       const msg = e?.response?.data?.message || "Failed to load link types";
       setError(msg);
@@ -65,6 +65,23 @@ const LinkType = () => {
       editingId: item.id,
       initialValues: { type_name: item.type_name },
     });
+
+  // handle delete
+  const handleDelete = async (id) => {
+      if (!window.confirm("Are you sure you want to delete this Reason List?")) {
+        return;
+      }
+  
+      try {
+        const response = await deleteLinkType(id);
+        if (response.success) {
+          pushToast("Deleted successfully!", "success");
+          fetchAll();
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+      }
+    };
 
   const closeForm = () =>
     setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
@@ -94,9 +111,19 @@ const LinkType = () => {
         key: "actions",
         header: "Action",
         render: (_, row) => (
-          <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
-            <Pencil className="h-4 w-4" />
-          </Button>
+          <>
+            <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button className="hover:bg-red-800"
+                variant="destructive" // Standard variant for red/destructive actions
+                size="sm"
+                onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
+                title="Delete"
+              >
+                <Trash className="h-4 w-4" />
+            </Button>
+          </>
         ),
       },
     ],

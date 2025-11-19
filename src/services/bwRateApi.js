@@ -21,6 +21,23 @@ export const fetchSBwRates = async (filters = {}) => {
   }
 };
 
+export const updateBwRates = async (id, data) => {
+  try {
+    const response = await axiosInstance.put(`/bw-rates/${id}/`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteBwRates = async (id) => {
+  try {
+    const response = await axiosInstance.delete(`/bw-rates/${id}/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const getRatesByNttn = async (nttnId) => {
   try {
     const response = await axiosInstance.get(`/capacity-shifting/rates/nttn/${nttnId}`);

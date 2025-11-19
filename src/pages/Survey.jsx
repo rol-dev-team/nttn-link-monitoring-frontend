@@ -1,23 +1,23 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { Plus, Pencil } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Plus, Pencil } from 'lucide-react';
 import moment from 'moment';
-import Button from "../components/ui/Button";
-import SurveyForm from "../components/survey/SurveyForm";
-import SurveyTable from "../components/survey/SurveyTable";
-import { createSurvey, fetchSurveys, updateSurvey } from "../services/survey";
-import ToastContainer from "../components/ui/ToastContainer";
-import { FaFileExcel } from "react-icons/fa";
-import ExportButton from "../components/ui/ExportButton";
-import DateField from "../components/fields/DateField";
-import SelectField from "../components/fields/SelectField";
-import { useAuth } from "../app/AuthContext";
+import Button from '../components/ui/Button';
+import SurveyForm from '../components/survey/SurveyForm';
+import SurveyTable from '../components/survey/SurveyTable';
+import { createSurvey, fetchSurveys, updateSurvey } from '../services/survey';
+import ToastContainer from '../components/ui/ToastContainer';
+import { FaFileExcel } from 'react-icons/fa';
+import ExportButton from '../components/ui/ExportButton';
+import DateField from '../components/fields/DateField';
+import SelectField from '../components/fields/SelectField';
+import { useAuth } from '../app/AuthContext';
 
 // Helper to extract unique options that only returns the name (for complex fields)
 const getUniqueOptions = (records, key) => {
   const uniqueValues = new Set();
   records.forEach((record) => {
     const value = record[key];
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
+    if (value !== null && value !== undefined && String(value).trim() !== '') {
       uniqueValues.add(String(value).trim());
     }
   });
@@ -57,14 +57,14 @@ const defaultInitialValues = {
   aggregator_id: null,
   kam_id: null,
   nttn_id: null,
-  nttn_survey_id: "",
-  nttn_lat: "",
-  nttn_long: "",
+  nttn_survey_id: '',
+  nttn_lat: '',
+  nttn_long: '',
   client_lat: null,
   client_long: null,
   client_id: null,
-  mac_user: "",
-  submission: "",
+  mac_user: '',
+  submission: '',
 };
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -95,9 +95,7 @@ const Survey = () => {
     const newToast = { id: Date.now(), message, type };
     setToasts((currentToasts) => [...currentToasts, newToast]);
     setTimeout(() => {
-      setToasts((currentsToasts) =>
-        currentsToasts.filter((t) => t.id !== newToast.id)
-      );
+      setToasts((currentsToasts) => currentsToasts.filter((t) => t.id !== newToast.id));
     }, 5000);
   }, []);
 
@@ -122,17 +120,14 @@ const Survey = () => {
 
       // The service layer (fetchSurveys) is assumed to correctly read X-Total-Count
       const { data, totalCount } = await fetchSurveys(finalFilters);
-      console.log("suverysss  ",data);
+      console.log('suverysss  ', data);
       setRecords(data);
       // Ensure totalRows is updated and non-negative
       setTotalRows(Math.max(0, totalCount));
     } catch (error) {
-      console.error("Failed to fetch surveys:", error);
-      setError(error?.response?.data?.message || "Something went wrong!");
-      showToast(
-        error?.response?.data?.message || "Failed to fetch surveys.",
-        "error"
-      );
+      console.error('Failed to fetch surveys:', error);
+      setError(error?.response?.data?.message || 'Something went wrong!');
+      showToast(error?.response?.data?.message || 'Failed to fetch surveys.', 'error');
     } finally {
       setLoading(false);
     }
@@ -182,19 +177,19 @@ const Survey = () => {
     try {
       if (isEditMode) {
         await updateSurvey(editingRecordId, {
-          posted_by: user?.name || "",
+          posted_by: user?.name || '',
           ...values,
         });
-        showToast("Updated successfully!", "success");
+        showToast('Updated successfully!', 'success');
       } else {
-        await createSurvey({ posted_by: user?.name || "", ...values });
-        showToast("Created successfully!", "success");
+        await createSurvey({ posted_by: user?.name || '', ...values });
+        showToast('Created successfully!', 'success');
       }
       // Re-fetch data using current active states
       fetchAllSurveys();
       closeForm();
     } catch (error) {
-      showToast(error?.response?.data?.message || "Save failed!", "error");
+      showToast(error?.response?.data?.message || 'Save failed!', 'error');
     }
   };
 
@@ -210,22 +205,14 @@ const Survey = () => {
   // 🔑 Dynamic Options Calculation (Remains the same)
   const dynamicOptions = useMemo(() => {
     return {
-      sbu: getUniqueOptionsWithIds(records, "sbu_name", "sbu_id"),
-      link_type: getUniqueOptionsWithIds(
-        records,
-        "link_type_name",
-        "link_type_id"
-      ),
-      aggregator: getUniqueOptionsWithIds(
-        records,
-        "aggregator_name",
-        "aggregator_id"
-      ),
-      kam: getUniqueOptionsWithIds(records, "kam_name", "kam_id"),
-      nttn: getUniqueOptionsWithIds(records, "nttn_name", "nttn_id"),
-      client: getUniqueOptionsWithIds(records, "client_name", "client_id"),
-      client_category: getUniqueOptions(records, "client_category"),
-      submition: getUniqueOptions(records, "submition").map((opt) => ({
+      sbu: getUniqueOptionsWithIds(records, 'sbu_name', 'sbu_id'),
+      link_type: getUniqueOptionsWithIds(records, 'link_type_name', 'link_type_id'),
+      aggregator: getUniqueOptionsWithIds(records, 'aggregator_name', 'aggregator_id'),
+      kam: getUniqueOptionsWithIds(records, 'kam_name', 'kam_id'),
+      nttn: getUniqueOptionsWithIds(records, 'nttn_name', 'nttn_id'),
+      client: getUniqueOptionsWithIds(records, 'client_name', 'client_id'),
+      client_category: getUniqueOptions(records, 'client_category'),
+      submition: getUniqueOptions(records, 'submition').map((opt) => ({
         ...opt,
         label: opt.label.substring(0, 10),
       })),
@@ -236,98 +223,94 @@ const Survey = () => {
   const surveyColumns = useMemo(
     () => [
       {
-        key: "sbu_name",
-        header: "SBU",
+        key: 'sbu_name',
+        header: 'SBU',
         field: SelectField,
-        fieldProps: { name: "sbu_id", options: dynamicOptions.sbu },
+        fieldProps: { name: 'sbu_id', options: dynamicOptions.sbu },
       },
       {
-        key: "type_name",
-        header: "Link Type",
+        key: 'type_name',
+        header: 'Link Type',
         field: SelectField,
         fieldProps: {
-          name: "link_type_id",
+          name: 'link_type_id',
           options: dynamicOptions.link_type,
           searchable: true,
         },
       },
       {
-        key: "aggregator_name",
-        header: "Aggregator",
+        key: 'aggregator_name',
+        header: 'Aggregator',
         field: SelectField,
         fieldProps: {
-          name: "aggregator_id",
+          name: 'aggregator_id',
           options: dynamicOptions.aggregator,
           searchable: true,
         },
       },
       {
-        key: "kam_name",
-        header: "KAM",
+        key: 'kam_name',
+        header: 'KAM',
         field: SelectField,
         fieldProps: {
-          name: "kam_id",
+          name: 'kam_id',
           options: dynamicOptions.kam,
           searchable: true,
         },
       },
       {
-        key: "nttn_name",
-        header: "NTTN Name",
+        key: 'nttn_name',
+        header: 'NTTN Name',
         field: SelectField,
         fieldProps: {
-          name: "nttn_id",
+          name: 'nttn_id',
           options: dynamicOptions.nttn,
           searchable: true,
         },
       },
-      { key: "nttn_survey_id", header: "NTTN Provider ID" },
+      { key: 'nttn_survey_id', header: 'NTTN Provider ID' },
       {
-        key: "cat_name",
-        header: "Client Cat.",
+        key: 'cat_name',
+        header: 'Client Cat.',
         field: SelectField,
         fieldProps: {
-          name: "cat_name",
+          name: 'cat_name',
           options: dynamicOptions.cat_name,
           searchable: true,
         },
       },
       {
-        key: "client_name",
-        header: "Client Name",
+        key: 'client_name',
+        header: 'Client Name',
         field: SelectField,
         fieldProps: {
-          name: "client_id",
+          name: 'client_id',
           options: dynamicOptions.client,
           searchable: true,
         },
       },
-      { key: "division_name", header: "Division" },
-      { key: "district_name", header: "District" },
-      { key: "thana_name", header: "Thana" },
-      { key: "mac_user", header: "MAC Users" },
-      { key: "status", header: "Status" },
+      { key: 'division_name', header: 'Division' },
+      { key: 'district_name', header: 'District' },
+      { key: 'thana_name', header: 'Thana' },
+      { key: 'mac_user', header: 'MAC Users' },
+      { key: 'status', header: 'Status' },
       {
-        key: "submission",
-        header: "Submission Date",
-        render: (row) => moment(row.submission).format("MMM Do YY"),
+        key: 'submission',
+        header: 'Submission Date',
+        // render: (row) => moment(row.submission).format("MMM Do YY"),
         field: DateField,
         fieldProps: {
-          name: "submission",
+          name: 'submission',
           options: dynamicOptions.submission,
           searchable: true,
         },
       },
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (value, row) => (
-          <Button
-            variant='icon'
-            size='sm'
-            onClick={() => handleEdit(row)}
-            title='Edit'>
-            <Pencil className='h-4 w-4' />
+          <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
+            <Pencil className="h-4 w-4" />
           </Button>
         ),
       },
@@ -337,7 +320,7 @@ const Survey = () => {
 
   if (formState.isOpen) {
     return (
-      <div className='p-8 bg-gray-100 min-h-screen'>
+      <div className="p-8 bg-gray-100 min-h-screen">
         <SurveyForm
           initialValues={formState.initialValues}
           isEditMode={formState.isEditMode}
@@ -351,34 +334,35 @@ const Survey = () => {
   }
 
   return (
-    <div className='p-8 bg-gray-100 min-h-screen'>
-      <div className='flex justify-between items-center pb-16'>
+    <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="flex justify-between items-center pb-16">
         <div>
-          <h1 className='text-2xl font-bold'>Surveys</h1>
-          <p className='text-gray-500'>View and manage the list of surveys.</p>
+          <h1 className="text-2xl font-bold">Surveys</h1>
+          <p className="text-gray-500">View and manage the list of surveys.</p>
         </div>
-        <div className='flex items-center gap-4'>
+        <div className="flex items-center gap-4">
           <ExportButton
             data={records}
             columns={surveyColumns}
-            fileName='surveys'
-            intent='primary'
+            fileName="surveys"
+            intent="primary"
             leftIcon={FaFileExcel}
-            className='text-white bg-green-700 hover:bg-green-800 border-none'>
+            className="text-white bg-green-700 hover:bg-green-800 border-none"
+          >
             Export
           </ExportButton>
-          <Button intent='primary' onClick={openNewForm} leftIcon={Plus}>
+          <Button intent="primary" onClick={openNewForm} leftIcon={Plus}>
             Add Survey
           </Button>
         </div>
       </div>
 
       {loading && totalRows === 0 ? (
-        <div className='flex justify-center items-center py-20 text-gray-500'>
+        <div className="flex justify-center items-center py-20 text-gray-500">
           <p>Loading surveys...</p>
         </div>
       ) : error ? (
-        <div className='flex justify-center items-center py-20 text-red-500'>
+        <div className="flex justify-center items-center py-20 text-red-500">
           <p>Error: {error}</p>
         </div>
       ) : (
@@ -404,10 +388,6 @@ const Survey = () => {
 };
 
 export default Survey;
-
-
-
-
 
 // import React, { useEffect, useState, useCallback, useMemo } from "react";
 // import { Plus, Pencil, FileCheck } from "lucide-react";
@@ -588,14 +568,14 @@ export default Survey;
 //   const handleConvertToWorkorder = (survey) => {
 //     // You can implement the conversion logic here
 //     console.log('Converting survey to workorder:', survey);
-    
+
 //     // Example implementation:
 //     // 1. Navigate to workorder creation page with pre-filled data
 //     // 2. Open a modal for workorder creation
 //     // 3. Call an API to automatically create a workorder
-    
+
 //     showToast(`Converting survey "${survey.nttn_survey_id}" to workorder...`, 'info');
-    
+
 //     // Example API call (you'll need to implement this service):
 //     // try {
 //     //   const response = await convertSurveyToWorkorder(survey.id);

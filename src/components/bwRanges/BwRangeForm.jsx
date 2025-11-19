@@ -1,13 +1,13 @@
 // src/components/bwRanges/BwRangeForm.jsx
-import React, { useEffect, useState } from "react";
-import { useFormik, FormikProvider } from "formik";
-import { ArrowLeft } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { useFormik, FormikProvider } from 'formik';
+import { ArrowLeft } from 'lucide-react';
 
-import Button from "../ui/Button";
-import InputField from "../fields/InputField";
-import SelectField from "../fields/SelectField";
-import { bandwidthRangeValidation } from "../../validations/bandwidthRangeValidation";
-import { fetchNTTNs } from "../../services/nttn";
+import Button from '../ui/Button';
+import InputField from '../fields/InputField';
+import SelectField from '../fields/SelectField';
+import { bandwidthRangeValidation } from '../../validations/bandwidthRangeValidation';
+import { fetchNTTNs } from '../../services/nttn';
 
 /* ---------- section wrapper (identical to other forms) ---------- */
 const FormSection = ({ title, children }) => (
@@ -25,10 +25,10 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
   useEffect(() => {
     const boot = async () => {
       try {
-        const data = await fetchNTTNs();
+        const { data } = await fetchNTTNs();
         setNttns(data);
       } catch (e) {
-        showToast?.(e.message || "Failed to load NTTNs", "error");
+        showToast?.(e.message || 'Failed to load NTTNs', 'error');
       } finally {
         setLoading(false);
       }
@@ -39,10 +39,10 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
   /* ---------- formik ---------- */
   const formik = useFormik({
     initialValues: {
-      nttn_id: initialValues.nttn_id || "",
-      range_from: initialValues.range_from || "",
-      range_to: initialValues.range_to || "",
-      price: initialValues.price || "",
+      nttn_id: initialValues.nttn_id || '',
+      range_from: initialValues.range_from || '',
+      range_to: initialValues.range_to || '',
+      price: initialValues.price || '',
     },
     validationSchema: bandwidthRangeValidation,
     enableReinitialize: true,
@@ -59,10 +59,7 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
 
   return (
     <FormikProvider value={formik}>
-      <form
-        onSubmit={formik.handleSubmit}
-        className="p-8 bg-gray-100 min-h-screen space-y-6"
-      >
+      <form onSubmit={formik.handleSubmit} className="p-8 bg-gray-100 min-h-screen space-y-6">
         {/* header – identical to other forms */}
         <div className="flex items-center space-x-3 mb-6 md:mb-8">
           <Button
@@ -76,10 +73,10 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {isEditMode ? "Edit Bandwidth Range" : "Add Bandwidth Range"}
+              {isEditMode ? 'Edit Bandwidth Range' : 'Add Bandwidth Range'}
             </h1>
             <p className="text-gray-500">
-              Fill in the details to {isEditMode ? "update" : "add a new"} bandwidth-range record.
+              Fill in the details to {isEditMode ? 'update' : 'add a new'} bandwidth-range record.
             </p>
           </div>
         </div>
@@ -91,19 +88,11 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
               name="nttn_id"
               placeholder="NTTN"
               options={nttns.map((n) => ({ value: n.id, label: n.nttn_name }))}
-              onChange={(v) => formik.setFieldValue("nttn_id", v)}
+              onChange={(v) => formik.setFieldValue('nttn_id', v)}
               searchable
             />
-            <InputField
-              name="range_from"
-              label="Range From (Mbps) *"
-              placeholder="e.g. 10"
-            />
-            <InputField
-              name="range_to"
-              label="Range To (Mbps) *"
-              placeholder="e.g. 100"
-            />
+            <InputField name="range_from" label="Range From (Mbps) *" placeholder="e.g. 10" />
+            <InputField name="range_to" label="Range To (Mbps) *" placeholder="e.g. 100" />
             {/* <InputField
               name="price"
               label="Price (Tk) *"
@@ -124,7 +113,7 @@ const BwRangeForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast 
           </Button>
         </div>
       </form>
-    </FormikProvider >
+    </FormikProvider>
   );
 };
 

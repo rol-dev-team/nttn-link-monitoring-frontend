@@ -1,13 +1,13 @@
 // src/pages/kam/KAM.jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil,Trash } from "lucide-react";
 import Button from "../../components/ui/Button";
 import DataTable from "../../components/table/DataTable";
 import ToastContainer from "../../components/ui/ToastContainer";
 import ExportButton from "../../components/ui/ExportButton";
 import { FaFileExcel } from "react-icons/fa";
 import KamForm from "../../components/kam/KamForm";
-import { createKam, fetchKams, updateKam } from "../../services/kam";
+import { createKam, fetchKams, updateKam, deleteKam } from "../../services/kam";
 
 
 const defaultInitialValues = { kam_name: "" };
@@ -40,7 +40,8 @@ const KAM = () => {
     setError(null);
     try {
       const raw = await fetchKams();
-      setRecords(raw);
+      setRecords(raw.data);
+      console.log(raw)
     } catch (e) {
       const msg = e?.response?.data?.message || "Failed to load KAMs";
       setError(msg);
@@ -66,8 +67,26 @@ const KAM = () => {
       initialValues: { kam_name: item.kam_name },
     });
 
+    // Delete handler
+
+    const handleDelete = async (id) => {
+      if (!window.confirm("Are you sure you want to delete this KAM?")) {
+        return;
+      }
+  
+      try {
+        const response = await deleteKam(id);
+        if (response.success) {
+          pushToast("Deleted successfully!", "success");
+          fetchAll();
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+      }
+    };
+  
   const closeForm = () =>
-    setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+      setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
 
   const handleSubmit = async (values) => {
     try {
@@ -76,6 +95,7 @@ const KAM = () => {
         pushToast("Updated successfully!", "success");
       } else {
         await createKam(values);
+        console.log("Created successfully!");
         pushToast("Created successfully!", "success");
       }
       fetchAll();
@@ -93,9 +113,19 @@ const KAM = () => {
         key: "actions",
         header: "Action",
         render: (_, row) => (
-          <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
-            <Pencil className="h-4 w-4" />
-          </Button>
+          <>
+            <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button className="hover:bg-red-800"
+                variant="destructive" // Standard variant for red/destructive actions
+                size="sm"
+                onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
+                title="Delete"
+              >
+                <Trash className="h-4 w-4" />
+            </Button>
+          </>
         ),
       },
     ],

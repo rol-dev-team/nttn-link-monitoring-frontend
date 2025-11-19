@@ -35,6 +35,11 @@ const SbuTable = ({ records, search, onEdit }) => {
                   className='text-gray-600 hover:text-gray-800'>
                   <PencilIcon className='h-5 w-5' />
                 </button>
+                <button
+                  onClick={() => onEdit(item)}
+                  className='text-gray-600 hover:text-gray-800'>
+                  <PencilIcon className='h-5 w-5' />
+                </button>
               </td>
             </tr>
           ))}

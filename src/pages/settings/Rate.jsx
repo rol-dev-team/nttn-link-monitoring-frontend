@@ -1,23 +1,23 @@
 // src/pages/rate/Rate.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import RateForm from "../../components/rate/RateForm";
-import { createRate, fetchRates, updateRate } from "../../services/rate";
-import { createBwRates, fetchSBwRates } from "../../services/bwRateApi";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import RateForm from '../../components/rate/RateForm';
+import { createRate, fetchRates, updateRate } from '../../services/rate';
+import { createBwRates, fetchSBwRates, updateBwRates } from '../../services/bwRateApi';
 import moment from 'moment';
 
 const defaultInitialValues = {
-  nttn_id: "",
-  bw_range_from: "",
-  bw_range_to: "",
-  rate: "",
-  start_date: "",
-  end_date: "",
+  nttn_id: '',
+  bw_range_from: '',
+  bw_range_to: '',
+  rate: '',
+  start_date: '',
+  end_date: '',
 };
 
 const Rate = () => {
@@ -47,12 +47,12 @@ const Rate = () => {
     setLoading(true);
     setError(null);
     try {
-      const {data} = await fetchSBwRates()
+      const { data } = await fetchSBwRates();
       setRecords(data);
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to load rates";
+      const msg = e?.response?.data?.message || 'Failed to load rates';
       setError(msg);
-      pushToast(msg, "error");
+      pushToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -79,12 +79,11 @@ const Rate = () => {
       initialValues: {
         id: item.id,
         nttn_id: item.nttn_id,
-        bw_id: item.bw_id,
+        bw_range_from: item.bw_range_from,
+        bw_range_to: item.bw_range_to,
+        start_date: item.start_date,
+        end_date: item.end_date,
         rate: item.rate,
-        effective_from: item.effective_from,
-        effective_to: item.effective_to,
-        continue: item.continue,
-        status: item.status,
       },
     });
 
@@ -95,53 +94,46 @@ const Rate = () => {
       editingId: null,
       initialValues: defaultInitialValues,
     });
-
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
-        await updateRate(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
+        await updateBwRates(formState.editingId, values);
+        pushToast('Updated successfully!', 'success');
       } else {
         await createBwRates(values);
-        pushToast("Created successfully!", "success");
+        pushToast('Created successfully!', 'success');
       }
       fetchAll();
       closeForm();
     } catch (e) {
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
 
   /* ---------- columns (unchanged) ---------- */
   const columns = useMemo(
     () => [
-      { key: "nttn_name", header: "NTTN", isSortable: true },
-      { key: "bw_range_from", header: "BW Range From", isSortable: true },
-      { key: "bw_range_to", header: "BW Range To", isSortable: true },
-      { key: "rate", header: "Rate", isSortable: true },
+      { key: 'nttn_name', header: 'NTTN', isSortable: true },
+      { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
+      { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
+      { key: 'rate', header: 'Rate', isSortable: true },
       {
-        key: "start_date",
-        header: "Start Date",
+        key: 'start_date',
+        header: 'Start Date',
         isSortable: true,
-          render: (row) => moment(row.start_date).format("MMM Do YY"),
       },
       {
-        key: "end_date",
-        header: "End Date",
+        key: 'end_date',
+        header: 'End Date',
         isSortable: true,
-          render: (row) => moment(row.end_date).format("MMM Do YY"),
       },
-      
+
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
-          <Button
-            variant='icon'
-            size='sm'
-            onClick={() => openEdit(row)}
-            title='Edit'>
-            <Pencil className='h-4 w-4' />
+          <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+            <Pencil className="h-4 w-4" />
           </Button>
         ),
       },
@@ -152,7 +144,7 @@ const Rate = () => {
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (
-      <div className='p-8 bg-gray-100 min-h-screen'>
+      <div className="p-8 bg-gray-100 min-h-screen">
         <RateForm
           initialValues={formState.initialValues}
           isEditMode={formState.isEditMode}
@@ -164,36 +156,37 @@ const Rate = () => {
       </div>
     );
   }
-
+  console.log('records', records);
   return (
-    <div className='p-8 bg-gray-100 min-h-screen'>
-      <div className='flex justify-between items-center pb-16'>
+    <div className="p-8 bg-gray-100 min-h-screen">
+      <div className="flex justify-between items-center pb-16">
         <div>
-          <h1 className='text-2xl font-bold'>Rate List</h1>
-          <p className='text-gray-500'>View and manage bandwidth rates.</p>
+          <h1 className="text-2xl font-bold">Rate List</h1>
+          <p className="text-gray-500">View and manage bandwidth rates.</p>
         </div>
-        <div className='flex items-center gap-4'>
+        <div className="flex items-center gap-4">
           <ExportButton
             data={records}
             columns={columns}
-            fileName='rate_list'
-            intent='primary'
+            fileName="rate_list"
+            intent="primary"
             leftIcon={FaFileExcel}
-            className='text-white bg-green-700 hover:bg-green-800 border-none'>
+            className="text-white bg-green-700 hover:bg-green-800 border-none"
+          >
             Export
           </ExportButton>
-          <Button intent='primary' onClick={openNew} leftIcon={Plus}>
+          <Button intent="primary" onClick={openNew} leftIcon={Plus}>
             Add Rate
           </Button>
         </div>
       </div>
 
       {loading ? (
-        <div className='flex justify-center items-center py-20 text-gray-500'>
+        <div className="flex justify-center items-center py-20 text-gray-500">
           <p>Loading records...</p>
         </div>
       ) : error ? (
-        <div className='flex justify-center items-center py-20 text-red-500'>
+        <div className="flex justify-center items-center py-20 text-red-500">
           <p>Error: {error}</p>
         </div>
       ) : (

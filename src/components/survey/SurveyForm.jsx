@@ -505,16 +505,17 @@ const SurveyForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
           fetchNTTNs(),
           fetchCategories(),
         ]);
-
-        setSbuOptions(sbuRes.map((item) => ({ value: item.id, label: item.sbu_name })));
-        setLinkTypeOptions(linkTypeRes.map((item) => ({ value: item.id, label: item.type_name })));
+        setSbuOptions(sbuRes.data.map((item) => ({ value: item.id, label: item.sbu_name })));
+        setLinkTypeOptions(
+          linkTypeRes.data.map((item) => ({ value: item.id, label: item.type_name }))
+        );
         setAggregatorOptions(
-          aggregatorRes.map((item) => ({
+          aggregatorRes.data.map((item) => ({
             value: item.id,
             label: item.aggregator_name,
           }))
         );
-        setKamOptions(kamRes.map((item) => ({ value: item.id, label: item.kam_name })));
+        setKamOptions(kamRes.data.map((item) => ({ value: item.id, label: item.kam_name })));
         setNttnOptions(nttnRes.data.map((item) => ({ value: item.id, label: item.nttn_name })));
       } catch (err) {
         showToast(
@@ -535,9 +536,9 @@ const SurveyForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
         return;
       }
       try {
-        const categoriesData = await fetchCategoriesBySBU(sbuId);
+        const { data } = await fetchCategoriesBySBU(sbuId);
         setCategoryOptions(
-          categoriesData.map((item) => ({
+          data.map((item) => ({
             value: item.id,
             label: item.cat_name,
           }))

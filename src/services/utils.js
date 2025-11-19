@@ -1,9 +1,10 @@
-import api from "./api";
+import api from './api';
+import axiosInstance from './partner-link/apiConfig';
 
 //Division APIs
 export const createDivision = async (payload) => {
   try {
-    const response = await api.post("/divisions/", payload);
+    const response = await api.post('/divisions/', payload);
     return response.data;
   } catch (error) {
     throw error;
@@ -12,7 +13,7 @@ export const createDivision = async (payload) => {
 
 export const fetchDivisions = async () => {
   try {
-    const response = await api.get("/divisions/");
+    const response = await axiosInstance.get('/divisions/');
     return response.data;
   } catch (error) {
     throw error;
@@ -50,7 +51,7 @@ export const deleteDivision = async (id) => {
 
 export const createDistrict = async (payload) => {
   try {
-    const response = await api.post("/districts/", payload);
+    const response = await api.post('/districts/', payload);
     return response.data;
   } catch (error) {
     throw error;
@@ -59,7 +60,7 @@ export const createDistrict = async (payload) => {
 
 export const fetchDistricts = async () => {
   try {
-    const response = await api.get("/districts/");
+    const response = await api.get('/districts/');
     return response.data;
   } catch (error) {
     throw error;
@@ -96,7 +97,7 @@ export const deleteDistrict = async (id) => {
 //Thana APIs
 export const createThana = async (payload) => {
   try {
-    const response = await api.post("/thanas/", payload);
+    const response = await api.post('/thanas/', payload);
     return response.data;
   } catch (error) {
     throw error;
@@ -105,7 +106,7 @@ export const createThana = async (payload) => {
 
 export const fetchThanas = async () => {
   try {
-    const response = await api.get("/thanas/");
+    const response = await api.get('/thanas/');
     return response.data;
   } catch (error) {
     throw error;

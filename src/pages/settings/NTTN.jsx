@@ -148,8 +148,6 @@
 //         </div>
 //       </div>
 
-
-
 //       {loading ? (
 //         <div className="flex justify-center items-center py-20 text-gray-500">
 //           <p>Loading records...</p>
@@ -177,27 +175,22 @@
 
 // export default NTTN;
 
-
-
-
-
-
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { Plus, Pencil } from "lucide-react";
-import Button from "../../components/ui/Button";
-import ToastContainer from "../../components/ui/ToastContainer";
-import DataTable from "../../components/table/DataTable";
-import NttnForm from "../../components/nttns/NttnForm";
-import { createNTTN, fetchNTTNs, updateNTTN } from "../../services/nttn";
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import ToastContainer from '../../components/ui/ToastContainer';
+import DataTable from '../../components/table/DataTable';
+import NttnForm from '../../components/nttns/NttnForm';
+import { createNTTN, fetchNTTNs, updateNTTN, deleteNTTN } from '../../services/nttn';
 
 const defaultInitialValues = {
-  nttn_name: "",
-  address: "",
+  nttn_name: '',
+  address: '',
 };
 
 const NTTN = () => {
   const [records, setRecords] = useState([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -218,23 +211,20 @@ const NTTN = () => {
 
   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
 
+  // ---------- fetch all NTTNs ----------
   const fetchAllNttns = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetchNTTNs();
       // ✅ Ensure the response is an array
-      const data = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.data)
-        ? res.data
-        : [];
+      const data = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
 
       setRecords(data);
     } catch (err) {
-      const msg = err?.response?.data?.message || "Failed to fetch NTTNs.";
+      const msg = err?.response?.data?.message || 'Failed to fetch NTTNs.';
       setError(msg);
-      showToast(msg, "error");
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -259,7 +249,7 @@ const NTTN = () => {
       editingId: item.id,
       initialValues: {
         nttn_name: item.nttn_name,
-        address: item.address || "",
+        address: item.address || '',
       },
     });
   }, []);
@@ -272,42 +262,69 @@ const NTTN = () => {
       initialValues: defaultInitialValues,
     });
 
+  // handle delete
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this Reason List?')) {
+      return;
+    }
+
+    try {
+      const response = await deleteNTTN(id);
+      if (response.success) {
+        showToast('Deleted successfully!', 'success');
+        fetchAllNttns();
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+    }
+  };
+
   const handleSubmit = async (values, { resetForm }) => {
     try {
       if (formState.isEditMode) {
         await updateNTTN(formState.editingId, values);
-        showToast("Updated successfully!", "success");
+        showToast('Updated successfully!', 'success');
       } else {
         await createNTTN(values);
-        showToast("Created successfully!", "success");
+        console.log(values);
+        showToast('Created successfully!', 'success');
       }
       fetchAllNttns();
       resetForm();
       closeForm();
     } catch (err) {
-      showToast(err?.response?.data?.message || "Save failed!", "error");
+      showToast(err?.response?.data?.message || 'Save failed!', 'error');
     }
   };
 
   const filtered = useMemo(() => {
     return Array.isArray(records)
-      ? records.filter((r) =>
-          (r.nttn_name || "").toLowerCase().includes(search.toLowerCase())
-        )
+      ? records.filter((r) => (r.nttn_name || '').toLowerCase().includes(search.toLowerCase()))
       : [];
   }, [records, search]);
 
   const columns = useMemo(
     () => [
-      { key: "nttn_name", header: "NTTN Name", isSortable: true },
-      { key: "address", header: "Address", isSortable: false },
+      { key: 'nttn_name', header: 'NTTN Name', isSortable: true },
+      { key: 'address', header: 'Address', isSortable: false },
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
-          <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
-            <Pencil className="h-4 w-4" />
-          </Button>
+          <>
+            <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              className="hover:bg-red-800"
+              variant="destructive" // Standard variant for red/destructive actions
+              size="sm"
+              onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
+              title="Delete"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </>
         ),
       },
     ],
@@ -368,4 +385,3 @@ const NTTN = () => {
 };
 
 export default NTTN;
-

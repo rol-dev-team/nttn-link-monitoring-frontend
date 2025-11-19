@@ -1,31 +1,26 @@
 // src/pages/client/Client.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import ClientForm from "../../components/client/ClientForm";
-
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import ClientForm from '../../components/client/ClientForm';
 
 /* ---------- NEW: real services ---------- */
-import {
-  fetchClients,
-  createClient,
-  updateClient,
-} from "../../services/client";
+import { fetchClients, createClient, updateClient } from '../../services/client';
 
 const defaultInitialValues = {
-  client_name: "",
-  sbu_id: "",
-  cat_id: "",
-  division_id: "",
-  district_id: "",
-  thana_id: "",
-  address: "",
-  client_lat: "",
-  client_long: "",
+  client_name: '',
+  sbu_id: '',
+  cat_id: '',
+  division_id: '',
+  district_id: '',
+  thana_id: '',
+  address: '',
+  client_lat: '',
+  client_long: '',
 };
 
 const Client = () => {
@@ -56,12 +51,12 @@ const Client = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchClients(); // ← live endpoint
+      const { data } = await fetchClients(); // ← live endpoint
       setRecords(data);
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to load clients";
+      const msg = e?.response?.data?.message || 'Failed to load clients';
       setError(msg);
-      pushToast(msg, "error");
+      pushToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -73,7 +68,12 @@ const Client = () => {
 
   /* ---------- form flow ---------- */
   const openNew = () =>
-    setFormState({ isOpen: true, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: true,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const openEdit = (item) =>
     setFormState({
@@ -94,39 +94,44 @@ const Client = () => {
     });
 
   const closeForm = () =>
-    setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: false,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   /* ---------- real save ---------- */
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
         await updateClient(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
+        pushToast('Updated successfully!', 'success');
       } else {
         await createClient(values);
-        pushToast("Created successfully!", "success");
+        pushToast('Created successfully!', 'success');
       }
       loadClients(); // refresh table
       closeForm();
     } catch (e) {
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
 
   /* ---------- table columns ---------- */
   const columns = useMemo(
     () => [
-      { key: "sbu_name", header: "SBU", isSortable: true },
-      { key: "client_name", header: "Client Name", isSortable: true },
-      { key: "cat_name", header: "Category", isSortable: true }, // backend returns cat.cat_name
-      { key: "division_name", header: "Division", isSortable: true }, // backend returns division.division_name
-      { key: "district_name", header: "District", isSortable: true }, // backend returns district.district_name
-      { key: "thana_name", header: "Thana", isSortable: true },
-      { key: "address", header: "Address" },
+      { key: 'sbu_name', header: 'SBU', isSortable: true },
+      { key: 'client_name', header: 'Client Name', isSortable: true },
+      { key: 'cat_name', header: 'Category', isSortable: true }, // backend returns cat.cat_name
+      { key: 'division_name', header: 'Division', isSortable: true }, // backend returns division.division_name
+      { key: 'district_name', header: 'District', isSortable: true }, // backend returns district.district_name
+      { key: 'thana_name', header: 'Thana', isSortable: true },
+      { key: 'address', header: 'Address' },
       // backend returns sbu.sbu_name
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
           <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
             <Pencil className="h-4 w-4" />

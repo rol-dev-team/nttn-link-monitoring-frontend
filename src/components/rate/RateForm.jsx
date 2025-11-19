@@ -42,6 +42,7 @@ const RateForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) 
     onSubmit,
   });
 
+  console.log('formik values:', initialValues);
   /* ---------- bootstrap nttn + cascading bw ---------- */
   useEffect(() => {
     const boot = async () => {

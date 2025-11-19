@@ -660,15 +660,9 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
   useEffect(() => {
     const boot = async () => {
       try {
-        const [nttn, cats, wos] = await Promise.all([
-          fetchNTTNs(),
-          fetchCategories(),
-          fetchWorkOrders(),
-        ]);
+        const [nttn, cats, wos] = await Promise.all([fetchNTTNs(), fetchCategories()]);
         setNttnProviders(nttn.data);
         setClientCategories(cats.data);
-
-        setWorkOrders(Array.isArray(wos) ? wos : wos?.data || []);
       } catch (e) {
         showToast?.(e.message || 'Failed to load form data', 'error');
       } finally {
@@ -680,12 +674,12 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
 
   /* ---------- cascading selects and API fetches ---------- */
 
-  useEffect(() => {
-    if (!formik.values.nttn_provider) return;
-    fetchBandwidthRangesByID(parseInt(formik.values.nttn_provider))
-      .then(setBandwidthRanges)
-      .catch(() => setBandwidthRanges([]));
-  }, [formik.values.nttn_provider]);
+  // useEffect(() => {
+  //   if (!formik.values.nttn_provider) return;
+  //   fetchBandwidthRangesByID(parseInt(formik.values.nttn_provider))
+  //     .then(setBandwidthRanges)
+  //     .catch(() => setBandwidthRanges([]));
+  // }, [formik.values.nttn_provider]);
 
   // Fetch NTTN Rates and store them
   useEffect(() => {

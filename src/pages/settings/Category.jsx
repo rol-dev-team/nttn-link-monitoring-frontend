@@ -156,7 +156,7 @@ const Category = () => {
               <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button
+              {/* <Button
                 className="hover:bg-red-800"
                 variant="destructive" // Standard variant for red/destructive actions
                 size="sm"
@@ -164,7 +164,7 @@ const Category = () => {
                 title="Delete"
               >
                 <Trash className="h-4 w-4" />
-              </Button>
+              </Button> */}
             </div>
           </>
         ),

@@ -1,16 +1,15 @@
 // src/pages/kam/KAM.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil,Trash } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import KamForm from "../../components/kam/KamForm";
-import { createKam, fetchKams, updateKam, deleteKam } from "../../services/kam";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import KamForm from '../../components/kam/KamForm';
+import { createKam, fetchKams, updateKam, deleteKam } from '../../services/kam';
 
-
-const defaultInitialValues = { kam_name: "" };
+const defaultInitialValues = { kam_name: '' };
 
 const KAM = () => {
   const [records, setRecords] = useState([]);
@@ -41,11 +40,11 @@ const KAM = () => {
     try {
       const raw = await fetchKams();
       setRecords(raw.data);
-      console.log(raw)
+      console.log(raw);
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to load KAMs";
+      const msg = e?.response?.data?.message || 'Failed to load KAMs';
       setError(msg);
-      pushToast(msg, "error");
+      pushToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -57,7 +56,12 @@ const KAM = () => {
 
   /* ---------- form flow ---------- */
   const openNew = () =>
-    setFormState({ isOpen: true, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: true,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const openEdit = (item) =>
     setFormState({
@@ -67,64 +71,69 @@ const KAM = () => {
       initialValues: { kam_name: item.kam_name },
     });
 
-    // Delete handler
+  // Delete handler
 
-    const handleDelete = async (id) => {
-      if (!window.confirm("Are you sure you want to delete this KAM?")) {
-        return;
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this KAM?')) {
+      return;
+    }
+
+    try {
+      const response = await deleteKam(id);
+      if (response.success) {
+        pushToast('Deleted successfully!', 'success');
+        fetchAll();
       }
-  
-      try {
-        const response = await deleteKam(id);
-        if (response.success) {
-          pushToast("Deleted successfully!", "success");
-          fetchAll();
-        }
-      } catch (error) {
-        console.error('Network error:', error);
-      }
-    };
-  
+    } catch (error) {
+      console.error('Network error:', error);
+    }
+  };
+
   const closeForm = () =>
-      setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: false,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
         await updateKam(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
+        pushToast('Updated successfully!', 'success');
       } else {
         await createKam(values);
-        console.log("Created successfully!");
-        pushToast("Created successfully!", "success");
+        console.log('Created successfully!');
+        pushToast('Created successfully!', 'success');
       }
       fetchAll();
       closeForm();
     } catch (e) {
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
 
   /* ---------- columns for reusable table + export ---------- */
   const columns = useMemo(
     () => [
-      { key: "kam_name", header: "KAM Name", isSortable: true },
+      { key: 'kam_name', header: 'KAM Name', isSortable: true },
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
           <>
             <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button className="hover:bg-red-800"
+            {/* <Button className="hover:bg-red-800"
                 variant="destructive" // Standard variant for red/destructive actions
                 size="sm"
                 onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
                 title="Delete"
               >
                 <Trash className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </>
         ),
       },

@@ -1,16 +1,15 @@
 // src/pages/reason/Reason.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil, Trash } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import ReasonForm from "../../components/reason/ReasonForm";
-import { createReason, fetchReasons, updateReason, deleteReason } from "../../services/reason";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import ReasonForm from '../../components/reason/ReasonForm';
+import { createReason, fetchReasons, updateReason, deleteReason } from '../../services/reason';
 
-
-const defaultInitialValues = { reason: "" };
+const defaultInitialValues = { reason: '' };
 
 const Reason = () => {
   const [records, setRecords] = useState([]);
@@ -42,9 +41,9 @@ const Reason = () => {
       const raw = await fetchReasons();
       setRecords(raw.data);
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to load reasons";
+      const msg = e?.response?.data?.message || 'Failed to load reasons';
       setError(msg);
-      pushToast(msg, "error");
+      pushToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -56,8 +55,12 @@ const Reason = () => {
 
   /* ---------- form flow ---------- */
   const openNew = () =>
-    setFormState({ isOpen: true, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
-
+    setFormState({
+      isOpen: true,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const openEdit = (item) =>
     setFormState({
@@ -68,14 +71,14 @@ const Reason = () => {
     });
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this Reason List?")) {
+    if (!window.confirm('Are you sure you want to delete this Reason List?')) {
       return;
     }
 
     try {
       const response = await deleteReason(id);
       if (response.success) {
-        pushToast("Deleted successfully!", "success");
+        pushToast('Deleted successfully!', 'success');
         fetchAll();
       }
     } catch (error) {
@@ -84,56 +87,59 @@ const Reason = () => {
   };
 
   const closeForm = () =>
-    setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: false,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
         const res = await updateReason(formState.editingId, values);
         if (res?.status === 409) {
-          pushToast(res.response?.data?.message || "Duplicate entry error", "error");
+          pushToast(res.response?.data?.message || 'Duplicate entry error', 'error');
         } else {
-          pushToast("Updated successfully!", "success");
+          pushToast('Updated successfully!', 'success');
         }
-
       }
       // error message show for duplicate entry create edition
       // else if (e?.response?.status === 409) {
       //   pushToast(e?.response?.data?.message || "Duplicate entry error", "error");
-      // } 
+      // }
       else {
         await createReason(values);
-        pushToast("Created successfully!", "success");
+        pushToast('Created successfully!', 'success');
       }
       fetchAll();
       closeForm();
     } catch (e) {
       console.error('Submission error:', e);
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
 
   /* ---------- columns for reusable table + export ---------- */
   const columns = useMemo(
     () => [
-
-      { key: "reason", header: "Reason", isSortable: true },
+      { key: 'reason', header: 'Reason', isSortable: true },
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
           <>
             <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button className="hover:bg-red-800"
+            {/* <Button className="hover:bg-red-800"
               variant="destructive" // Standard variant for red/destructive actions
               size="sm"
               onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
               title="Delete"
             >
               <Trash className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </>
         ),
       },

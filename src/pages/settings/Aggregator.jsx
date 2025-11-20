@@ -1,16 +1,20 @@
 // src/pages/aggregator/Aggregator.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil, Trash } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import AggregatorForm from "../../components/aggregator/AggregatorForm";
-import { createAggregator, fetchAggregators, updateAggregator, deleteAggregator } from "../../services/aggregator";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import AggregatorForm from '../../components/aggregator/AggregatorForm';
+import {
+  createAggregator,
+  fetchAggregators,
+  updateAggregator,
+  deleteAggregator,
+} from '../../services/aggregator';
 
-
-const defaultInitialValues = { aggregator_name: "", address: "" };
+const defaultInitialValues = { aggregator_name: '', address: '' };
 
 const Aggregator = () => {
   const [records, setRecords] = useState([]);
@@ -42,9 +46,9 @@ const Aggregator = () => {
       const raw = await fetchAggregators();
       setRecords(raw.data);
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to load aggregators";
+      const msg = e?.response?.data?.message || 'Failed to load aggregators';
       setError(msg);
-      pushToast(msg, "error");
+      pushToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -56,7 +60,12 @@ const Aggregator = () => {
 
   /* ---------- form flow ---------- */
   const openNew = () =>
-    setFormState({ isOpen: true, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: true,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const openEdit = (item) =>
     setFormState({
@@ -68,62 +77,66 @@ const Aggregator = () => {
 
   // handle delete
   const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this Aggregator?")) {
-          return;
-        }
-    
-        try {
-          const response = await deleteAggregator(id);
-          if (response.success) {
-            pushToast("Deleted successfully!", "success");
-            fetchAll();
-          }
-        } catch (error) {
-          console.error('Network error:', error);
-        }
-    };
+    if (!window.confirm('Are you sure you want to delete this Aggregator?')) {
+      return;
+    }
+
+    try {
+      const response = await deleteAggregator(id);
+      if (response.success) {
+        pushToast('Deleted successfully!', 'success');
+        fetchAll();
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+    }
+  };
 
   const closeForm = () =>
-    setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: false,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
         await updateAggregator(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
+        pushToast('Updated successfully!', 'success');
       } else {
         await createAggregator(values);
-        pushToast("Created successfully!", "success");
+        pushToast('Created successfully!', 'success');
       }
       fetchAll();
       closeForm();
     } catch (e) {
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
 
   /* ---------- columns for reusable table + export ---------- */
   const columns = useMemo(
     () => [
-
-      { key: "aggregator_name", header: "Aggregator Name", isSortable: true },
-      { key: "address", header: "Address", isSortable: true },
+      { key: 'aggregator_name', header: 'Aggregator Name', isSortable: true },
+      { key: 'address', header: 'Address', isSortable: true },
       {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
           <>
             <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button className="hover:bg-red-800"
+            {/* <Button className="hover:bg-red-800"
                   variant="destructive" // Standard variant for red/destructive actions
                   size="sm"
                   onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
                   title="Delete"
                 >
                   <Trash className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </>
         ),
       },

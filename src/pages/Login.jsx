@@ -22,6 +22,7 @@ const roleRoutes = {
   partner_user: '/dashboard',
   nttn_customer: '/nttn/dashboard',
   user: '/dashboard',
+  management: '/dashboard',
 };
 
 const Login = () => {

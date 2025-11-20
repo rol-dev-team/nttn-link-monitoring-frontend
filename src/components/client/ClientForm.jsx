@@ -142,14 +142,14 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
         const [catsRes, divsRes, distsRes, thasRes] = await Promise.all([
           fetchCategories(),
           fetchDivisions(),
-          fetchDistricts(),
-          fetchThanas(),
+          // fetchDistricts(),
+          // fetchThanas(),
         ]);
         if (!active) return;
         setCategories(normalizeList(catsRes, 'id', 'cat_name'));
         setDivisions(normalizeList(divsRes, 'id', 'division_name'));
-        setDistricts(normalizeList(distsRes, 'id', 'district_name'));
-        setThanas(normalizeList(thasRes, 'id', 'thana_name'));
+        // setDistricts(normalizeList(distsRes, 'id', 'district_name'));
+        // setThanas(normalizeList(thasRes, 'id', 'thana_name'));
       } catch (e) {
         console.error('loadMasters error:', e);
         showToast?.error?.(e?.response?.data?.message || 'Failed to load master data');

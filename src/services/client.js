@@ -87,3 +87,12 @@ export const fetchClientsCategoryWise = async (id) => {
     throw error;
   }
 };
+
+export const fetchAllSBUs = async () => {
+  try {
+    const response = await axiosInstance.get('/sbus-name/');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

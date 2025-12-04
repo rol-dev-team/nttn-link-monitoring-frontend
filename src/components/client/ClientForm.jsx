@@ -631,7 +631,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
           {/* SBU comes first */}
           <SelectField
             name="sbu_id"
-            label="SBU"
+            // label="SBU"
             placeholder="Select SBU"
             options={sbuOpts}
             valueKey="id"
@@ -643,7 +643,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
           {/* Category depends on SBU selection */}
           <SelectField
             name="cat_id"
-            label="Category"
+            // label="Category"
             placeholder="Select Category"
             options={categories}
             valueKey="id"
@@ -654,7 +654,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
 
           <SelectField
             name="division_id"
-            label="Division"
+            // label="Division"
             placeholder="Select Division"
             options={divisions}
             valueKey="id"
@@ -665,7 +665,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
 
           <SelectField
             name="district_id"
-            label="District"
+            // label="District"
             placeholder="Select District"
             options={districts}
             valueKey="id"
@@ -676,7 +676,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
 
           <SelectField
             name="thana_id"
-            label="Thana"
+            // label="Thana"
             placeholder="Select Thana"
             options={thanas}
             valueKey="id"
@@ -695,21 +695,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
             />
           </div>
 
-          <InputField
-            name="client_lat"
-            label="Latitude"
-            placeholder="Enter latitude"
-            type="number"
-            step="any"
-          />
-
-          <InputField
-            name="client_long"
-            label="Longitude"
-            placeholder="Enter longitude"
-            type="number"
-            step="any"
-          />
+          
         </FormSection>
 
         <div className="flex w-full justify-end mt-8 space-x-3">

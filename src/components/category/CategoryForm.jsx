@@ -69,11 +69,13 @@ const CategoryForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast
                         {/* SBU selector */}
                         <SelectField
                             name="sbu_id"
-                            label="SBU *"
+                            // label="SBU *"
+                            placeholder="Select SBU"
                             options={sbuOptions}
                             onChange={(v) => formik.setFieldValue("sbu_id", v)}
                             searchable
                         />
+
                         {/* Category name */}
                         <InputField
                             name="cat_name"

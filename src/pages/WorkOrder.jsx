@@ -1,3 +1,4 @@
+
 // import React, { useEffect, useState, useMemo, useCallback } from "react";
 // import { Plus, Pencil } from "lucide-react";
 // import Button from "../components/ui/Button";
@@ -6,15 +7,15 @@
 // import ToastContainer from "../components/ui/ToastContainer";
 // import { FaFileExcel } from "react-icons/fa";
 // import ExportButton from "../components/ui/ExportButton";
-// import SelectField from "../components/fields/SelectField";
-// import DateField from "../components/fields/DateField";
 // import WorkOrderFilterMenu from "../components/work-order/WorkOrderFilterMenu";
 // import {
 //   createWorkOrderLaravel,
 //   fetchWorkOrdersLaravel,
-//   fetchWorkOrder,
-//   updateWorkOrderLaravel,fetchWorkOrderLaravel,
+//   updateWorkOrderLaravel,
+//   fetchWorkOrderLaravel,
 // } from "../services/workOrder";
+// import { fetchRatesByNttn } from "../services/rate";
+// import { fetchReasons } from "../services/reason";
 // import moment from "moment";
 
 // // ✅ Helper to extract unique options
@@ -50,23 +51,32 @@
 // };
 
 // const defaultInitialValues = {
-//   sbu_id: null,
-//   link_type_id: null,
-//   aggregator_id: null,
-//   kam_id: null,
-//   nttn_id: null,
+//   sbu_id: "",
+//   link_type_id: "",
+//   aggregator_id: "",
+//   kam_id: "",
+//   nttn_id: "",
 //   nttn_survey_id: "",
 //   nttn_lat: "",
 //   nttn_long: "",
-//   client_lat: null,
-//   client_long: null,
-//   client_id: null,
+//   client_lat: "",
+//   client_long: "",
+//   client_id: "",
 //   mac_user: "",
 //   nttn_work_order_id: "",
+//   work_order_mac_user: "",
 //   request_capacity: "",
+//   total_cost_of_request_capacity: "",
+//   unit_rate: "",
+//   rate_id: "",
+//   vlan: "",
 //   remarks: "",
 //   requested_delivery: "",
 //   service_handover: "",
+//   submission: "",
+//   status: "active",
+//   posted_by: "",
+//   reason_id: "",
 // };
 
 // const WorkOrder = () => {
@@ -80,6 +90,8 @@
 //     limit: 10,
 //     totalRows: 0,
 //   });
+//   const [ratesCache, setRatesCache] = useState(new Map());
+//   const [reasonsMap, setReasonsMap] = useState(new Map()); // Map reason_id to reason text
 
 //   const [formState, setFormState] = useState({
 //     isOpen: false,
@@ -104,6 +116,63 @@
 //   const removeToast = (id) =>
 //     setToasts((toasts) => toasts.filter((t) => t.id !== id));
 
+//   // Function to fetch reasons and create a map
+//   const fetchAllReasons = useCallback(async () => {
+//     try {
+//       const reasonRes = await fetchReasons();
+//       const reasonsData = reasonRes.data || reasonRes;
+      
+//       // Create a map of reason_id -> reason text
+//       const reasonsMap = new Map();
+//       if (Array.isArray(reasonsData)) {
+//         reasonsData.forEach(reason => {
+//           reasonsMap.set(String(reason.id), reason.reason);
+//         });
+//       }
+//       setReasonsMap(reasonsMap);
+//       return reasonsMap;
+//     } catch (error) {
+//       console.error("Error fetching reasons:", error);
+//       return new Map();
+//     }
+//   }, []);
+
+// // Function to fetch rates for a specific NTTN and cache them
+// const fetchRatesForNttn = useCallback(async (nttnId, linkTypeId = null) => {
+//   if (!nttnId) {
+//     return [];
+//   }
+
+//   // Create cache key with or without link_type_id
+//   const cacheKey = linkTypeId ? `${nttnId}_${linkTypeId}` : `${nttnId}`;
+  
+//   if (ratesCache.has(cacheKey)) {
+//     return ratesCache.get(cacheKey) || [];
+//   }
+
+//   try {
+//     console.log(`📡 Fetching rates for NTTN ID: ${nttnId}, Link Type: ${linkTypeId || 'Not specified'}`);
+    
+//     // We can't fetch specific bandwidth without it, so we might need a different endpoint
+//     // or fetch all rates for this NTTN and filter by link_type_id
+//     const rates = await fetchRatesByNttn(nttnId);
+//     const ratesData = rates.data || rates;
+    
+//     // Filter by link_type_id if provided
+//     let filteredRates = ratesData;
+//     if (linkTypeId && Array.isArray(ratesData)) {
+//       filteredRates = ratesData.filter(rate => rate.link_type_id == linkTypeId);
+//     }
+    
+//     // Update cache
+//     setRatesCache(prev => new Map(prev).set(cacheKey, filteredRates));
+//     return filteredRates;
+//   } catch (error) {
+//     console.error(`❌ Error fetching rates for NTTN ${nttnId}:`, error);
+//     return [];
+//   }
+// }, [ratesCache]);
+
 //   const fetchAllWorkOrders = useCallback(async (currentFilters = {}) => {
 //     setLoading(true);
 //     try {
@@ -113,6 +182,12 @@
 //         await fetchWorkOrdersLaravel(allFilters);
 //       setRecords(recordsData);
 //       setPagination((prev) => ({ ...prev, totalRows: total }));
+
+//       // Pre-fetch rates for all unique NTTNs in the records
+//       const uniqueNttnIds = [...new Set(recordsData.map(record => record.nttn_id).filter(Boolean))];
+//       uniqueNttnIds.forEach(nttnId => {
+//         fetchRatesForNttn(nttnId);
+//       });
 //     } catch (error) {
 //       console.error("Fetch error:", error);
 //       setError(
@@ -123,11 +198,12 @@
 //     } finally {
 //       setLoading(false);
 //     }
-//   }, [pagination.page, pagination.limit, showToast]);
+//   }, [pagination.page, pagination.limit, showToast, fetchRatesForNttn]);
 
 //   useEffect(() => {
 //     fetchAllWorkOrders(filters);
-//   }, [filters, fetchAllWorkOrders]);
+//     fetchAllReasons();
+//   }, [filters, fetchAllWorkOrders, fetchAllReasons]);
 
 //   const openNewForm = () => {
 //     setFormState({
@@ -148,26 +224,36 @@
 //     });
 //   };
 
-//   const handleEdit = async (item) => {
+//   const handleEdit = useCallback(async (item) => {
 //     setFormState((prev) => ({ ...prev, isLoading: true }));
 //     try {
+//       console.log('📡 Fetching work order data for ID:', item.id);
 //       const workOrderData = await fetchWorkOrderLaravel(item.id);
+//       console.log('✅ Work order data received:', workOrderData);
+      
+//       const workOrder = workOrderData.data || workOrderData;
+      
 //       setFormState({
 //         isOpen: true,
 //         isEditMode: true,
 //         editingRecordId: item.id,
-//         initialValues: workOrderData,
+//         initialValues: {
+//           ...workOrder,
+//           reason_id: workOrder.reason_id ? String(workOrder.reason_id) : '', // Ensure string
+//         },
 //         isLoading: false,
 //       });
 //     } catch (error) {
+//       console.error('❌ Error fetching work order:', error);
 //       showToast("Failed to load work order!", "error");
 //       setFormState((prev) => ({ ...prev, isLoading: false }));
 //     }
-//   };
+//   }, [showToast]);
 
 //   const handleSubmit = async (values) => {
 //     const { isEditMode, editingRecordId } = formState;
 //     try {
+//       console.log('🚀 Submitting form values:', values);
 //       if (isEditMode) {
 //         await updateWorkOrderLaravel(editingRecordId, values);
 //         showToast("Updated successfully!", "success");
@@ -179,7 +265,8 @@
 //       closeForm();
 //     } catch (error) {
 //       console.error("Submit error:", error);
-//       showToast("Save failed!", "error");
+//       const errorMessage = error?.response?.data?.message || "Save failed!";
+//       showToast(errorMessage, "error");
 //     }
 //   };
 
@@ -189,7 +276,52 @@
 //     setPagination((prev) => ({ ...prev, page: 1 }));
 //   }, []);
 
-//   // ✅ Dynamic dropdowns
+//   // Function to get reason text from reason_id
+//   const getReasonText = useCallback((reasonId) => {
+//     if (!reasonId) return "N/A";
+//     return reasonsMap.get(String(reasonId)) || reasonId;
+//   }, [reasonsMap]);
+
+//   // Function to calculate rates for table display
+//   const calculateTableRates = useCallback((record) => {
+//     const requestCapacity = parseFloat(record.request_capacity) || 0;
+    
+//     if (record.unit_rate && record.total_cost_of_request_capacity) {
+//       return {
+//         unitRate: parseFloat(record.unit_rate).toFixed(2),
+//         totalCost: parseFloat(record.total_cost_of_request_capacity).toFixed(2),
+//         rateId: record.rate_id || "N/A"
+//       };
+//     }
+
+//     if (record.nttn_id && requestCapacity > 0) {
+//       const nttnRates = ratesCache.get(record.nttn_id) || [];
+      
+//       const matchingRate = nttnRates.find(rate => {
+//         const rangeFrom = parseInt(rate.bw_range_from);
+//         const rangeTo = parseInt(rate.bw_range_to);
+//         return requestCapacity >= rangeFrom && requestCapacity <= rangeTo;
+//       });
+
+//       if (matchingRate) {
+//         const unitRate = parseFloat(matchingRate.rate);
+//         const totalCost = requestCapacity * unitRate;
+//         return {
+//           unitRate: unitRate.toFixed(2),
+//           totalCost: totalCost.toFixed(2),
+//           rateId: matchingRate.id
+//         };
+//       }
+//     }
+
+//     return {
+//       unitRate: record.unit_rate ? parseFloat(record.unit_rate).toFixed(2) : "0.00",
+//       totalCost: record.total_cost_of_request_capacity ? parseFloat(record.total_cost_of_request_capacity).toFixed(2) : "0.00",
+//       rateId: record.rate_id || "N/A"
+//     };
+//   }, [ratesCache]);
+
+//   // Dynamic dropdowns
 //   const dynamicOptions = useMemo(() => {
 //     return {
 //       sbu: getUniqueOptionsWithIds(records, "sbu_name", "sbu_id"),
@@ -204,10 +336,14 @@
 //       client: getUniqueOptionsWithIds(records, "client_name", "client_id"),
 //       client_category: getUniqueOptions(records, "cat_name"),
 //       status: getUniqueOptions(records, "status"),
+//       reason: getUniqueOptions(records, "reason_id").map(option => ({
+//         ...option,
+//         label: getReasonText(option.value)
+//       })),
 //     };
-//   }, [records]);
+//   }, [records, getReasonText]);
 
-//   // ✅ Updated Columns for flat data
+//   // Updated Columns with rate calculations and reason field
 //   const workOrderColumns = useMemo(
 //     () => [
 //       { key: "sbu_name", header: "SBU" },
@@ -227,7 +363,29 @@
 //       { key: "client_long", header: "Client LONG" },
 //       { key: "mac_user", header: "MAC User" },
 //       { key: "nttn_work_order_id", header: "NTTN Link ID" },
-//       { key: "request_capacity", header: "Request Capacity" },
+//       { key: "work_order_mac_user", header: "Work Order MAC User" },
+//       { 
+//         key: "request_capacity", 
+//         header: "Request Capacity",
+//         render: (val) => val ? `${val} Mbps` : "0 Mbps"
+//       },
+//       { 
+//         key: "unit_rate", 
+//         header: "Unit Rate",
+//         render: (val, row) => {
+//           const rates = calculateTableRates(row);
+//           return `$${rates.unitRate}`;
+//         }
+//       },
+//       { 
+//         key: "total_cost_of_request_capacity", 
+//         header: "Total Cost",
+//         render: (val, row) => {
+//           const rates = calculateTableRates(row);
+//           return `$${rates.totalCost}`;
+//         }
+//       },
+//       { key: "vlan", header: "VLAN" },
 //       {
 //         key: "requested_delivery",
 //         header: "Requested Delivery",
@@ -240,7 +398,24 @@
 //         render: (val) =>
 //           val ? moment(val).format("YYYY-MM-DD") : "Not Assigned",
 //       },
+//       {
+//         key: "submission",
+//         header: "Submission Date",
+//         render: (val) =>
+//           val ? moment(val).format("YYYY-MM-DD") : "Not Assigned",
+//       },
 //       { key: "remarks", header: "Remarks" },
+//       { 
+//         key: "reason_id", 
+//         header: "Reason",
+//         render: (val) => getReasonText(val)
+//       },
+//       { 
+//         key: "status", 
+//         header: "Status",
+//         render: (val) => val ? val.charAt(0).toUpperCase() + val.slice(1) : "N/A"
+//       },
+//       { key: "posted_by", header: "Posted By" },
 //       {
 //         key: "actions",
 //         header: "Action",
@@ -256,7 +431,7 @@
 //         ),
 //       },
 //     ],
-//     [handleEdit]
+//     [handleEdit, calculateTableRates, getReasonText]
 //   );
 
 //   if (formState.isOpen) {
@@ -357,20 +532,19 @@
 // import ToastContainer from "../components/ui/ToastContainer";
 // import { FaFileExcel } from "react-icons/fa";
 // import ExportButton from "../components/ui/ExportButton";
-// import SelectField from "../components/fields/SelectField";
-// import DateField from "../components/fields/DateField";
 // import WorkOrderFilterMenu from "../components/work-order/WorkOrderFilterMenu";
 // import {
 //   createWorkOrderLaravel,
 //   fetchWorkOrdersLaravel,
-//   fetchWorkOrder,
 //   updateWorkOrderLaravel,
 //   fetchWorkOrderLaravel,
 // } from "../services/workOrder";
+// import { fetchReasons } from "../services/reason";
 // import moment from "moment";
 
 // // ✅ Helper to extract unique options
 // const getUniqueOptions = (records, key) => {
+//   if (!Array.isArray(records)) return [];
 //   const uniqueValues = new Set();
 //   records.forEach((record) => {
 //     const value = record[key];
@@ -388,6 +562,7 @@
 
 // // ✅ Helper: Maps label ↔ id for foreign keys
 // const getUniqueOptionsWithIds = (records, nameKey, idKey) => {
+//   if (!Array.isArray(records)) return [];
 //   const uniqueMap = new Map();
 //   records.forEach((record) => {
 //     const name = record[nameKey];
@@ -414,7 +589,7 @@
 //   client_long: "",
 //   client_id: "",
 //   mac_user: "",
-//   nttn_link_id: "",
+//   nttn_work_order_id: "",
 //   work_order_mac_user: "",
 //   request_capacity: "",
 //   total_cost_of_request_capacity: "",
@@ -424,9 +599,10 @@
 //   remarks: "",
 //   requested_delivery: "",
 //   service_handover: "",
-//   submition: "",
+//   submission: "",
 //   status: "active",
 //   posted_by: "",
+//   reason_id: "",
 // };
 
 // const WorkOrder = () => {
@@ -440,6 +616,7 @@
 //     limit: 10,
 //     totalRows: 0,
 //   });
+//   const [reasonsMap, setReasonsMap] = useState(new Map());
 
 //   const [formState, setFormState] = useState({
 //     isOpen: false,
@@ -464,13 +641,51 @@
 //   const removeToast = (id) =>
 //     setToasts((toasts) => toasts.filter((t) => t.id !== id));
 
+//   // Function to fetch reasons and create a map
+//   const fetchAllReasons = useCallback(async () => {
+//     try {
+//       const reasonRes = await fetchReasons();
+//       const reasonsData = reasonRes.data || reasonRes;
+      
+//       // Create a map of reason_id -> reason text
+//       const reasonsMap = new Map();
+//       if (Array.isArray(reasonsData)) {
+//         reasonsData.forEach(reason => {
+//           reasonsMap.set(String(reason.id), reason.reason);
+//         });
+//       }
+//       setReasonsMap(reasonsMap);
+//       return reasonsMap;
+//     } catch (error) {
+//       console.error("Error fetching reasons:", error);
+//       return new Map();
+//     }
+//   }, []);
+
 //   const fetchAllWorkOrders = useCallback(async (currentFilters = {}) => {
 //     setLoading(true);
+//     setError(null);
 //     try {
 //       const { page, limit } = pagination;
 //       const allFilters = { ...currentFilters, page, limit };
-//       const { data: recordsData, totalCount: total } =
-//         await fetchWorkOrdersLaravel(allFilters);
+//       const response = await fetchWorkOrdersLaravel(allFilters);
+      
+//       // Check if response is array directly or has data property
+//       let recordsData = [];
+//       let total = 0;
+      
+//       if (Array.isArray(response)) {
+//         recordsData = response;
+//         total = response.length;
+//       } else if (response && Array.isArray(response.data)) {
+//         recordsData = response.data;
+//         total = response.total || response.data.length;
+//       } else {
+//         // Handle other structures
+//         recordsData = [];
+//         total = 0;
+//       }
+      
 //       setRecords(recordsData);
 //       setPagination((prev) => ({ ...prev, totalRows: total }));
 //     } catch (error) {
@@ -487,7 +702,8 @@
 
 //   useEffect(() => {
 //     fetchAllWorkOrders(filters);
-//   }, [filters, fetchAllWorkOrders]);
+//     fetchAllReasons();
+//   }, [filters, fetchAllWorkOrders, fetchAllReasons]);
 
 //   const openNewForm = () => {
 //     setFormState({
@@ -515,14 +731,22 @@
 //       const workOrderData = await fetchWorkOrderLaravel(item.id);
 //       console.log('✅ Work order data received:', workOrderData);
       
-//       // Ensure we have the data object
 //       const workOrder = workOrderData.data || workOrderData;
       
 //       setFormState({
 //         isOpen: true,
 //         isEditMode: true,
 //         editingRecordId: item.id,
-//         initialValues: workOrder,
+//         initialValues: {
+//           ...workOrder,
+//           reason_id: workOrder.reason_id ? String(workOrder.reason_id) : '',
+//           // Map rate to unit_rate for form
+//           unit_rate: workOrder.rate || '',
+//           // Calculate total cost for form
+//           total_cost_of_request_capacity: workOrder.request_capacity && workOrder.rate 
+//             ? (parseFloat(workOrder.request_capacity) * parseFloat(workOrder.rate)).toFixed(2)
+//             : '',
+//         },
 //         isLoading: false,
 //       });
 //     } catch (error) {
@@ -558,7 +782,27 @@
 //     setPagination((prev) => ({ ...prev, page: 1 }));
 //   }, []);
 
-//   // ✅ Dynamic dropdowns
+//   // Function to get reason text from reason_id
+//   const getReasonText = useCallback((reasonId) => {
+//     if (!reasonId) return "N/A";
+//     return reasonsMap.get(String(reasonId)) || reasonId;
+//   }, [reasonsMap]);
+
+//   // Function to calculate total cost from rate and request_capacity
+//   const calculateTotalCost = useCallback((record) => {
+//     const requestCapacity = parseFloat(record.request_capacity) || 0;
+//     const rate = parseFloat(record.rate) || 0;
+    
+//     // If total_cost_of_request_capacity already exists, use it
+//     if (record.total_cost_of_request_capacity) {
+//       return parseFloat(record.total_cost_of_request_capacity).toFixed(2);
+//     }
+    
+//     // Otherwise calculate: request_capacity * rate
+//     return (requestCapacity * rate).toFixed(2);
+//   }, []);
+
+//   // Dynamic dropdowns
 //   const dynamicOptions = useMemo(() => {
 //     return {
 //       sbu: getUniqueOptionsWithIds(records, "sbu_name", "sbu_id"),
@@ -573,10 +817,14 @@
 //       client: getUniqueOptionsWithIds(records, "client_name", "client_id"),
 //       client_category: getUniqueOptions(records, "cat_name"),
 //       status: getUniqueOptions(records, "status"),
+//       reason: getUniqueOptions(records, "reason_id").map(option => ({
+//         ...option,
+//         label: getReasonText(option.value)
+//       })),
 //     };
-//   }, [records]);
+//   }, [records, getReasonText]);
 
-//   // ✅ Updated Columns for flat data
+//   // Updated Columns with proper rate and total cost calculations
 //   const workOrderColumns = useMemo(
 //     () => [
 //       { key: "sbu_name", header: "SBU" },
@@ -595,11 +843,26 @@
 //       { key: "client_lat", header: "Client LAT" },
 //       { key: "client_long", header: "Client LONG" },
 //       { key: "mac_user", header: "MAC User" },
-//       { key: "nttn_link_id", header: "NTTN Link ID" },
+//       { key: "nttn_work_order_id", header: "NTTN Link ID" },
 //       { key: "work_order_mac_user", header: "Work Order MAC User" },
-//       { key: "request_capacity", header: "Request Capacity" },
-//       { key: "total_cost_of_request_capacity", header: "Total Cost" },
-//       { key: "unit_rate", header: "Unit Rate" },
+//       { 
+//         key: "request_capacity", 
+//         header: "Request Capacity",
+//         render: (val) => val ? `${val} Mbps` : "0 Mbps"
+//       },
+//       { 
+//         key: "rate", 
+//         header: "Unit Rate",
+//         render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "$0.00"
+//       },
+//       { 
+//         key: "total_cost_of_request_capacity", 
+//         header: "Total Cost",
+//         render: (val, row) => {
+//           const totalCost = calculateTotalCost(row);
+//           return `$${totalCost}`;
+//         }
+//       },
 //       { key: "vlan", header: "VLAN" },
 //       {
 //         key: "requested_delivery",
@@ -614,13 +877,22 @@
 //           val ? moment(val).format("YYYY-MM-DD") : "Not Assigned",
 //       },
 //       {
-//         key: "submition",
+//         key: "submission",
 //         header: "Submission Date",
 //         render: (val) =>
 //           val ? moment(val).format("YYYY-MM-DD") : "Not Assigned",
 //       },
 //       { key: "remarks", header: "Remarks" },
-//       { key: "status", header: "Status" },
+//       { 
+//         key: "reason_id", 
+//         header: "Reason",
+//         render: (val) => getReasonText(val)
+//       },
+//       { 
+//         key: "status", 
+//         header: "Status",
+//         render: (val) => val ? val.charAt(0).toUpperCase() + val.slice(1) : "N/A"
+//       },
 //       { key: "posted_by", header: "Posted By" },
 //       {
 //         key: "actions",
@@ -637,7 +909,7 @@
 //         ),
 //       },
 //     ],
-//     [handleEdit]
+//     [handleEdit, calculateTotalCost, getReasonText]
 //   );
 
 //   if (formState.isOpen) {
@@ -745,14 +1017,20 @@ import {
   updateWorkOrderLaravel,
   fetchWorkOrderLaravel,
 } from "../services/workOrder";
-import { fetchRatesByNttn } from "../services/rate";
+import { fetchReasons } from "../services/reason";
 import moment from "moment";
+
+// ✅ Helper to safely get nested data from object paths
+const getNestedValue = (obj, path) => {
+  return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+};
 
 // ✅ Helper to extract unique options
 const getUniqueOptions = (records, key) => {
+  if (!Array.isArray(records)) return [];
   const uniqueValues = new Set();
   records.forEach((record) => {
-    const value = record[key];
+    const value = getNestedValue(record, key);
     if (value !== null && value !== undefined && String(value).trim() !== "") {
       uniqueValues.add(String(value).trim());
     }
@@ -767,12 +1045,13 @@ const getUniqueOptions = (records, key) => {
 
 // ✅ Helper: Maps label ↔ id for foreign keys
 const getUniqueOptionsWithIds = (records, nameKey, idKey) => {
+  if (!Array.isArray(records)) return [];
   const uniqueMap = new Map();
   records.forEach((record) => {
-    const name = record[nameKey];
-    const id = record[idKey];
+    const name = getNestedValue(record, nameKey);
+    const id = getNestedValue(record, idKey);
     if (name && id) {
-      uniqueMap.set(name, id);
+      uniqueMap.set(String(name), String(id));
     }
   });
   return Array.from(uniqueMap.entries())
@@ -803,23 +1082,25 @@ const defaultInitialValues = {
   remarks: "",
   requested_delivery: "",
   service_handover: "",
-  submition: "",
+  submission: "",
   status: "active",
   posted_by: "",
+  reason_id: "",
 };
 
 const WorkOrder = () => {
-  const [records, setRecords] = useState([]);
+  const [allRecords, setAllRecords] = useState([]); // All records from API
+  const [filteredRecords, setFilteredRecords] = useState([]); // Filtered records for display
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
-  const [filters, setFilters] = useState({});
+  const [activeFilters, setActiveFilters] = useState({});
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     totalRows: 0,
   });
-  const [ratesCache, setRatesCache] = useState(new Map()); // Cache for rates by NTTN ID
+  const [reasonsMap, setReasonsMap] = useState(new Map());
 
   const [formState, setFormState] = useState({
     isOpen: false,
@@ -844,41 +1125,54 @@ const WorkOrder = () => {
   const removeToast = (id) =>
     setToasts((toasts) => toasts.filter((t) => t.id !== id));
 
-  // Function to fetch rates for a specific NTTN and cache them
-  const fetchRatesForNttn = useCallback(async (nttnId) => {
-    if (!nttnId || ratesCache.has(nttnId)) {
-      return ratesCache.get(nttnId) || [];
-    }
-
+  // Function to fetch reasons and create a map
+  const fetchAllReasons = useCallback(async () => {
     try {
-      console.log(`📡 Fetching rates for NTTN ID: ${nttnId}`);
-      const rates = await fetchRatesByNttn(nttnId);
-      const ratesData = rates.data || rates;
+      const reasonRes = await fetchReasons();
+      const reasonsData = reasonRes.data || reasonRes;
       
-      // Update cache
-      setRatesCache(prev => new Map(prev).set(nttnId, ratesData));
-      return ratesData;
+      // Create a map of reason_id -> reason text
+      const reasonsMap = new Map();
+      if (Array.isArray(reasonsData)) {
+        reasonsData.forEach(reason => {
+          reasonsMap.set(String(reason.id), reason.reason);
+        });
+      }
+      setReasonsMap(reasonsMap);
+      return reasonsMap;
     } catch (error) {
-      console.error(`❌ Error fetching rates for NTTN ${nttnId}:`, error);
-      return [];
+      console.error("Error fetching reasons:", error);
+      return new Map();
     }
-  }, [ratesCache]);
+  }, []);
 
-  const fetchAllWorkOrders = useCallback(async (currentFilters = {}) => {
+  // Function to fetch all work orders
+  const fetchAllWorkOrders = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const { page, limit } = pagination;
-      const allFilters = { ...currentFilters, page, limit };
-      const { data: recordsData, totalCount: total } =
-        await fetchWorkOrdersLaravel(allFilters);
-      setRecords(recordsData);
+      const response = await fetchWorkOrdersLaravel({ page, limit });
+      
+      // Check if response is array directly or has data property
+      let recordsData = [];
+      let total = 0;
+      
+      if (Array.isArray(response)) {
+        recordsData = response;
+        total = response.length;
+      } else if (response && Array.isArray(response.data)) {
+        recordsData = response.data;
+        total = response.total || response.data.length;
+      } else {
+        // Handle other structures
+        recordsData = [];
+        total = 0;
+      }
+      
+      setAllRecords(recordsData);
+      setFilteredRecords(recordsData); // Initially show all records
       setPagination((prev) => ({ ...prev, totalRows: total }));
-
-      // Pre-fetch rates for all unique NTTNs in the records
-      const uniqueNttnIds = [...new Set(recordsData.map(record => record.nttn_id).filter(Boolean))];
-      uniqueNttnIds.forEach(nttnId => {
-        fetchRatesForNttn(nttnId);
-      });
     } catch (error) {
       console.error("Fetch error:", error);
       setError(
@@ -889,11 +1183,161 @@ const WorkOrder = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, showToast, fetchRatesForNttn]);
+  }, [pagination.page, pagination.limit, showToast]);
 
   useEffect(() => {
-    fetchAllWorkOrders(filters);
-  }, [filters, fetchAllWorkOrders]);
+    fetchAllWorkOrders();
+    fetchAllReasons();
+  }, [fetchAllWorkOrders, fetchAllReasons]);
+
+  // Function to apply filters locally
+  const applyFilters = useCallback((filters) => {
+    if (!allRecords.length) return;
+    
+    console.log("🔍 Applying filters:", filters);
+    
+    let result = [...allRecords];
+    
+    // Apply each filter if it exists
+    if (filters.sbu_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'sbu_id')) === String(filters.sbu_id)
+      );
+    }
+    
+    if (filters.link_type_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'link_type_id')) === String(filters.link_type_id)
+      );
+    }
+    
+    if (filters.aggregator_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'aggregator_id')) === String(filters.aggregator_id)
+      );
+    }
+    
+    if (filters.kam_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'kam_id')) === String(filters.kam_id)
+      );
+    }
+    
+    if (filters.nttn_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'nttn_id')) === String(filters.nttn_id)
+      );
+    }
+    
+    if (filters.client_category) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'cat_name')) === String(filters.client_category)
+      );
+    }
+    
+    if (filters.client_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'client_id')) === String(filters.client_id)
+      );
+    }
+    
+    if (filters.requested_delivery) {
+      result = result.filter(record => {
+        const deliveryDate = record.requested_delivery;
+        if (!deliveryDate) return false;
+        return deliveryDate.includes(filters.requested_delivery);
+      });
+    }
+    
+    if (filters.service_handover) {
+      result = result.filter(record => {
+        const handoverDate = record.service_handover;
+        if (!handoverDate) return false;
+        return handoverDate.includes(filters.service_handover);
+      });
+    }
+
+
+    if (filters.client_lat) {
+        result = result.filter(record => {
+            const clientLat = getNestedValue(record, 'client_lat') || record.client_lat;
+            return String(clientLat) === String(filters.client_lat);
+        });
+    }
+    
+    // Client Longitude filter (exact match)
+    if (filters.client_long) {
+        result = result.filter(record => {
+            const clientLong = getNestedValue(record, 'client_long') || record.client_long;
+            return String(clientLong) === String(filters.client_long);
+        });
+    }
+    
+    // Client ID filter (from API)
+    if (filters.client_id) {
+        result = result.filter(record => 
+            String(getNestedValue(record, 'client_id')) === String(filters.client_id)
+        );
+    }
+
+
+
+     // NTTN Work Order ID filter (Link/SCR ID)
+    if (filters.nttn_work_order_id) {
+        result = result.filter(record => {
+            const nttnWorkOrderId = record.nttn_work_order_id;
+            return String(nttnWorkOrderId) === String(filters.nttn_work_order_id);
+        });
+    }
+    
+    // NTTN Survey ID filter (NTTN Provider ID)
+    if (filters.nttn_survey_id) {
+        result = result.filter(record => {
+            const nttnSurveyId = record.nttn_survey_id;
+            return String(nttnSurveyId) === String(filters.nttn_survey_id);
+        });
+    }
+    
+    // Date range filters for requested delivery
+    if (filters.requested_delivery_from || filters.requested_delivery_to) {
+        result = result.filter(record => {
+            const recordDate = record.requested_delivery;
+            if (!recordDate) return false;
+            
+            const recordDateObj = new Date(recordDate);
+            
+            if (filters.requested_delivery_from) {
+                const fromDate = new Date(filters.requested_delivery_from);
+                if (recordDateObj < fromDate) return false;
+            }
+            
+            if (filters.requested_delivery_to) {
+                const toDate = new Date(filters.requested_delivery_to);
+                if (recordDateObj > toDate) return false;
+            }
+            
+            return true;
+        });
+    }
+    
+    console.log(`✅ Filtered from ${allRecords.length} to ${result.length} records`);
+    setFilteredRecords(result);
+    setPagination(prev => ({ ...prev, page: 1, totalRows: result.length }));
+    setActiveFilters(filters);
+}, [allRecords]);
+
+  // Handle filter change from WorkOrderFilterMenu
+  const handleFilterChange = useCallback((filters) => {
+    console.log("🎯 Filters received from WorkOrderFilterMenu:", filters);
+    applyFilters(filters);
+  }, [applyFilters]);
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setFilteredRecords(allRecords);
+    setActiveFilters({});
+    setPagination(prev => ({ ...prev, page: 1, totalRows: allRecords.length }));
+  }, [allRecords]);
 
   const openNewForm = () => {
     setFormState({
@@ -921,14 +1365,22 @@ const WorkOrder = () => {
       const workOrderData = await fetchWorkOrderLaravel(item.id);
       console.log('✅ Work order data received:', workOrderData);
       
-      // Ensure we have the data object
       const workOrder = workOrderData.data || workOrderData;
       
       setFormState({
         isOpen: true,
         isEditMode: true,
         editingRecordId: item.id,
-        initialValues: workOrder,
+        initialValues: {
+          ...workOrder,
+          reason_id: workOrder.reason_id ? String(workOrder.reason_id) : '',
+          // Map rate to unit_rate for form
+          unit_rate: workOrder.rate || '',
+          // Calculate total cost for form
+          total_cost_of_request_capacity: workOrder.request_capacity && workOrder.rate 
+            ? (parseFloat(workOrder.request_capacity) * parseFloat(workOrder.rate)).toFixed(2)
+            : '',
+        },
         isLoading: false,
       });
     } catch (error) {
@@ -949,7 +1401,7 @@ const WorkOrder = () => {
         await createWorkOrderLaravel(values);
         showToast("Created successfully!", "success");
       }
-      fetchAllWorkOrders(filters);
+      fetchAllWorkOrders(); // Refresh data
       closeForm();
     } catch (error) {
       console.error("Submit error:", error);
@@ -958,74 +1410,49 @@ const WorkOrder = () => {
     }
   };
 
-  const handleFilterChange = useCallback((newTableState) => {
-    const { page, limit, ...otherFilters } = newTableState;
-    setFilters(otherFilters);
-    setPagination((prev) => ({ ...prev, page: 1 }));
+  // Function to get reason text from reason_id
+  const getReasonText = useCallback((reasonId) => {
+    if (!reasonId) return "N/A";
+    return reasonsMap.get(String(reasonId)) || reasonId;
+  }, [reasonsMap]);
+
+  // Function to calculate total cost from rate and request_capacity
+  const calculateTotalCost = useCallback((record) => {
+    const requestCapacity = parseFloat(record.request_capacity) || 0;
+    const rate = parseFloat(record.rate) || 0;
+    
+    // If total_cost_of_request_capacity already exists, use it
+    if (record.total_cost_of_request_capacity) {
+      return parseFloat(record.total_cost_of_request_capacity).toFixed(2);
+    }
+    
+    // Otherwise calculate: request_capacity * rate
+    return (requestCapacity * rate).toFixed(2);
   }, []);
 
-  // ✅ Function to calculate rates for table display (same logic as WorkOrderForm)
-  const calculateTableRates = useCallback((record) => {
-    const requestCapacity = parseFloat(record.request_capacity) || 0;
-    
-    // If unit_rate and total_cost are already available in the record, use them
-    if (record.unit_rate && record.total_cost_of_request_capacity) {
-      return {
-        unitRate: parseFloat(record.unit_rate).toFixed(2),
-        totalCost: parseFloat(record.total_cost_of_request_capacity).toFixed(2),
-        rateId: record.rate_id || "N/A"
-      };
-    }
-
-    // Calculate based on cached rates data
-    if (record.nttn_id && requestCapacity > 0) {
-      const nttnRates = ratesCache.get(record.nttn_id) || [];
-      
-      // Find matching rate based on bandwidth range (same logic as WorkOrderForm)
-      const matchingRate = nttnRates.find(rate => {
-        const rangeFrom = parseInt(rate.bw_range_from);
-        const rangeTo = parseInt(rate.bw_range_to);
-        return requestCapacity >= rangeFrom && requestCapacity <= rangeTo;
-      });
-
-      if (matchingRate) {
-        const unitRate = parseFloat(matchingRate.rate);
-        const totalCost = requestCapacity * unitRate;
-        return {
-          unitRate: unitRate.toFixed(2),
-          totalCost: totalCost.toFixed(2),
-          rateId: matchingRate.id
-        };
-      }
-    }
-
-    // If no rates found or no calculation possible, show stored values or zeros
-    return {
-      unitRate: record.unit_rate ? parseFloat(record.unit_rate).toFixed(2) : "0.00",
-      totalCost: record.total_cost_of_request_capacity ? parseFloat(record.total_cost_of_request_capacity).toFixed(2) : "0.00",
-      rateId: record.rate_id || "N/A"
-    };
-  }, [ratesCache]);
-
-  // ✅ Dynamic dropdowns
+  // Dynamic dropdowns for filter menu
   const dynamicOptions = useMemo(() => {
     return {
-      sbu: getUniqueOptionsWithIds(records, "sbu_name", "sbu_id"),
-      link_type: getUniqueOptionsWithIds(records, "type_name", "link_type_id"),
+      sbu: getUniqueOptionsWithIds(allRecords, "sbu_name", "sbu_id"),
+      link_type: getUniqueOptionsWithIds(allRecords, "type_name", "link_type_id"),
       aggregator: getUniqueOptionsWithIds(
-        records,
+        allRecords,
         "aggregator_name",
         "aggregator_id"
       ),
-      kam: getUniqueOptionsWithIds(records, "kam_name", "kam_id"),
-      nttn: getUniqueOptionsWithIds(records, "nttn_name", "nttn_id"),
-      client: getUniqueOptionsWithIds(records, "client_name", "client_id"),
-      client_category: getUniqueOptions(records, "cat_name"),
-      status: getUniqueOptions(records, "status"),
+      kam: getUniqueOptionsWithIds(allRecords, "kam_name", "kam_id"),
+      nttn: getUniqueOptionsWithIds(allRecords, "nttn_name", "nttn_id"),
+      client: getUniqueOptionsWithIds(allRecords, "client_name", "client_id"),
+      client_category: getUniqueOptions(allRecords, "cat_name"),
+      status: getUniqueOptions(allRecords, "status"),
+      reason: getUniqueOptions(allRecords, "reason_id").map(option => ({
+        ...option,
+        label: getReasonText(option.value)
+      })),
     };
-  }, [records]);
+  }, [allRecords, getReasonText]);
 
-  // ✅ Updated Columns with rate calculations
+  // Updated Columns with proper rate and total cost calculations
   const workOrderColumns = useMemo(
     () => [
       { key: "sbu_name", header: "SBU" },
@@ -1052,19 +1479,16 @@ const WorkOrder = () => {
         render: (val) => val ? `${val} Mbps` : "0 Mbps"
       },
       { 
-        key: "unit_rate", 
+        key: "rate", 
         header: "Unit Rate",
-        render: (val, row) => {
-          const rates = calculateTableRates(row);
-          return `$${rates.unitRate}`;
-        }
+        render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "$0.00"
       },
       { 
         key: "total_cost_of_request_capacity", 
         header: "Total Cost",
         render: (val, row) => {
-          const rates = calculateTableRates(row);
-          return `$${rates.totalCost}`;
+          const totalCost = calculateTotalCost(row);
+          return `$${totalCost}`;
         }
       },
       { key: "vlan", header: "VLAN" },
@@ -1088,6 +1512,11 @@ const WorkOrder = () => {
       },
       { key: "remarks", header: "Remarks" },
       { 
+        key: "reason_id", 
+        header: "Reason",
+        render: (val) => getReasonText(val)
+      },
+      { 
         key: "status", 
         header: "Status",
         render: (val) => val ? val.charAt(0).toUpperCase() + val.slice(1) : "N/A"
@@ -1108,8 +1537,18 @@ const WorkOrder = () => {
         ),
       },
     ],
-    [handleEdit, calculateTableRates]
+    [handleEdit, calculateTotalCost, getReasonText]
   );
+
+  // DataTable onFilterChange handler (for pagination)
+  const handleTableFilterChange = useCallback((newTableState) => {
+    const { page, pageSize } = newTableState;
+    setPagination(prev => ({ 
+      ...prev, 
+      page: page || prev.page, 
+      limit: pageSize || prev.limit 
+    }));
+  }, []);
 
   if (formState.isOpen) {
     return (
@@ -1139,10 +1578,22 @@ const WorkOrder = () => {
           <p className="text-gray-500">
             View and manage the list of work orders.
           </p>
+          {/* Show active filters count */}
+          {Object.keys(activeFilters).length > 0 && (
+            <div className="mt-2 text-sm text-gray-600">
+              <span className="font-medium">{filteredRecords.length}</span> records filtered
+              <button 
+                onClick={clearFilters}
+                className="ml-2 text-blue-600 hover:text-blue-800 underline"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <ExportButton
-            data={records}
+            data={filteredRecords}
             columns={workOrderColumns}
             fileName="work_orders"
             intent="primary"
@@ -1166,23 +1617,23 @@ const WorkOrder = () => {
         </div>
       ) : (
         <DataTable
-          data={records}
+          data={filteredRecords}
           columns={workOrderColumns}
           searchable
           showId
           filterComponent={
             <WorkOrderFilterMenu
-              records={records}
-              onFilterChange={handleFilterChange}
+              records={allRecords} // Pass all records for filter options
+              onFilterChange={handleFilterChange} // This handles frontend filtering
             />
           }
-          isBackendPagination
-          totalRows={pagination.totalRows}
+          isBackendPagination={false} // Frontend pagination since we're filtering locally
+          totalRows={filteredRecords.length}
           page={pagination.page}
           pageSize={pagination.limit}
-          onFilterChange={handleFilterChange}
-          setPage={(page) => setPagination((p) => ({ ...p, page }))}
-          setPageSize={(limit) => setPagination((p) => ({ ...p, limit, page: 1 }))}
+          onFilterChange={handleTableFilterChange} // Only for pagination
+          setPage={(page) => setPagination(p => ({ ...p, page }))}
+          setPageSize={(limit) => setPagination(p => ({ ...p, limit, page: 1 }))}
           scrollable
           maxHeight="600px"
           stickyHeader

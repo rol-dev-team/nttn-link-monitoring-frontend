@@ -121,15 +121,15 @@ export const fetchRatesByID = async (nttnId, bwId) => {
 // };
 
 // // Fetch specific rate for NTTN and bandwidth
-// export const fetchRateByNttnAndBandwidth = async (nttnId, bandwidth) => {
-//   try {
-//     const response = await axiosInstance.get(`/rates/nttn/${nttnId}/bandwidth/${bandwidth}`);
-//     return response.data;
-//   } catch (error) {
-//     console.error('API Error fetching rate by NTTN and bandwidth:', error);
-//     throw new Error('Failed to fetch rate from the server.');
-//   }
-// };
+export const fetchRateByNttnAndBandwidth = async (nttnId, bandwidth) => {
+  try {
+    const response = await axiosInstance.get(`/rates/nttn/${nttnId}/bandwidth/${bandwidth}`);
+    return response.data;
+  } catch (error) {
+    console.error('API Error fetching rate by NTTN and bandwidth:', error);
+    throw new Error('Failed to fetch rate from the server.');
+  }
+};
 
 
 
@@ -139,7 +139,6 @@ export const fetchRatesByNttn = async (nttnId, bandwidth = null, linkTypeId = nu
     let endpoint;
     
     if (nttnId && bandwidth) {
-      // Add link_type_id as query parameter if provided
       const params = new URLSearchParams();
       if (linkTypeId) {
         params.append('link_type_id', linkTypeId);
@@ -150,7 +149,6 @@ export const fetchRatesByNttn = async (nttnId, bandwidth = null, linkTypeId = nu
         endpoint += `?${params.toString()}`;
       }
     } else {
-      // Fallback to get all rates for NTTN (existing behavior)
       endpoint = `/rates/nttn/${nttnId}`;
     }
     

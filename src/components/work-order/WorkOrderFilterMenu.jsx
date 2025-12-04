@@ -1266,7 +1266,7 @@ const WorkOrderFilterMenu = ({ records, onFilterChange, live = false }) => {
                         </div>
 
                         {/* Requested Delivery Date - From */}
-                        <DateField
+                        {/* <DateField
                             name="requested_delivery_from"
                             label="Requested Delivery Date From"
                             floating={true}
@@ -1276,10 +1276,10 @@ const WorkOrderFilterMenu = ({ records, onFilterChange, live = false }) => {
                             value={formik.values.requested_delivery_from}
                             onChange={(v) => formik.setFieldValue('requested_delivery_from', v)}
                             placeholder="Select start date"
-                        />
+                        /> */}
 
                         {/* Requested Delivery Date - To */}
-                        <DateField
+                        {/* <DateField
                             name="requested_delivery_to"
                             label="Requested Delivery Date To"
                             floating={true}
@@ -1289,7 +1289,7 @@ const WorkOrderFilterMenu = ({ records, onFilterChange, live = false }) => {
                             value={formik.values.requested_delivery_to}
                             onChange={(v) => formik.setFieldValue('requested_delivery_to', v)}
                             placeholder="Select end date"
-                        />
+                        /> */}
                     </form>
                 </FormikProvider>
 

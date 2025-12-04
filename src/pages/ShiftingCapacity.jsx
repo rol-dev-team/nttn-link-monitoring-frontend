@@ -13,6 +13,7 @@ import { fetchCapacityShifting } from '../services/capacityShiftingApi';
 
 const defaultInitialValues = {
   nttn_provider: '',
+  link_type: '',
   client_category: '',
   client: '',
   nttn_link_id: '',
@@ -26,6 +27,9 @@ const defaultInitialValues = {
   shifting_unit_cost: '',
   total_shifting_cost: '',
   shifting_unit_price_dropdown: '',
+  submission_date: '',
+  reason_id: '',
+  remarks: '',
 };
 
 const ShiftingCapacity = () => {

@@ -63,6 +63,9 @@ const defaultInitialValues = {
   client_lat: null,
   client_long: null,
   client_id: null,
+  capacity_mb: null,
+  distance: null,
+  unit_type: null,
   mac_user: '',
   submission: '',
 };
@@ -269,6 +272,10 @@ const Survey = () => {
         },
       },
       { key: 'nttn_survey_id', header: 'NTTN Provider ID' },
+      { key: 'capacity_mb', header: 'Capacity(MB)' },
+      { key: 'distance', header: 'Distance' },
+      { key: 'unit_type', header: 'Unit Type' },
+
       {
         key: 'cat_name',
         header: 'Client Cat.',
@@ -278,6 +285,26 @@ const Survey = () => {
           options: dynamicOptions.cat_name,
           searchable: true,
         },
+      },
+      {
+        key: 'client_lat',
+        header: 'Client Lat',
+        // field: SelectField,
+        // fieldProps: {
+        //   name: 'cat_name',
+        //   options: dynamicOptions.cat_name,
+        //   searchable: true,
+        // },
+      },
+      {
+        key: 'client_long',
+        header: 'Client Long',
+        // field: SelectField,
+        // fieldProps: {
+        //   name: 'cat_name',
+        //   options: dynamicOptions.cat_name,
+        //   searchable: true,
+        // },
       },
       {
         key: 'client_name',

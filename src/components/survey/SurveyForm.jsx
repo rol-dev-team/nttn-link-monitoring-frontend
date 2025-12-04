@@ -440,7 +440,7 @@ import { fetchClientDetailCategoryAndClientWise } from '../../services/survey';
 const FormSection = ({ title, children }) => (
   <fieldset className="col-span-full border-t border-gray-300 pt-6 mt-6">
     <legend className="px-2 text-xl font-semibold text-gray-900">{title}</legend>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4">{children}</div>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 pt-4">{children}</div>
   </fieldset>
 );
 
@@ -458,6 +458,9 @@ const defaultFormValues = {
   client_id: null,
   client_lat: null,
   client_long: null,
+  capacity_mb: null,
+  distance: null,
+  unit_type: null,
   mac_user: '',
   status: 'active',
   submission: '',
@@ -743,6 +746,22 @@ const SurveyForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
               searchable
             />
             <InputField name="nttn_survey_id" label="NTTN Provider ID" type="text" />
+
+            <InputField name="capacity_mb" label="Capacity(MB)" type="text" />
+            <div className="flex gap-2">
+              <InputField name="distance" label="Distance" type="text" />
+              <SelectField
+                name="unit_type"
+                placeholder="Unit"
+                options={[
+                  { value: 'km', label: 'KM' },
+                  { value: 'miter', label: 'Miter' },
+                ]}
+                onChange={(val) => formik.setFieldValue('unit_type', val)}
+                searchable
+              />
+            </div>
+
             <InputField name="nttn_lat" label="NTTN Latitude" type="text" />
             <InputField name="nttn_long" label="NTTN Longitude" type="text" />
           </FormSection>

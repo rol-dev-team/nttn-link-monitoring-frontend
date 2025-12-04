@@ -38,9 +38,27 @@ export const deleteBwRates = async (id) => {
     throw error;
   }
 };
-export const getRatesByNttn = async (nttnId) => {
+// export const getRatesByNttn = async (nttnId) => {
+//   try {
+//     const response = await axiosInstance.get(`/capacity-shifting/rates/nttn/${nttnId}`);
+//     return response.data;
+//   } catch (error) {
+//     throw error;
+//   }
+// };
+
+export const getRatesByNttn = async (data) => {
   try {
-    const response = await axiosInstance.get(`/capacity-shifting/rates/nttn/${nttnId}`);
+    const response = await axiosInstance.post(`/capacity-shifting/rates/nttn`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getRatesBetweenShiftingBandwidth = async (data) => {
+  try {
+    const response = await axiosInstance.post(`/capacity-shifting/rates/between-shifting-bw`, data);
     return response.data;
   } catch (error) {
     throw error;

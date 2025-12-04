@@ -1,6 +1,6 @@
-import React from "react";
-import DataTable from "../table/DataTable";
-import SurveyFilterMenu from "./SurveyFilterMenu";
+import React from 'react';
+import DataTable from '../table/DataTable';
+import SurveyFilterMenu from './SurveyFilterMenu';
 const SurveyTable = ({
   records,
   onEdit,
@@ -31,7 +31,6 @@ const SurveyTable = ({
         />
       }
       noDataMessage="No survey records found. Click 'Add Survey' to create a new one."
-
       // 🔑 PASS THROUGH PAGINATION PROPS
       isBackendPagination={isBackendPagination}
       totalRows={totalRows}

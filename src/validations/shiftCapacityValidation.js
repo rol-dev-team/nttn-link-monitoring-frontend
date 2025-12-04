@@ -9,9 +9,7 @@ export const shiftCapacitySchema = Yup.object().shape({
     .required('Client Category is required')
     .positive('Client Category must be selected'),
 
-  client: Yup.number()
-    .required('Client is required')
-    .positive('Client must be selected'),
+  client: Yup.number().required('Client is required').positive('Client must be selected'),
 
   shifting_client_category: Yup.number()
     .required('Shifting Client Category is required')
@@ -21,41 +19,29 @@ export const shiftCapacitySchema = Yup.object().shape({
     .required('Shifting Client is required')
     .positive('Shifting Client must be selected'),
 
-  nttn_link_id: Yup.string()
-    .required('NTTN Link ID is required'),
-  shifting_link_id: Yup.string()
-    .required('Shifting Link ID is required'),
+  nttn_link_id: Yup.string().required('NTTN Link ID is required'),
+  shifting_link_id: Yup.string().required('Shifting Link ID is required'),
 
-  capacity: Yup.number()
-    .required('Capacity is required')
-    .min(0, 'Capacity cannot be negative'),
+  capacity: Yup.number().required('Capacity is required').min(0, 'Capacity cannot be negative'),
 
-  capacity_cost: Yup.number()
-    .min(0, 'Capacity cost cannot be negative'),
+  capacity_cost: Yup.number().min(0, 'Capacity cost cannot be negative'),
 
   shifting_bw: Yup.number()
     .required('Shifting BW is required')
     .positive('Shifting BW must be positive')
-    .test(
-      'is-less-than-capacity',
-      'Shifting BW cannot be greater than Capacity',
-      function (value) {
-        const { capacity } = this.parent;
-        return value <= capacity;
-      }
-    ),
+    .test('is-less-than-capacity', 'Shifting BW cannot be greater than Capacity', function (value) {
+      const { capacity } = this.parent;
+      return value <= capacity;
+    }),
 
-  after_shifting_capacity: Yup.number()
-    .min(0, 'After shifting capacity cannot be negative'),
+  after_shifting_capacity: Yup.number().min(0, 'After shifting capacity cannot be negative'),
 
-  shifting_capacity: Yup.number()
-    .min(0, 'Shifting capacity cannot be negative'),
+  shifting_capacity: Yup.number().min(0, 'Shifting capacity cannot be negative'),
 
-  shifting_unit_cost: Yup.number()
-    .min(0, 'Shifting unit cost cannot be negative'),
+  shifting_unit_cost: Yup.number().min(0, 'Shifting unit cost cannot be negative'),
 
   total_shifting_cost: Yup.number()
     .required('Total shifting cost is required')
     .min(0, 'Total shifting cost cannot be negative'),
-
+  submission_date: Yup.date().required('Submission date is required'),
 });

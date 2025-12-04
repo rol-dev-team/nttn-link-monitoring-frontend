@@ -177,6 +177,39 @@ export const fetchWorkOrderLaravel = async (id) => {
 };
 
 
+
+// export const fetchWorkOrderLaravel = async (id) => {
+//   try {
+//     console.log(`📡 Fetching work order with ID: ${id}`);
+//     const response = await axiosInstance.get(`/work-orders/${id}/`);
+//     console.log('✅ Work order API response:', response.data);
+    
+//     // Check different response structures
+//     if (response.data && response.data.success && response.data.data) {
+//       // Structure: { success: true, data: {...}, message: "..." }
+//       console.log('📊 Found data in response.data.data');
+//       return response.data.data;
+//     } else if (response.data && response.data.data && response.data.data.items) {
+//       // Structure: { data: { items: [{...}] } }
+//       console.log('📊 Found data in response.data.data.items');
+//       return response.data.data.items[0];
+//     } else if (response.data && response.data.data) {
+//       // Structure: { data: {...} }
+//       console.log('📊 Found data in response.data.data');
+//       return response.data.data;
+//     } else {
+//       // Direct data
+//       console.log('📊 Using direct response.data');
+//       return response.data;
+//     }
+//   } catch (error) {
+//     console.error('❌ Error fetching work order:', error);
+//     console.error('Error response:', error.response?.data);
+//     throw error;
+//   }
+// };
+
+
 // services/workOrder.js
 
 
@@ -204,6 +237,34 @@ export const fetchWorkOrderBeModification = async (id = null, clientId = null) =
     return response.data;
   } catch (error) {
     console.error('❌ Error fetching work orders:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+export const fetchActiveNttnWorkOrderIds = async () => {
+  try {
+    const response = await axiosInstance.get('/active-nttn-ids');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching active NTTN work order IDs:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+export const fetchActiveNttnProviderIds = async () => {
+  try {
+    const response = await axiosInstance.get('/active-provider-ids');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching active NTTN work order IDs:', error);
     throw error;
   }
 };

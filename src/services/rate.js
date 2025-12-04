@@ -110,17 +110,17 @@ export const fetchRatesByID = async (nttnId, bwId) => {
 };
 
 
-export const fetchRatesByNttn = async (nttnId) => {
-  try {
-    const response = await axiosInstance.get(`/rates/nttn/${nttnId}`);
-    return response.data;
-  } catch (error) {
-    console.error('API Error fetching rates by NTTN ID:', error);
-    throw new Error('Failed to fetch rates from the server.');
-  }
-};
+// export const fetchRatesByNttn = async (nttnId) => {
+//   try {
+//     const response = await axiosInstance.get(`/rates/nttn/${nttnId}`);
+//     return response.data;
+//   } catch (error) {
+//     console.error('API Error fetching rates by NTTN ID:', error);
+//     throw new Error('Failed to fetch rates from the server.');
+//   }
+// };
 
-// Fetch specific rate for NTTN and bandwidth
+// // Fetch specific rate for NTTN and bandwidth
 export const fetchRateByNttnAndBandwidth = async (nttnId, bandwidth) => {
   try {
     const response = await axiosInstance.get(`/rates/nttn/${nttnId}/bandwidth/${bandwidth}`);
@@ -128,6 +128,35 @@ export const fetchRateByNttnAndBandwidth = async (nttnId, bandwidth) => {
   } catch (error) {
     console.error('API Error fetching rate by NTTN and bandwidth:', error);
     throw new Error('Failed to fetch rate from the server.');
+  }
+};
+
+
+
+// services/rate.js - MODIFY THIS FUNCTION
+export const fetchRatesByNttn = async (nttnId, bandwidth = null, linkTypeId = null) => {
+  try {
+    let endpoint;
+    
+    if (nttnId && bandwidth) {
+      const params = new URLSearchParams();
+      if (linkTypeId) {
+        params.append('link_type_id', linkTypeId);
+      }
+      
+      endpoint = `/rates/nttn/${nttnId}/bandwidth/${bandwidth}`;
+      if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+      }
+    } else {
+      endpoint = `/rates/nttn/${nttnId}`;
+    }
+    
+    const response = await axiosInstance.get(endpoint);
+    return response.data;
+  } catch (error) {
+    console.error('API Error fetching rates:', error);
+    throw new Error('Failed to fetch rates from the server.');
   }
 };
 

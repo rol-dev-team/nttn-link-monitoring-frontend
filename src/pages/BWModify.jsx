@@ -1,20 +1,20 @@
-// import React, { useEffect, useState, useMemo, useCallback } from "react";
-// import { Plus, Pencil } from "lucide-react";
-// import Button from "../components/ui/Button";
-// import BWModificationForm from "../components/bwModify/BWModificationForm";
-// import DataTable from "../components/table/DataTable";
-// import ToastContainer from "../components/ui/ToastContainer";
+// import React, { useEffect, useState, useMemo, useCallback } from 'react';
+// import { Plus, Pencil } from 'lucide-react';
+// import Button from '../components/ui/Button';
+// import BWModificationForm from '../components/bwModify/BWModificationForm';
+// import DataTable from '../components/table/DataTable';
+// import ToastContainer from '../components/ui/ToastContainer';
 // import { FaFileExcel } from 'react-icons/fa';
-// import ExportButton from "../components/ui/ExportButton";
-// import SelectField from "../components/fields/SelectField";
-// import DateField from "../components/fields/DateField";
-// import BWModificationFilterMenu from "../components/bwModify/BWModificationFilterMenu";
+// import ExportButton from '../components/ui/ExportButton';
+// import SelectField from '../components/fields/SelectField';
+// import DateField from '../components/fields/DateField';
+// import BWModificationFilterMenu from '../components/bwModify/BWModificationFilterMenu';
 // import {
 //   createBWModification,
 //   fetchBWModifications,
-//   updateBWModification
-// } from "../services/bwModification";
-// import moment from "moment";
+//   updateBWModification,
+// } from '../services/bwModification';
+// import moment from 'moment';
 
 // /* ---------- Helper functions ---------- */
 // const getNestedValue = (obj, path) => {
@@ -23,46 +23,62 @@
 
 // const getUniqueOptionsWithIds = (records, namePath, idPath) => {
 //   const uniqueMap = new Map();
-//   records.forEach(record => {
+//   records.forEach((record) => {
 //     const name = getNestedValue(record, namePath);
 //     const id = getNestedValue(record, idPath);
 //     if (name && id) {
 //       uniqueMap.set(name, id);
 //     }
 //   });
-//   return Array.from(uniqueMap.entries()).sort().map(([name, id]) => ({
-//     label: name,
-//     value: id,
-//   }));
+//   return Array.from(uniqueMap.entries())
+//     .sort()
+//     .map(([name, id]) => ({
+//       label: name,
+//       value: id,
+//     }));
 // };
 
 // const getUniqueOptions = (records, key) => {
 //   const uniqueValues = new Set();
-//   records.forEach(record => {
+//   records.forEach((record) => {
 //     const value = getNestedValue(record, key);
-//     if (value !== null && value !== undefined && String(value).trim() !== "") {
+//     if (value !== null && value !== undefined && String(value).trim() !== '') {
 //       uniqueValues.add(String(value).trim());
 //     }
 //   });
-//   return Array.from(uniqueValues).sort().map(value => ({
-//     label: value,
-//     value: value,
-//   }));
+//   return Array.from(uniqueValues)
+//     .sort()
+//     .map((value) => ({
+//       label: value,
+//       value: value,
+//     }));
+// };
+
+// // Add modification type display helper function
+// const getModificationTypeDisplay = (type) => {
+//   switch (type) {
+//     case '1':
+//       return 'Upgrade';
+//     case '2':
+//       return 'Downgrade';
+//     default:
+//       return type || '-';
+//   }
 // };
 // /* ----------------------------------------------------------- */
 
 // const defaultInitialValues = {
-//   id: "",
+//   id: '',
 //   nttn_provider: null,
-//   modification_type: "",
+//   modification_type: '',
 //   client_category: null,
 //   client: null,
-//   nttn_link_id: "",
-//   capacity: "",
-//   capacity_cost: "",
-//   shifting_bw: "",
-//   shifting_capacity: "",
-//   shifting_unit_cost: "",
+//   nttn_link_id: '',
+//   capacity: '',
+//   capacity_cost: '',
+//   shifting_bw: '',
+//   shifting_capacity: '',
+//   shifting_unit_cost: '',
 //   workorder: null,
 // };
 
@@ -126,23 +142,23 @@
 //       const preprocessedData = data.map((item) => ({
 //         ...item,
 //         // Map fields according to your database structure
-//         nttn_provider_name: item.nttn_name || item.nttn_provider_details?.nttn_name || "-",
+//         nttn_provider_name: item.nttn_name || item.nttn_provider_details?.nttn_name || '-',
 //         client_category_name: item.cat_name || item.client_category_details?.cat_name,
 //         client_name: item.client_name || item.client_details?.client_name,
 //         workorder_bw_capacity: item.workorder_details?.request_capacity,
 //         workorder_id: item.workorder_row_id || item.workorder_details?.id,
-//         modification_type: item.modification_type || "",
-//         shifting_capacity: item.shifting_capacity || "",
-//         shifting_unit_cost: item.shifting_unit_cost || "",
-//         nttn_link_id: item.nttn_work_order_id || item.nttn_link_id || "", // Handle both field names
+//         modification_type: item.modification_type || '',
+//         shifting_capacity: item.shifting_capacity || '',
+//         shifting_unit_cost: item.shifting_unit_cost || '',
+//         nttn_link_id: item.nttn_work_order_id || item.nttn_link_id || '', // Handle both field names
 //       }));
 
 //       setRecords(preprocessedData);
-//       setPagination(prev => ({ ...prev, totalRows: total }));
+//       setPagination((prev) => ({ ...prev, totalRows: total }));
 //     } catch (err) {
-//       const msg = err?.response?.data?.message || "Failed to fetch BW Modifications.";
+//       const msg = err?.response?.data?.message || 'Failed to fetch BW Modifications.';
 //       setError(msg);
-//       showToast(msg, "error");
+//       showToast(msg, 'error');
 //     } finally {
 //       setLoading(false);
 //     }
@@ -170,19 +186,19 @@
 //       isLoading: false,
 //     });
 
-//   const handleEdit = (item) =>
+//   const handleEdit = useCallback((item) => {
 //     setFormState({
 //       isOpen: true,
 //       isEditMode: true,
 //       editingRecordId: item.id,
 //       initialValues: {
 //         ...item,
-//         nttn_work_order_id: item.nttn_link_id || item.nttn_work_order_id || "",
-//         capacity: item.capacity || "",
-//         capacity_cost: item.capacity_cost || "",
-//         shifting_bw: item.shifting_bw || "",
-//         shifting_capacity: item.shifting_capacity || "",
-//         shifting_unit_cost: item.shifting_unit_cost || "",
+//         nttn_work_order_id: item.nttn_link_id || item.nttn_work_order_id || '',
+//         capacity: item.capacity || '',
+//         capacity_cost: item.capacity_cost || '',
+//         shifting_bw: item.shifting_bw || '',
+//         shifting_capacity: item.shifting_capacity || '',
+//         shifting_unit_cost: item.shifting_unit_cost || '',
 //         nttn_provider: item.nttn_provider_id || item.nttn_provider_details?.id || null,
 //         client: item.client_id || item.client_details?.id || null,
 //         client_category: item.client_category_id || item.client_category_details?.id || null,
@@ -190,42 +206,60 @@
 //       },
 //       isLoading: false,
 //     });
+//   }, []);
 
 //   const closeForm = () =>
-//     setFormState((s) => ({ ...s, isOpen: false, isEditMode: false, editingRecordId: null, initialValues: defaultInitialValues }));
+//     setFormState((s) => ({
+//       ...s,
+//       isOpen: false,
+//       isEditMode: false,
+//       editingRecordId: null,
+//       initialValues: defaultInitialValues,
+//     }));
 
-//  const handleSubmit = async (values) => {
-//   const { isEditMode, editingRecordId } = formState;
-//   try {
-//     if (isEditMode) {
-//       await updateBWModification(editingRecordId, values);
-//       showToast("Updated successfully!", "success");
-//     } else {
-//       await createBWModification(values);
-//       showToast("Created successfully!", "success");
+//   const handleSubmit = async (values) => {
+//     const { isEditMode, editingRecordId } = formState;
+//     try {
+//       if (isEditMode) {
+//         await updateBWModification(editingRecordId, values);
+//         showToast('Updated successfully!', 'success');
+//       } else {
+//         await createBWModification(values);
+//         showToast('Created successfully!', 'success');
+//       }
+//       fetchAllBWModifications();
+//       closeForm();
+//     } catch (err) {
+//       showToast(err?.response?.data?.message || 'Save failed!', 'error');
 //     }
-//     fetchAllBWModifications();
-//     closeForm();
-//   } catch (err) {
-//     showToast(err?.response?.data?.message || "Save failed!", "error");
-//   }
-// };
+//   };
 
 //   const handleFilterChange = useCallback((newFilters) => {
 //     setFilters(newFilters);
-//     setPagination(prev => ({ ...prev, page: 1 }));
+//     setPagination((prev) => ({ ...prev, page: 1 }));
 //   }, []);
 
 //   // Dynamic Options Calculation
 //   const dynamicOptions = useMemo(() => {
 //     return {
-//       nttn_provider: getUniqueOptionsWithIds(records, 'nttn_name', 'nttn_provider_id') ||
-//                      getUniqueOptionsWithIds(records, 'nttn_provider_details.nttn_name', 'nttn_provider_details.id'),
+//       nttn_provider:
+//         getUniqueOptionsWithIds(records, 'nttn_name', 'nttn_provider_id') ||
+//         getUniqueOptionsWithIds(
+//           records,
+//           'nttn_provider_details.nttn_name',
+//           'nttn_provider_details.id'
+//         ),
 //       modification_type: getUniqueOptions(records, 'modification_type'),
-//       client: getUniqueOptionsWithIds(records, 'client_name', 'client_id') ||
-//               getUniqueOptionsWithIds(records, 'client_details.client_name', 'client_details.id'),
-//       client_category: getUniqueOptionsWithIds(records, 'cat_name', 'client_category_id') ||
-//                       getUniqueOptionsWithIds(records, 'client_category_details.cat_name', 'client_category_details.id'),
+//       client:
+//         getUniqueOptionsWithIds(records, 'client_name', 'client_id') ||
+//         getUniqueOptionsWithIds(records, 'client_details.client_name', 'client_details.id'),
+//       client_category:
+//         getUniqueOptionsWithIds(records, 'cat_name', 'client_category_id') ||
+//         getUniqueOptionsWithIds(
+//           records,
+//           'client_category_details.cat_name',
+//           'client_category_details.id'
+//         ),
 //     };
 //   }, [records]);
 
@@ -233,112 +267,107 @@
 //   const bwModifyColumns = useMemo(
 //     () => [
 //       {
-//         key: "nttn_provider_name",
-//         header: "NTTN Provider",
+//         key: 'nttn_provider_name',
+//         header: 'NTTN Provider',
 //         isSortable: true,
 //         field: SelectField,
 //         fieldProps: {
-//           name: "nttn_provider",
+//           name: 'nttn_provider',
 //           options: dynamicOptions.nttn_provider || [],
-//           searchable: true
-//         }
+//           searchable: true,
+//         },
 //       },
 //       {
-//         key: "modification_type",
-//         header: "Modification Type",
+//         key: 'modification_type',
+//         header: 'Modification Type',
 //         isSortable: true,
+//         render: (val) => getModificationTypeDisplay(val),
 //         field: SelectField,
 //         fieldProps: {
-//           name: "modification_type",
+//           name: 'modification_type',
 //           options: dynamicOptions.modification_type || [],
-//           searchable: true
-//         }
+//           searchable: true,
+//         },
 //       },
 //       {
-//         key: "client_category_name",
-//         header: "Client Category",
+//         key: 'client_category_name',
+//         header: 'Client Category',
 //         isSortable: true,
 //         field: SelectField,
 //         fieldProps: {
-//           name: "client_category",
+//           name: 'client_category',
 //           options: dynamicOptions.client_category || [],
-//           searchable: true
-//         }
+//           searchable: true,
+//         },
 //       },
 //       {
-//         key: "client_name",
-//         header: "Client",
+//         key: 'client_name',
+//         header: 'Client',
 //         isSortable: true,
 //         field: SelectField,
 //         fieldProps: {
-//           name: "client",
+//           name: 'client',
 //           options: dynamicOptions.client || [],
-//           searchable: true
-//         }
+//           searchable: true,
+//         },
 //       },
 //       {
-//         key: "nttn_link_id",
-//         header: "NTTN Link ID",
-//         isSortable: true
-//       },
-//       {
-//         key: "capacity",
-//         header: "Current Capacity",
+//         key: 'nttn_link_id',
+//         header: 'NTTN Link ID',
 //         isSortable: true,
-//         render: (val) => val ? `${val} Mbps` : "-"
 //       },
 //       {
-//         key: "capacity_cost",
-//         header: "Current Cost",
+//         key: 'capacity',
+//         header: 'Last Capacity',
 //         isSortable: true,
-//         render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "-"
+//         render: (val) => (val ? `${val} Mbps` : '-'),
 //       },
 //       {
-//         key: "shifting_bw",
-//         header: "New BW",
+//         key: 'capacity_cost',
+//         header: 'Last Cost',
 //         isSortable: true,
-//         render: (val) => val ? `${val} Mbps` : "-"
+//         render: (val) => (val ? `$${parseFloat(val).toFixed(2)}` : '-'),
 //       },
-//       // {
-//       //   key: "workorder_bw_capacity",
-//       //   header: "Work Order BW",
-//       //   isSortable: true,
-//       //   render: (val) => val ? `${val} Mbps` : "-"
-//       // },
 //       {
-//         key: "shifting_capacity",
-//         header: "New Amount",
+//         key: 'shifting_bw',
+//         header: 'New BW',
 //         isSortable: true,
-//         render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "-"
+//         render: (val) => (val ? `${val} Mbps` : '-'),
 //       },
 //       {
-//         key: "shifting_unit_cost",
-//         header: "Unit Cost",
+//         key: 'shifting_capacity',
+//         header: 'New Amount',
 //         isSortable: true,
-//         render: (val) => val ? `$${parseFloat(val).toFixed(2)}` : "-"
+//         render: (val) => (val ? `$${parseFloat(val).toFixed(2)}` : '-'),
 //       },
 //       {
-//         key: "workorder_id",
-//         header: "Work Order ID",
-//         isSortable: true
-//       },
-//       {
-//         key: "created_at",
-//         header: "Created",
+//         key: 'shifting_unit_cost',
+//         header: 'Unit Cost',
 //         isSortable: true,
-//         render: (val) => (val ? moment(val).format("LLL") : "-"),
+//         render: (val) => (val ? `$${parseFloat(val).toFixed(2)}` : '-'),
+//       },
+//       {
+//         key: 'workorder_id',
+//         header: 'Work Order ID',
+//         isSortable: true,
+//       },
+//       {
+//         key: 'created_at',
+//         header: 'Created',
+//         isSortable: true,
+//         render: (val) => (val ? moment(val).format('LLL') : '-'),
 //         field: DateField,
-//         fieldProps: { name: "created_at", label: "Created Date" }
+//         fieldProps: { name: 'created_at', label: 'Created Date' },
 //       },
 //       {
-//         key: "updated_at",
-//         header: "Updated",
+//         key: 'updated_at',
+//         header: 'Updated',
 //         isSortable: true,
-//         render: (val) => (val ? moment(val).format("LLL") : "-")
+//         render: (val) => (val ? moment(val).format('LLL') : '-'),
 //       },
 //       {
-//         key: "actions",
-//         header: "Action",
+//         key: 'actions',
+//         header: 'Action',
 //         render: (_, row) => (
 //           <Button variant="icon" size="sm" onClick={() => handleEdit(row)} title="Edit">
 //             <Pencil className="h-4 w-4" />
@@ -403,17 +432,14 @@
 //           columns={bwModifyColumns}
 //           showId={true}
 //           filterComponent={
-//             <BWModificationFilterMenu
-//               records={records}
-//               onFilterChange={handleFilterChange}
-//             />
+//             <BWModificationFilterMenu records={records} onFilterChange={handleFilterChange} />
 //           }
 //           isBackendPagination={true}
 //           totalRows={pagination.totalRows}
 //           page={pagination.page}
 //           pageSize={pagination.limit}
-//           setPage={(page) => setPagination(prev => ({ ...prev, page }))}
-//           setPageSize={(limit) => setPagination(prev => ({ ...prev, limit, page: 1 }))}
+//           setPage={(page) => setPagination((prev) => ({ ...prev, page }))}
+//           setPageSize={(limit) => setPagination((prev) => ({ ...prev, limit, page: 1 }))}
 //         />
 //       )}
 
@@ -423,6 +449,10 @@
 // };
 
 // export default BWModify;
+
+
+
+
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Plus, Pencil } from 'lucide-react';
@@ -491,6 +521,11 @@ const getModificationTypeDisplay = (type) => {
       return type || '-';
   }
 };
+
+// Helper function to get reason name
+const getReasonName = (record) => {
+  return record.reason_name || record.reason || '-';
+};
 /* ----------------------------------------------------------- */
 
 const defaultInitialValues = {
@@ -506,6 +541,9 @@ const defaultInitialValues = {
   shifting_capacity: '',
   shifting_unit_cost: '',
   workorder: null,
+  remarks: '', // NEW FIELD
+  reason_id: '', // NEW FIELD
+  submission: '', // NEW FIELD
 };
 
 const BWModify = () => {
@@ -577,6 +615,9 @@ const BWModify = () => {
         shifting_capacity: item.shifting_capacity || '',
         shifting_unit_cost: item.shifting_unit_cost || '',
         nttn_link_id: item.nttn_work_order_id || item.nttn_link_id || '', // Handle both field names
+        remarks: item.remarks || '', // NEW FIELD
+        reason_name: item.reason_name || '-', // NEW FIELD - from DB subquery
+        submission: item.submission || '', // NEW FIELD
       }));
 
       setRecords(preprocessedData);
@@ -629,6 +670,9 @@ const BWModify = () => {
         client: item.client_id || item.client_details?.id || null,
         client_category: item.client_category_id || item.client_category_details?.id || null,
         workorder: item.workorder_row_id || item.workorder_details?.id || null,
+        remarks: item.remarks || '', // NEW FIELD
+        reason_id: item.reason_id || '', // NEW FIELD
+        submission: item.submission || '', // NEW FIELD
       },
       isLoading: false,
     });
@@ -686,10 +730,12 @@ const BWModify = () => {
           'client_category_details.cat_name',
           'client_category_details.id'
         ),
+      // NEW: Add reason options
+      reason: getUniqueOptions(records, 'reason_name').filter(opt => opt.value !== '-'),
     };
   }, [records]);
 
-  // Updated Columns Definition
+  // Updated Columns Definition with new fields
   const bwModifyColumns = useMemo(
     () => [
       {
@@ -771,6 +817,33 @@ const BWModify = () => {
         header: 'Unit Cost',
         isSortable: true,
         render: (val) => (val ? `$${parseFloat(val).toFixed(2)}` : '-'),
+      },
+      // NEW COLUMNS
+      {
+        key: 'remarks',
+        header: 'Remarks',
+        isSortable: true,
+        render: (val) => (val && val.trim() !== '' ? val.substring(0, 50) + (val.length > 50 ? '...' : '') : '-'),
+      },
+      {
+        key: 'reason_name',
+        header: 'Reason',
+        isSortable: true,
+        render: (val, row) => getReasonName(row),
+        field: SelectField,
+        fieldProps: {
+          name: 'reason',
+          options: dynamicOptions.reason || [],
+          searchable: true,
+        },
+      },
+      {
+        key: 'submission',
+        header: 'Submission Date',
+        isSortable: true,
+        render: (val) => (val ? moment(val).format('YYYY-MM-DD') : '-'),
+        field: DateField,
+        fieldProps: { name: 'submission', label: 'Submission Date' },
       },
       {
         key: 'workorder_id',

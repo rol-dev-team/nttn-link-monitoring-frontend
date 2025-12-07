@@ -532,7 +532,7 @@ const defaultInitialValues = {
   id: '',
   nttn_provider: null,
   modification_type: '',
-  client_category: null,
+  client_category_name: null,
   client: null,
   nttn_link_id: '',
   capacity: '',
@@ -541,17 +541,19 @@ const defaultInitialValues = {
   shifting_capacity: '',
   shifting_unit_cost: '',
   workorder: null,
-  remarks: '', // NEW FIELD
-  reason_id: '', // NEW FIELD
-  submission: '', // NEW FIELD
+  remarks: '',
+  reason_id: '',
+  submission: '',
+  rate_id:'',
 };
 
 const BWModify = () => {
-  const [records, setRecords] = useState([]);
+  const [allRecords, setAllRecords] = useState([]); // All records from API
+  const [filteredRecords, setFilteredRecords] = useState([]); // Filtered records for display
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
-  const [filters, setFilters] = useState({});
+  const [activeFilters, setActiveFilters] = useState({});
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -567,37 +569,28 @@ const BWModify = () => {
 
   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
 
-  /* ---------- Updated fetch function ---------- */
+  /* ---------- Fetch function (no filter parameters) ---------- */
   const fetchAllBWModifications = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const { page, limit } = pagination;
-
-    // Prepare filters for API
-    const apiFilters = {
-      ...filters,
-      page: page,
-      limit: limit,
-    };
-
     try {
-      const res = await fetchBWModifications(apiFilters);
+      const res = await fetchBWModifications(); // No parameters
 
       // Handle different API response structures
       let data = [];
       let total = 0;
 
-      if (Array.isArray(res.data)) {
-        // If response has data array
+      if (res && res.data && Array.isArray(res.data)) {
         data = res.data;
         total = res.total || res.data.length;
       } else if (Array.isArray(res)) {
-        // If response is directly an array
         data = res;
         total = res.length;
+      } else if (res && Array.isArray(res.data)) {
+        data = res.data;
+        total = res.total || res.data.length;
       } else {
-        // Fallback
         data = [];
         total = 0;
       }
@@ -605,35 +598,123 @@ const BWModify = () => {
       // Preprocess data with proper field mapping
       const preprocessedData = data.map((item) => ({
         ...item,
-        // Map fields according to your database structure
+        // Original fields
         nttn_provider_name: item.nttn_name || item.nttn_provider_details?.nttn_name || '-',
-        client_category_name: item.cat_name || item.client_category_details?.cat_name,
-        client_name: item.client_name || item.client_details?.client_name,
-        workorder_bw_capacity: item.workorder_details?.request_capacity,
-        workorder_id: item.workorder_row_id || item.workorder_details?.id,
+        client_category_name: item.client_category_name || item.client_category_details?.cat_name || '-',
+        client_name: item.client_name || item.client_details?.client_name || '-',
+        workorder_id: item.workorder_row_id || item.workorder_details?.id || '-',
         modification_type: item.modification_type || '',
         shifting_capacity: item.shifting_capacity || '',
         shifting_unit_cost: item.shifting_unit_cost || '',
-        nttn_link_id: item.nttn_work_order_id || item.nttn_link_id || '', // Handle both field names
-        remarks: item.remarks || '', // NEW FIELD
-        reason_name: item.reason_name || '-', // NEW FIELD - from DB subquery
-        submission: item.submission || '', // NEW FIELD
+        nttn_link_id: item.nttn_work_order_id || item.nttn_link_id || '',
+        remarks: item.remarks || '',
+        reason_name: item.reason_name || '-',
+        submission: item.submission || '',
+        capacity: item.capacity || '',
+        capacity_cost: item.capacity_cost || '',
+        shifting_bw: item.shifting_bw || '',
+        
+        // New fields for filtering (these should come from your API)
+        sbu_id: item.sbu_id || item.survey_data?.sbu_id || '',
+        sbu_name: item.sbu_name || item.survey_data?.sbu_name || '',
+        client_lat: item.client_lat || item.survey_data?.client_lat || '',
+        client_long: item.client_long || item.survey_data?.client_long || '',
+        nttn_survey_id: item.nttn_survey_id || item.survey_data?.nttn_survey_id || '',
+        
+        // Make sure these fields are properly populated
+        client_id: item.client_id || item.client_details?.id || '',
       }));
 
-      setRecords(preprocessedData);
+      console.log('✅ Preprocessed data sample:', preprocessedData[0]);
+      setAllRecords(preprocessedData);
+      setFilteredRecords(preprocessedData); // Initially show all records
       setPagination((prev) => ({ ...prev, totalRows: total }));
     } catch (err) {
       const msg = err?.response?.data?.message || 'Failed to fetch BW Modifications.';
       setError(msg);
       showToast(msg, 'error');
+      console.error('❌ Fetch error:', err);
     } finally {
       setLoading(false);
     }
-  }, [showToast, filters, pagination.page, pagination.limit]);
+  }, [showToast]);
 
   useEffect(() => {
     fetchAllBWModifications();
   }, [fetchAllBWModifications]);
+
+  /* ---------- Frontend Filtering Function ---------- */
+  const applyFilters = useCallback((filters) => {
+    if (!allRecords.length) return;
+    
+    console.log('🔍 Applying frontend filters:', filters);
+    
+    let result = [...allRecords];
+    
+    // Apply SBU filter
+    if (filters.sbu_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'sbu_id')) === String(filters.sbu_id)
+      );
+    }
+    
+    // Apply Client ID filter
+    if (filters.client_id) {
+      result = result.filter(record => 
+        String(getNestedValue(record, 'client_id')) === String(filters.client_id)
+      );
+    }
+    
+    // Apply NTTN Work Order ID filter (Link/SCR ID)
+    if (filters.nttn_work_order_id) {
+      result = result.filter(record => {
+        const nttnWorkOrderId = record.nttn_work_order_id || record.nttn_link_id;
+        return String(nttnWorkOrderId) === String(filters.nttn_work_order_id);
+      });
+    }
+    
+    // Apply NTTN Survey ID filter (NTTN Provider ID)
+    if (filters.nttn_survey_id) {
+      result = result.filter(record => {
+        const nttnSurveyId = record.nttn_survey_id;
+        return String(nttnSurveyId) === String(filters.nttn_survey_id);
+      });
+    }
+    
+    // Apply Client Latitude filter
+    if (filters.client_lat) {
+      result = result.filter(record => {
+        const clientLat = getNestedValue(record, 'client_lat') || record.client_lat;
+        return String(clientLat) === String(filters.client_lat);
+      });
+    }
+    
+    // Apply Client Longitude filter
+    if (filters.client_long) {
+      result = result.filter(record => {
+        const clientLong = getNestedValue(record, 'client_long') || record.client_long;
+        return String(clientLong) === String(filters.client_long);
+      });
+    }
+    
+    console.log(`✅ Filtered from ${allRecords.length} to ${result.length} records`);
+    setFilteredRecords(result);
+    setPagination(prev => ({ ...prev, page: 1, totalRows: result.length }));
+    setActiveFilters(filters);
+  }, [allRecords]);
+
+  // Handle filter change from BWModificationFilterMenu
+  const handleFilterChange = useCallback((filters) => {
+    console.log('🎯 Filters received from BWModificationFilterMenu:', filters);
+    applyFilters(filters);
+  }, [applyFilters]);
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setFilteredRecords(allRecords);
+    setActiveFilters({});
+    setPagination(prev => ({ ...prev, page: 1, totalRows: allRecords.length }));
+  }, [allRecords]);
 
   /* ---------- form handling ---------- */
   const [formState, setFormState] = useState({
@@ -653,30 +734,35 @@ const BWModify = () => {
       isLoading: false,
     });
 
-  const handleEdit = useCallback((item) => {
-    setFormState({
-      isOpen: true,
-      isEditMode: true,
-      editingRecordId: item.id,
-      initialValues: {
-        ...item,
-        nttn_work_order_id: item.nttn_link_id || item.nttn_work_order_id || '',
-        capacity: item.capacity || '',
-        capacity_cost: item.capacity_cost || '',
-        shifting_bw: item.shifting_bw || '',
-        shifting_capacity: item.shifting_capacity || '',
-        shifting_unit_cost: item.shifting_unit_cost || '',
-        nttn_provider: item.nttn_provider_id || item.nttn_provider_details?.id || null,
-        client: item.client_id || item.client_details?.id || null,
-        client_category: item.client_category_id || item.client_category_details?.id || null,
-        workorder: item.workorder_row_id || item.workorder_details?.id || null,
-        remarks: item.remarks || '', // NEW FIELD
-        reason_id: item.reason_id || '', // NEW FIELD
-        submission: item.submission || '', // NEW FIELD
-      },
-      isLoading: false,
-    });
-  }, []);
+// In BWModify.jsx - Update the handleEdit function
+
+const handleEdit = useCallback((item) => {
+  setFormState({
+    isOpen: true,
+    isEditMode: true,
+    editingRecordId: item.id,
+    initialValues: {
+      ...item,
+      id: item.id,
+      nttn_work_order_id: item.nttn_link_id || item.nttn_work_order_id || '',
+      capacity: item.capacity || '',
+      capacity_cost: item.capacity_cost || '',
+      shifting_bw: item.shifting_bw || '',
+      shifting_capacity: item.shifting_capacity || '',
+      shifting_unit_cost: item.shifting_unit_cost || '',
+      nttn_provider: item.nttn_provider_id || item.nttn_provider_details?.id || null,
+      client: item.client_id || item.client_details?.id || null,
+      client_category: item.client_category_id || item.client_category_details?.id || null,
+      workorder_id: item.workorder_row_id || item.workorder_details?.id || null,
+      modification_type: item.modification_type || '',
+      remarks: item.remarks || '',
+      reason_id: item.reason_id || '',
+      submission: item.submission || '',
+      rate_id: item.rate_id || '', // ✅ Added rate_id from existing record
+    },
+    isLoading: false,
+  });
+}, []);
 
   const closeForm = () =>
     setFormState((s) => ({
@@ -704,42 +790,36 @@ const BWModify = () => {
     }
   };
 
-  const handleFilterChange = useCallback((newFilters) => {
-    setFilters(newFilters);
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  }, []);
-
-  // Dynamic Options Calculation
+  // Dynamic Options Calculation for table inline editing
   const dynamicOptions = useMemo(() => {
     return {
       nttn_provider:
-        getUniqueOptionsWithIds(records, 'nttn_name', 'nttn_provider_id') ||
+        getUniqueOptionsWithIds(allRecords, 'nttn_name', 'nttn_provider_id') ||
         getUniqueOptionsWithIds(
-          records,
+          allRecords,
           'nttn_provider_details.nttn_name',
           'nttn_provider_details.id'
         ),
-      modification_type: getUniqueOptions(records, 'modification_type'),
+      modification_type: getUniqueOptions(allRecords, 'modification_type'),
       client:
-        getUniqueOptionsWithIds(records, 'client_name', 'client_id') ||
-        getUniqueOptionsWithIds(records, 'client_details.client_name', 'client_details.id'),
+        getUniqueOptionsWithIds(allRecords, 'client_name', 'client_id') ||
+        getUniqueOptionsWithIds(allRecords, 'client_details.client_name', 'client_details.id'),
       client_category:
-        getUniqueOptionsWithIds(records, 'cat_name', 'client_category_id') ||
+        getUniqueOptionsWithIds(allRecords, 'cat_name', 'client_category_id') ||
         getUniqueOptionsWithIds(
-          records,
+          allRecords,
           'client_category_details.cat_name',
           'client_category_details.id'
         ),
-      // NEW: Add reason options
-      reason: getUniqueOptions(records, 'reason_name').filter(opt => opt.value !== '-'),
+      reason: getUniqueOptions(allRecords, 'reason_name').filter(opt => opt.value !== '-'),
     };
-  }, [records]);
+  }, [allRecords]);
 
   // Updated Columns Definition with new fields
   const bwModifyColumns = useMemo(
     () => [
       {
-        key: 'nttn_provider_name',
+        key: 'nttn_survey_id',
         header: 'NTTN Provider',
         isSortable: true,
         field: SelectField,
@@ -818,7 +898,6 @@ const BWModify = () => {
         isSortable: true,
         render: (val) => (val ? `$${parseFloat(val).toFixed(2)}` : '-'),
       },
-      // NEW COLUMNS
       {
         key: 'remarks',
         header: 'Remarks',
@@ -877,6 +956,16 @@ const BWModify = () => {
     [handleEdit, dynamicOptions]
   );
 
+  // DataTable onFilterChange handler (for pagination)
+  const handleTableFilterChange = useCallback((newTableState) => {
+    const { page, pageSize } = newTableState;
+    setPagination(prev => ({ 
+      ...prev, 
+      page: page || prev.page, 
+      limit: pageSize || prev.limit 
+    }));
+  }, []);
+
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (
@@ -899,10 +988,22 @@ const BWModify = () => {
         <div>
           <h1 className="text-2xl font-bold">BW Modifications</h1>
           <p className="text-gray-500">View and manage the list of bandwidth modifications.</p>
+          {/* Show active filters count */}
+          {Object.keys(activeFilters).length > 0 && (
+            <div className="mt-2 text-sm text-gray-600">
+              <span className="font-medium">{filteredRecords.length}</span> records filtered
+              <button 
+                onClick={clearFilters}
+                className="ml-2 text-blue-600 hover:text-blue-800 underline"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <ExportButton
-            data={records}
+            data={filteredRecords}
             columns={bwModifyColumns}
             fileName="bw_modifications"
             intent="primary"
@@ -927,18 +1028,22 @@ const BWModify = () => {
         </div>
       ) : (
         <DataTable
-          data={records}
+          data={filteredRecords}
           columns={bwModifyColumns}
           showId={true}
           filterComponent={
-            <BWModificationFilterMenu records={records} onFilterChange={handleFilterChange} />
+            <BWModificationFilterMenu 
+              records={allRecords} // Pass all records for filter options
+              onFilterChange={handleFilterChange} // This handles frontend filtering
+            />
           }
-          isBackendPagination={true}
-          totalRows={pagination.totalRows}
+          isBackendPagination={false} // Frontend pagination since we're filtering locally
+          totalRows={filteredRecords.length}
           page={pagination.page}
           pageSize={pagination.limit}
-          setPage={(page) => setPagination((prev) => ({ ...prev, page }))}
-          setPageSize={(limit) => setPagination((prev) => ({ ...prev, limit, page: 1 }))}
+          onFilterChange={handleTableFilterChange} // Only for pagination
+          setPage={(page) => setPagination(p => ({ ...p, page }))}
+          setPageSize={(limit) => setPagination(p => ({ ...p, limit, page: 1 }))}
         />
       )}
 

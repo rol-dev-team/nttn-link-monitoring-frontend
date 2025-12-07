@@ -964,9 +964,9 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
   const [nttnLinkIds, setNttnLinkIds] = useState([]);
   const [reasons, setReasons] = useState([]);
   const [ratesCache, setRatesCache] = useState(new Map());
-  const [currentNttnId, setCurrentNttnId] = useState(null); // Track current NTTN ID
-  const [currentLinkTypeId, setCurrentLinkTypeId] = useState(null); // Track current Link Type ID
-  const [currentRates, setCurrentRates] = useState([]); // Store rates for current selection
+  const [currentNttnId, setCurrentNttnId] = useState(null);
+  const [currentLinkTypeId, setCurrentLinkTypeId] = useState(null);
+  const [currentRates, setCurrentRates] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRates, setIsLoadingRates] = useState(false);
@@ -1001,16 +1001,41 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
     try {
       console.log(`📡 Fetching rates for NTTN ID: ${nttnId}${linkTypeId ? `, Link Type ID: ${linkTypeId}` : ''}`);
       
-      // Use fetchRatesByNttn with both nttnId and linkTypeId if available
-      const rates = await fetchRatesByNttn(nttnId, linkTypeId);
+      const rates = await fetchRatesByNttn(nttnId, null, linkTypeId);
       const ratesData = rates.data || rates;
 
-      // Update cache
       setRatesCache((prev) => new Map(prev).set(cacheKey, ratesData));
       return ratesData;
     } catch (error) {
       console.error(`❌ Error fetching rates for NTTN ${nttnId}:`, error);
       return [];
+    }
+  };
+
+  // ✅ NEW: Function to fetch rate for specific bandwidth using the correct API
+  const fetchRateForBandwidth = async (nttnId, bandwidth, linkTypeId = null) => {
+    try {
+      console.log(`🎯 Fetching rate for NTTN: ${nttnId}, BW: ${bandwidth}, Link Type: ${linkTypeId}`);
+      
+      // Call the API that includes link_type_id as query parameter
+      // This will call: /api/rates/nttn/1/bandwidth/20?link_type_id=2
+      const response = await fetchRatesByNttn(nttnId, bandwidth, linkTypeId);
+      
+      if (response && response.rate) {
+        console.log('💰 Rate found via API:', response);
+        return {
+          rate: parseFloat(response.rate),
+          rateId: response.id,
+          rangeFrom: response.bw_range_from,
+          rangeTo: response.bw_range_to,
+        };
+      }
+      
+      console.log('❌ No rate found via API');
+      return null;
+    } catch (error) {
+      console.error('❌ Error fetching rate for bandwidth:', error);
+      return null;
     }
   };
 
@@ -1040,7 +1065,7 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
     }
   };
 
-  // Function to find rate for specific bandwidth from current rates
+  // Function to find rate for specific bandwidth from current rates (fallback)
   const findRateForBandwidth = (bandwidth, rates = currentRates) => {
     if (!bandwidth || !Array.isArray(rates) || rates.length === 0) {
       return null;
@@ -1182,13 +1207,22 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
         console.log('🔗 NTTN Link IDs:', links);
         setNttnLinkIds(links);
 
-        // Pre-fetch rates for all unique NTTNs in the work orders
-        const uniqueNttnIds = [
-          ...new Set(workOrdersData.map((record) => record.nttn_id).filter(Boolean)),
+        // ✅ Pre-fetch rates for all unique NTTN + link_type combinations
+        const uniqueCombinations = [
+          ...new Set(
+            workOrdersData
+              .filter((wo) => wo.nttn_id && wo.link_type_id)
+              .map((wo) => `${wo.nttn_id}_${wo.link_type_id}`)
+          ),
         ];
-        console.log('📡 Pre-fetching rates for NTTN IDs:', uniqueNttnIds);
+        console.log('📡 Pre-fetching rates for combinations:', uniqueCombinations);
 
-        await Promise.all(uniqueNttnIds.map((nttnId) => fetchRatesForNttn(nttnId)));
+        await Promise.all(
+          uniqueCombinations.map((combo) => {
+            const [nttnId, linkTypeId] = combo.split('_');
+            return fetchRatesForNttn(parseInt(nttnId), parseInt(linkTypeId));
+          })
+        );
       } catch (error) {
         console.error('❌ Error fetching work orders:', error);
         showToast?.("Failed to load work orders for this client", "error");
@@ -1239,14 +1273,22 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
       formik.setFieldValue('capacity', requestCapacity);
       formik.setFieldValue('workorder_id', wo.id);
 
-      // Store the NTTN ID and Link Type ID (if available)
+      // ✅ Store both NTTN ID and link_type_id from the work order
       setCurrentNttnId(wo.nttn_id);
-      setCurrentLinkTypeId(wo.nttn_work_order_id || null); // Use the link ID as linkTypeId
+      setCurrentLinkTypeId(wo.link_type_id); // ✅ Changed from nttn_work_order_id to link_type_id
+      
+      console.log('🔍 Selected work order:', {
+        nttn_id: wo.nttn_id,
+        link_type_id: wo.link_type_id,
+        nttn_work_order_id: wo.nttn_work_order_id,
+        request_capacity: requestCapacity,
+      });
 
       const workOrderRateId = wo.rate_id;
       
       if (workOrderRateId) {
-        const cachedRates = ratesCache.get(parseInt(wo.nttn_id)) || [];
+        const cacheKey = wo.link_type_id ? `${wo.nttn_id}_${wo.link_type_id}` : wo.nttn_id;
+        const cachedRates = ratesCache.get(cacheKey) || [];
         const matchingRate = cachedRates.find((rate) => rate.id === parseInt(workOrderRateId));
         
         if (matchingRate && matchingRate.rate) {
@@ -1256,16 +1298,9 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
           formik.setFieldValue('capacity_cost', totalCost);
           formik.setFieldValue('rate_id', workOrderRateId);
           
-          // Fetch and set current rates for this NTTN
-          console.log('📡 Fetching rates with nttnId:', wo.nttn_id, 'linkTypeId:', wo.nttn_work_order_id);
-          fetchRatesForNttn(wo.nttn_id, wo.nttn_work_order_id).then(rates => {
+          // Fetch and set current rates for this NTTN + link_type combination
+          fetchRatesForNttn(wo.nttn_id, wo.link_type_id).then(rates => {
             console.log('✅ Rates fetched successfully:', rates);
-            if (Array.isArray(rates) && rates.length > 0) {
-              console.log('📊 Rate ranges available:');
-              rates.forEach((r, i) => {
-                console.log(`  [${i}] ${r.bw_range_from} - ${r.bw_range_to} = ${r.rate}`);
-              });
-            }
             setCurrentRates(rates);
           }).catch(err => {
             console.error('❌ Failed to fetch rates:', err);
@@ -1279,36 +1314,31 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
             unitRate: unitRate,
             totalCost: totalCost,
             nttnId: wo.nttn_id,
+            linkTypeId: wo.link_type_id,
           });
         } else {
           const rates = calculateRates(wo);
           formik.setFieldValue('capacity_cost', rates.totalCost);
           formik.setFieldValue('rate_id', rates.rateId);
           
-          fetchRatesForNttn(wo.nttn_id, wo.nttn_work_order_id).then(rates => {
-            console.log('✅ Rates fetched (fallback):', rates);
+          fetchRatesForNttn(wo.nttn_id, wo.link_type_id).then(rates => {
             setCurrentRates(rates);
           }).catch(err => {
             console.error('❌ Failed to fetch rates (fallback):', err);
             setCurrentRates([]);
           });
-          
-          console.log('⚠️ Rate not found for rate_id, using fallback calculation:', workOrderRateId);
         }
       } else {
         const rates = calculateRates(wo);
         formik.setFieldValue('capacity_cost', rates.totalCost);
         formik.setFieldValue('rate_id', rates.rateId);
         
-        fetchRatesForNttn(wo.nttn_id, wo.nttn_work_order_id).then(rates => {
-          console.log('✅ Rates fetched (no rate_id):', rates);
+        fetchRatesForNttn(wo.nttn_id, wo.link_type_id).then(rates => {
           setCurrentRates(rates);
         }).catch(err => {
           console.error('❌ Failed to fetch rates (no rate_id):', err);
           setCurrentRates([]);
         });
-        
-        console.log('⚠️ No rate_id in work order, using fallback calculation');
       }
     } else {
       formik.setFieldValue('capacity', '');
@@ -1330,7 +1360,7 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
     if (lockedField === 'amount' && !formik.values.shifting_capacity) setLockedField(null);
   }, [formik.values.shifting_capacity, lockedField]);
 
-  /* ---------- Calculate rates when New BW changes ---------- */
+  /* ---------- ✅ Calculate rates when New BW changes using the API ---------- */
   useEffect(() => {
     const calculateNewRates = async () => {
       if (lockedField === 'amount') return;
@@ -1346,62 +1376,44 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
 
       setIsLoadingRates(true);
       try {
-        console.log('🔄 Calculating rates for New BW:', bw, 'currentNttnId:', currentNttnId, 'currentLinkTypeId:', currentLinkTypeId);
+        console.log('🔄 Calculating rates for New BW:', bw, 'NTTN:', currentNttnId, 'Link Type:', currentLinkTypeId);
 
-        // Use currentRates if available, otherwise fetch
-        let rates = currentRates;
-        if (!rates || rates.length === 0) {
-          console.log('📡 Current rates empty, fetching from API...');
-          rates = await fetchRatesForNttn(currentNttnId, currentLinkTypeId);
-          setCurrentRates(rates);
-          console.log('✅ Fetched rates:', rates);
-        } else {
-          console.log('✅ Using cached currentRates:', rates);
-        }
-
-        // Log available rates for debugging
-        if (Array.isArray(rates) && rates.length > 0) {
-          console.log('📊 Available rate ranges:');
-          rates.forEach((r, i) => {
-            console.log(`  [${i}] Range: ${r.bw_range_from} - ${r.bw_range_to}, Rate: ${r.rate}`);
-          });
-        }
-
-        const rateData = findRateForBandwidth(bw, rates);
+        // ✅ Use the API endpoint with link_type_id
+        // This will generate: GET /api/rates/nttn/1/bandwidth/20?link_type_id=2
+        const rateData = await fetchRateForBandwidth(currentNttnId, bw, currentLinkTypeId);
 
         if (rateData && rateData.rate) {
-            console.log('✅ Setting unit rate:', rateData.rate, 'Rate ID:', rateData.rateId);
-            formik.setFieldValue('shifting_unit_cost', rateData.rate.toFixed(2));
+          console.log('✅ Rate found via API:', rateData);
+          formik.setFieldValue('shifting_unit_cost', rateData.rate.toFixed(2));
+          
+          // ✅ Set rate_id as integer
+          if (rateData.rateId) {
+            const rateIdValue = typeof rateData.rateId === 'string' 
+              ? parseInt(rateData.rateId) 
+              : rateData.rateId;
             
-            // ✅ CRITICAL: Ensure rate_id is set as a number, not string
-            if (rateData.rateId) {
-              const rateIdValue = typeof rateData.rateId === 'string' 
-                ? parseInt(rateData.rateId) 
-                : rateData.rateId;
-              
-              console.log('🔑 Setting rate_id:', rateIdValue, 'Type:', typeof rateIdValue);
-              formik.setFieldValue('rate_id', rateIdValue);
-            }
+            console.log('🔑 Setting rate_id:', rateIdValue);
+            formik.setFieldValue('rate_id', rateIdValue);
+          }
 
-            const totalAmount = (bw * rateData.rate).toFixed(2);
-            console.log('✅ Setting total amount:', totalAmount);
-            formik.setFieldValue('shifting_capacity', totalAmount);
-            
-            // ✅ Verify after setting
-            console.log('✔️ Formik rate_id after setting:', formik.values.rate_id);
+          const totalAmount = (bw * rateData.rate).toFixed(2);
+          formik.setFieldValue('shifting_capacity', totalAmount);
+        } else {
+          console.log('❌ No rate found, trying fallback');
+          
+          // Fallback to cached rates
+          const rateDataFallback = findRateForBandwidth(bw, currentRates);
+          
+          if (rateDataFallback) {
+            formik.setFieldValue('shifting_unit_cost', rateDataFallback.rate.toFixed(2));
+            formik.setFieldValue('rate_id', rateDataFallback.rateId);
+            formik.setFieldValue('shifting_capacity', (bw * rateDataFallback.rate).toFixed(2));
           } else {
-            console.log('❌ No rate found for BW:', bw, 'trying fallback calculation');
-            
-            // Fallback: Use current unit rate if available
+            // Use current unit rate as last resort
             const currentUnitRate = unitRateFromCurrent();
             if (currentUnitRate > 0) {
-              console.log('🔁 Using fallback unit rate from current:', currentUnitRate);
               formik.setFieldValue('shifting_unit_cost', currentUnitRate.toFixed(2));
-              const totalAmount = (bw * currentUnitRate).toFixed(2);
-              formik.setFieldValue('shifting_capacity', totalAmount);
-              
-              // ✅ Clear rate_id for fallback (no rate_id available)
-              console.log('🔑 Clearing rate_id (using fallback)');
+              formik.setFieldValue('shifting_capacity', (bw * currentUnitRate).toFixed(2));
               formik.setFieldValue('rate_id', null);
             } else {
               formik.setFieldValue('shifting_unit_cost', '');
@@ -1409,6 +1421,7 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
               formik.setFieldValue('rate_id', null);
             }
           }
+        }
       } catch (error) {
         console.error('❌ Error calculating new rates:', error);
         formik.setFieldValue('shifting_unit_cost', '');
@@ -1424,7 +1437,7 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formik.values.shifting_bw, currentNttnId, currentLinkTypeId, currentRates, lockedField, formik]);
+  }, [formik.values.shifting_bw, currentNttnId, currentLinkTypeId, lockedField]);
 
   // 2. BW + Unit Cost -> Amount (Fallback)
   useEffect(() => {
@@ -1486,12 +1499,9 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
   }, [isEditMode, formik.values.shifting_bw, formik.values.shifting_capacity, lockedField]);
 
   /* ---------- submit ---------- */
- // In BWModificationForm.jsx - Update handleSave to debug and properly send rate_id
-
   const handleSave = async (values) => {
     setIsSubmitting(true);
     try {
-      // ✅ Debug: Log all values before submitting
       console.log('📋 Form Values Before Submission:', {
         workorder_id: values.workorder_id,
         shifting_bw: values.shifting_bw,
@@ -1502,7 +1512,6 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
         nttn_work_order_id: values.nttn_work_order_id,
         capacity: values.capacity,
         capacity_cost: values.capacity_cost,
-        formik_rate_id: formik.values.rate_id,
       });
 
       const payload = {
@@ -1520,10 +1529,9 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
         remarks: values.remarks || '',
         reason_id: values.reason_id || null,
         submission: values.submission ? format(new Date(values.submission), 'yyyy-MM-dd') : null,
-        rate_id: values.rate_id ? parseInt(values.rate_id) : null, // ✅ Ensure it's properly converted
+        rate_id: values.rate_id ? parseInt(values.rate_id) : null,
       };
 
-      // ✅ Debug: Log payload before API call
       console.log('📤 Final Payload to Backend:', payload);
       console.log('🔍 rate_id in payload:', payload.rate_id, 'Type:', typeof payload.rate_id);
 

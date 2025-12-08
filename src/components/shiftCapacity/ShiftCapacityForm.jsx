@@ -487,7 +487,10 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
           <SelectField
             name="nttn_link_id"
             placeholder="Work Order Link ID*"
-            options={nttnLinkIds.map((nttn) => ({ value: nttn.id, label: nttn.nttn_id }))}
+            options={nttnLinkIds.map((nttn) => ({
+              value: nttn.id,
+              label: nttn.nttn_work_order_id,
+            }))}
             onChange={(v) => formik.setFieldValue('nttn_link_id', v)}
             searchable
             disabled={!formik.values.client}
@@ -571,7 +574,7 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
               placeholder="Shifting Work Order Link ID"
               options={shiftingClientLinkIds.map((nttn) => ({
                 value: nttn.id,
-                label: nttn.nttn_id,
+                label: nttn.nttn_work_order_id,
               }))}
               onChange={(v) => formik.setFieldValue('shifting_link_id', v)}
               searchable

@@ -1,3 +1,4 @@
+
 // // src/pages/rate/Rate.jsx
 // import React, { useEffect, useState, useMemo, useCallback } from 'react';
 // import { Plus, Pencil } from 'lucide-react';
@@ -7,11 +8,11 @@
 // import ExportButton from '../../components/ui/ExportButton';
 // import { FaFileExcel } from 'react-icons/fa';
 // import RateForm from '../../components/rate/RateForm';
-// import { createRate, fetchRates, updateRate } from '../../services/rate';
+
 // import { createBwRates, fetchSBwRates, updateBwRates } from '../../services/bwRateApi';
+// import { fetchLinkTypes } from '../../services/linkType';
 
 // import moment from 'moment';
-// import { fetchLinkTypes } from '../../services/linkType';
 
 // const defaultInitialValues = {
 //   nttn_id: '',
@@ -20,10 +21,12 @@
 //   rate: '',
 //   start_date: '',
 //   end_date: '',
+//   link_type_id: '',   // NEW FIELD
 // };
 
 // const Rate = () => {
 //   const [records, setRecords] = useState([]);
+//   const [linkTypes, setLinkTypes] = useState([]);   // NEW STATE
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState(null);
 //   const [toasts, setToasts] = useState([]);
@@ -44,7 +47,7 @@
 
 //   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
 
-//   /* ---------- fetch ---------- */
+//   /* ---------- fetch all rates ---------- */
 //   const fetchAll = useCallback(async () => {
 //     setLoading(true);
 //     setError(null);
@@ -60,9 +63,20 @@
 //     }
 //   }, [pushToast]);
 
+//   /* ---------- fetch link types ---------- */
+//   const fetchTypeList = useCallback(async () => {
+//     try {
+//       const { data } = await fetchLinkTypes();
+//       setLinkTypes(data);
+//     } catch (e) {
+//       pushToast('Failed to load link types', 'error');
+//     }
+//   }, [pushToast]);
+
 //   useEffect(() => {
 //     fetchAll();
-//   }, [fetchAll]);
+//     fetchTypeList();
+//   }, [fetchAll, fetchTypeList]);
 
 //   /* ---------- form flow ---------- */
 //   const openNew = () =>
@@ -73,6 +87,7 @@
 //       initialValues: defaultInitialValues,
 //     });
 
+//   /* ---------- edit ---------- */
 //   const openEdit = (item) =>
 //     setFormState({
 //       isOpen: true,
@@ -86,6 +101,7 @@
 //         start_date: item.start_date,
 //         end_date: item.end_date,
 //         rate: item.rate,
+//         link_type_id: item.link_type_id, // NEW FIELD
 //       },
 //     });
 
@@ -96,6 +112,7 @@
 //       editingId: null,
 //       initialValues: defaultInitialValues,
 //     });
+
 //   const handleSubmit = async (values) => {
 //     try {
 //       if (formState.isEditMode) {
@@ -112,13 +129,21 @@
 //     }
 //   };
 
-//   /* ---------- columns (unchanged) ---------- */
+//   /* ---------- columns ---------- */
 //   const columns = useMemo(
 //     () => [
 //       { key: 'nttn_name', header: 'NTTN', isSortable: true },
+//       { key: 'link_type_name', header: 'Link Type', isSortable: true },
 //       { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
 //       { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
 //       { key: 'rate', header: 'Rate', isSortable: true },
+
+//       {
+//         key: 'type_name',
+//         header: 'Link Type',   // NEW FIELD
+//         render: (_, row) => row.type_name,
+//       },
+
 //       {
 //         key: 'start_date',
 //         header: 'Start Date',
@@ -153,12 +178,13 @@
 //           onSubmit={handleSubmit}
 //           onCancel={closeForm}
 //           showToast={pushToast}
+//           linkTypes={linkTypes}  // PASS LINK TYPES TO FORM
 //         />
 //         <ToastContainer toasts={toasts} removeToast={removeToast} />
 //       </div>
 //     );
 //   }
-//   console.log('records', records);
+
 //   return (
 //     <div className="p-8 bg-gray-100 min-h-screen">
 //       <div className="flex justify-between items-center pb-16">
@@ -212,6 +238,10 @@
 
 
 
+
+
+
+
 // src/pages/rate/Rate.jsx
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Plus, Pencil } from 'lucide-react';
@@ -234,12 +264,13 @@ const defaultInitialValues = {
   rate: '',
   start_date: '',
   end_date: '',
-  link_type_id: '',   // NEW FIELD
+  link_type_id: '', // NEW FIELD
+  rate_type: '',    // ✅ NEW FIELD
 };
 
 const Rate = () => {
   const [records, setRecords] = useState([]);
-  const [linkTypes, setLinkTypes] = useState([]);   // NEW STATE
+  const [linkTypes, setLinkTypes] = useState([]); // NEW STATE
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -314,7 +345,8 @@ const Rate = () => {
         start_date: item.start_date,
         end_date: item.end_date,
         rate: item.rate,
-        link_type_id: item.link_type_id, // NEW FIELD
+        link_type_id: item.link_type_id, // EXISTING FIELD
+        rate_type: item.rate_type || '',  // ✅ NEW FIELD
       },
     });
 
@@ -350,13 +382,11 @@ const Rate = () => {
       { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
       { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
       { key: 'rate', header: 'Rate', isSortable: true },
-
       {
-        key: 'type_name',
-        header: 'Link Type',   // NEW FIELD
-        render: (_, row) => row.type_name,
+        key: 'rate_type',
+        header: 'Rate Type', // ✅ NEW COLUMN
+        render: (_, row) => (row.rate_type === 1 ? 'Fixed' : row.rate_type === 2 ? 'Variable' : '-'),
       },
-
       {
         key: 'start_date',
         header: 'Start Date',
@@ -367,7 +397,6 @@ const Rate = () => {
         header: 'End Date',
         isSortable: true,
       },
-
       {
         key: 'actions',
         header: 'Action',
@@ -448,4 +477,3 @@ const Rate = () => {
 };
 
 export default Rate;
-

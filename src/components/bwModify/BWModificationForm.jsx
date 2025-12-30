@@ -7,8 +7,8 @@
 // import Button from '../ui/Button';
 // import InputField from '../fields/InputField';
 // import SelectField from '../fields/SelectField';
-// import DatePickerField from '../fields/DatePickerField'; // Import DatePickerField
-// import { format } from 'date-fns'; // Add date-fns import
+// import DatePickerField from '../fields/DatePickerField';
+// import { format } from 'date-fns';
 
 // import { BWModificationSchema } from '../../validations/bwModificationValidation';
 
@@ -45,9 +45,9 @@
 //   shifting_unit_cost: '',
 //   workorder_id: '',
 //   rate_id: '',
-//   remarks: '', // NEW FIELD
-//   reason_id: '', // NEW FIELD (as string since DB is varchar)
-//   submission: '', // NEW FIELD
+//   remarks: '',
+//   reason_id: '',
+//   submission: '',
 // };
 
 // // Static modification types
@@ -65,17 +65,19 @@
 //   const [workOrders, setWorkOrders] = useState([]);
 //   const [bandwidthRanges, setBandwidthRanges] = useState([]);
 //   const [nttnLinkIds, setNttnLinkIds] = useState([]);
-//   const [reasons, setReasons] = useState([]); // NEW STATE for reasons
-//   const [ratesCache, setRatesCache] = useState(new Map()); // Cache for rates by NTTN ID
+//   const [reasons, setReasons] = useState([]);
+//   const [ratesCache, setRatesCache] = useState(new Map());
+//   const [currentNttnId, setCurrentNttnId] = useState(null);
+//   const [currentLinkTypeId, setCurrentLinkTypeId] = useState(null);
+//   const [currentRates, setCurrentRates] = useState([]);
 
 //   const [isLoading, setIsLoading] = useState(true);
 //   const [isLoadingRates, setIsLoadingRates] = useState(false);
-//   const [isLoadingReasons, setIsLoadingReasons] = useState(false); // NEW loading state
+//   const [isLoadingReasons, setIsLoadingReasons] = useState(false);
 //   const [isSubmitting, setIsSubmitting] = useState(false);
 //   const [lockedField, setLockedField] = useState(null);
 //   const [isLoadingWorkOrders, setIsLoadingWorkOrders] = useState(false);
 
-//   // 💡 FIX SETUP: Create ref and keep it updated synchronously
 //   const lockRef = useRef(lockedField);
 //   useEffect(() => {
 //     lockRef.current = lockedField;
@@ -92,22 +94,51 @@
 //   });
 
 //   // Function to fetch rates for a specific NTTN and cache them
-//   const fetchRatesForNttn = async (nttnId) => {
-//     if (!nttnId || ratesCache.has(nttnId)) {
-//       return ratesCache.get(nttnId) || [];
+//   const fetchRatesForNttn = async (nttnId, linkTypeId = null) => {
+//     const cacheKey = linkTypeId ? `${nttnId}_${linkTypeId}` : nttnId;
+    
+//     if (!nttnId || ratesCache.has(cacheKey)) {
+//       return ratesCache.get(cacheKey) || [];
 //     }
 
 //     try {
-//       console.log(`📡 Fetching rates for NTTN ID: ${nttnId}`);
-//       const rates = await fetchRatesByNttn(nttnId);
+//       console.log(`📡 Fetching rates for NTTN ID: ${nttnId}${linkTypeId ? `, Link Type ID: ${linkTypeId}` : ''}`);
+      
+//       const rates = await fetchRatesByNttn(nttnId, null, linkTypeId);
 //       const ratesData = rates.data || rates;
 
-//       // Update cache
-//       setRatesCache((prev) => new Map(prev).set(nttnId, ratesData));
+//       setRatesCache((prev) => new Map(prev).set(cacheKey, ratesData));
 //       return ratesData;
 //     } catch (error) {
 //       console.error(`❌ Error fetching rates for NTTN ${nttnId}:`, error);
 //       return [];
+//     }
+//   };
+
+//   // ✅ NEW: Function to fetch rate for specific bandwidth using the correct API
+//   const fetchRateForBandwidth = async (nttnId, bandwidth, linkTypeId = null) => {
+//     try {
+//       console.log(`🎯 Fetching rate for NTTN: ${nttnId}, BW: ${bandwidth}, Link Type: ${linkTypeId}`);
+      
+//       // Call the API that includes link_type_id as query parameter
+//       // This will call: /api/rates/nttn/1/bandwidth/20?link_type_id=2
+//       const response = await fetchRatesByNttn(nttnId, bandwidth, linkTypeId);
+      
+//       if (response && response.rate) {
+//         console.log('💰 Rate found via API:', response);
+//         return {
+//           rate: parseFloat(response.rate),
+//           rateId: response.id,
+//           rangeFrom: response.bw_range_from,
+//           rangeTo: response.bw_range_to,
+//         };
+//       }
+      
+//       console.log('❌ No rate found via API');
+//       return null;
+//     } catch (error) {
+//       console.error('❌ Error fetching rate for bandwidth:', error);
+//       return null;
 //     }
 //   };
 
@@ -119,10 +150,9 @@
 //       const reasonsRes = await fetchReasons();
 //       const reasonsData = reasonsRes?.data || reasonsRes || [];
       
-//       // Map reasons to options format
 //       const mappedReasons = Array.isArray(reasonsData) 
 //         ? reasonsData.map((reason) => ({
-//             value: String(reason.id), // Convert to string since DB field is varchar
+//             value: String(reason.id),
 //             label: reason.reason || reason.reason_name || `Reason ${reason.id}`,
 //           }))
 //         : [];
@@ -138,54 +168,36 @@
 //     }
 //   };
 
-//   // Function to find rate for specific bandwidth - update to return full rate data
-//   const findRateForBandwidth = async (nttnId, bandwidth) => {
-//     if (!nttnId || !bandwidth) {
+//   // Function to find rate for specific bandwidth from current rates (fallback)
+//   const findRateForBandwidth = (bandwidth, rates = currentRates) => {
+//     if (!bandwidth || !Array.isArray(rates) || rates.length === 0) {
 //       return null;
 //     }
 
 //     try {
-//       console.log(`🎯 Finding rate for NTTN: ${nttnId}, BW: ${bandwidth}`);
+//       console.log(`🎯 Finding rate for BW: ${bandwidth} from ${rates.length} available rates`);
 
-//       // Use the bandwidth-specific API endpoint
-//       const rateResponse = await fetchRateByNttnAndBandwidth(nttnId, bandwidth);
-//       const rateData = rateResponse.data || rateResponse;
-
-//       console.log('📊 Rate data received:', rateData);
-
-//       if (rateData && rateData.rate) {
-//         console.log('💰 Rate found:', rateData.rate, 'Rate ID:', rateData.id);
-//         return rateData;
-//       } else {
-//         console.log('❌ No rate found for bandwidth:', bandwidth);
-
-//         // Fallback: Check cached rates
-//         const cachedRates = ratesCache.get(parseInt(nttnId)) || [];
-//         const matchingRate = cachedRates.find((rate) => {
-//           const rangeFrom = parseFloat(rate.bw_range_from);
-//           const rangeTo = parseFloat(rate.bw_range_to);
-//           return bandwidth >= rangeFrom && bandwidth <= rangeTo;
-//         });
-
-//         if (matchingRate) {
-//           console.log('💰 Rate found in cache:', matchingRate.rate, 'Rate ID:', matchingRate.id);
-//           return matchingRate;
-//         }
-
-//         return null;
-//       }
-//     } catch (error) {
-//       console.error('❌ Error finding rate for bandwidth:', error);
-
-//       // Fallback to cached rates on error
-//       const cachedRates = ratesCache.get(parseInt(nttnId)) || [];
-//       const matchingRate = cachedRates.find((rate) => {
+//       const matchingRate = rates.find((rate) => {
 //         const rangeFrom = parseFloat(rate.bw_range_from);
 //         const rangeTo = parseFloat(rate.bw_range_to);
 //         return bandwidth >= rangeFrom && bandwidth <= rangeTo;
 //       });
 
-//       return matchingRate || null;
+//       if (matchingRate) {
+//         console.log('💰 Rate found:', matchingRate.rate, 'Rate ID:', matchingRate.id);
+//         return {
+//           rate: parseFloat(matchingRate.rate),
+//           rateId: matchingRate.id,
+//           rangeFrom: matchingRate.bw_range_from,
+//           rangeTo: matchingRate.bw_range_to,
+//         };
+//       } else {
+//         console.log('❌ No rate found for bandwidth:', bandwidth);
+//         return null;
+//       }
+//     } catch (error) {
+//       console.error('❌ Error finding rate for bandwidth:', error);
+//       return null;
 //     }
 //   };
 
@@ -193,7 +205,6 @@
 //   const calculateRates = (record) => {
 //     const requestCapacity = parseFloat(record.request_capacity) || 0;
 
-//     // If unit_rate is already available in the record, use it
 //     if (record.unit_rate && record.rate_id) {
 //       const unitRate = parseFloat(record.unit_rate);
 //       const totalCost = requestCapacity * unitRate;
@@ -204,11 +215,9 @@
 //       };
 //     }
 
-//     // Calculate based on rates data if available
 //     const nttnRates = ratesCache.get(record.nttn_id) || [];
 
 //     if (nttnRates.length > 0 && record.nttn_id && requestCapacity > 0) {
-//       // Find matching rate based on bandwidth range
 //       const matchingRate = nttnRates.find((rate) => {
 //         const rangeFrom = parseFloat(rate.bw_range_from);
 //         const rangeTo = parseFloat(rate.bw_range_to);
@@ -226,53 +235,11 @@
 //       }
 //     }
 
-//     // Fallback calculation
 //     return {
 //       unitRate: '0.00',
 //       totalCost: '0.00',
 //       rateId: null,
 //     };
-//   };
-
-//   // Function to find rate for new bandwidth - update to return both rate and rateId
-//   const findRateForNewBandwidth = async (bw) => {
-//     if (!formik.values.nttn_provider || !bw) {
-//       return null;
-//     }
-
-//     try {
-//       console.log('🎯 Finding rate for New BW:', bw, 'NTTN:', formik.values.nttn_provider);
-
-//       const rateData = await findRateForBandwidth(parseInt(formik.values.nttn_provider), bw);
-
-//       if (rateData && rateData.rate) {
-//         console.log('✅ Rate found:', rateData.rate, 'Rate ID:', rateData.id);
-//         return {
-//           rate: parseFloat(rateData.rate),
-//           rateId: rateData.id,
-//         };
-//       } else {
-//         console.log('❌ No rate found, trying fallback calculation');
-
-//         // Final fallback: use current rate ratio if available
-//         const currentCapacity = parseFloat(formik.values.capacity);
-//         const currentCost = parseFloat(formik.values.capacity_cost);
-
-//         if (currentCapacity > 0 && currentCost > 0) {
-//           const currentUnitRate = currentCost / currentCapacity;
-//           console.log('🔁 Using current unit rate as fallback:', currentUnitRate);
-//           return {
-//             rate: currentUnitRate,
-//             rateId: null, // No rate ID for fallback
-//           };
-//         }
-
-//         return null;
-//       }
-//     } catch (error) {
-//       console.error('❌ Error finding rate for new bandwidth:', error);
-//       return null;
-//     }
 //   };
 
 //   /* ---------- data bootstrap ---------- */
@@ -282,10 +249,9 @@
 //         const [nttnRes, catsRes] = await Promise.all([
 //           fetchNTTNs(), 
 //           fetchCategories(),
-//           fetchReasonsList() // Fetch reasons in parallel
+//           fetchReasonsList()
 //         ]);
 
-//         // ✅ FIX: Safely extract arrays from API responses
 //         const nttnData = Array.isArray(nttnRes) ? nttnRes : nttnRes?.data || [];
 //         const catsData = Array.isArray(catsRes) ? catsRes : catsRes?.data || [];
 
@@ -296,11 +262,7 @@
 
 //         setNttnProviders(nttnData);
 //         setClientCategories(catsData);
-
-//         // Use static modification types instead of API call
 //         setModificationTypes(STATIC_MODIFICATION_TYPES);
-
-//         // Don't fetch work orders initially - wait for client selection
 //         setWorkOrders([]);
 //       } catch (e) {
 //         console.error('❌ Boot error:', e);
@@ -320,6 +282,9 @@
 //       if (!clientId) {
 //         setWorkOrders([]);
 //         setNttnLinkIds([]);
+//         setCurrentNttnId(null);
+//         setCurrentLinkTypeId(null);
+//         setCurrentRates([]);
 //         formik.setFieldValue('nttn_work_order_id', '');
 //         formik.setFieldValue('capacity', '');
 //         formik.setFieldValue('capacity_cost', '');
@@ -331,9 +296,7 @@
 //       try {
 //         console.log(`📡 Fetching work orders for client ID: ${clientId}`);
 
-//         // Fetch work orders by client ID only (no work order ID)
 //         const workOrdersRes = await fetchWorkOrderBeModification(null, clientId);
-
 //         const workOrdersData = Array.isArray(workOrdersRes)
 //           ? workOrdersRes
 //           : workOrdersRes?.data || [];
@@ -341,20 +304,28 @@
 //         console.log('📋 Work orders fetched:', workOrdersData);
 //         setWorkOrders(workOrdersData);
 
-//         // Extract unique NTTN link IDs
 //         const links = [
 //           ...new Set(workOrdersData.map((wo) => wo.nttn_work_order_id).filter(Boolean)),
 //         ];
 //         console.log('🔗 NTTN Link IDs:', links);
 //         setNttnLinkIds(links);
 
-//         // Pre-fetch rates for all unique NTTNs in the work orders
-//         const uniqueNttnIds = [
-//           ...new Set(workOrdersData.map((record) => record.nttn_id).filter(Boolean)),
+//         // ✅ Pre-fetch rates for all unique NTTN + link_type combinations
+//         const uniqueCombinations = [
+//           ...new Set(
+//             workOrdersData
+//               .filter((wo) => wo.nttn_id && wo.link_type_id)
+//               .map((wo) => `${wo.nttn_id}_${wo.link_type_id}`)
+//           ),
 //         ];
-//         console.log('📡 Pre-fetching rates for NTTN IDs:', uniqueNttnIds);
+//         console.log('📡 Pre-fetching rates for combinations:', uniqueCombinations);
 
-//         await Promise.all(uniqueNttnIds.map((nttnId) => fetchRatesForNttn(nttnId)));
+//         await Promise.all(
+//           uniqueCombinations.map((combo) => {
+//             const [nttnId, linkTypeId] = combo.split('_');
+//             return fetchRatesForNttn(parseInt(nttnId), parseInt(linkTypeId));
+//           })
+//         );
 //       } catch (error) {
 //         console.error('❌ Error fetching work orders:', error);
 //         showToast?.("Failed to load work orders for this client", "error");
@@ -384,47 +355,6 @@
 //   }, [formik.values.client_category]);
 
 //   /* ---------- auto-fill current capacity & cost when link chosen ---------- */
-//   // useEffect(() => {
-//   //   const linkId = formik.values.nttn_work_order_id;
-//   //   const list = Array.isArray(workOrders) ? workOrders : [];
-
-//   //   if (!linkId || !list.length) {
-//   //     formik.setFieldValue('capacity', '');
-//   //     formik.setFieldValue('capacity_cost', '');
-//   //     formik.setFieldValue('workorder_id', '');
-//   //     formik.setFieldValue('rate_id', '');
-//   //     return;
-//   //   }
-
-//   //   const wo = list.find((w) => w.nttn_work_order_id === linkId);
-//   //   if (wo) {
-//   //     // Set capacity and workorder_id immediately
-//   //     formik.setFieldValue('capacity', wo.request_capacity ?? 0);
-//   //     formik.setFieldValue('workorder_id', wo.id);
-
-//   //     // Calculate capacity_cost using the same logic as WorkOrderTable
-//   //     const rates = calculateRates(wo);
-//   //     formik.setFieldValue('capacity_cost', rates.totalCost);
-//   //     formik.setFieldValue('rate_id', rates.rateId); // Set the rate_id
-
-//   //     console.log('💰 Calculated rates for work order:', {
-//   //       workOrder: wo.nttn_work_order_id,
-//   //       capacity: wo.request_capacity,
-//   //       unitRate: rates.unitRate,
-//   //       totalCost: rates.totalCost,
-//   //       rateId: rates.rateId,
-//   //       nttnId: wo.nttn_id,
-//   //     });
-//   //   } else {
-//   //     formik.setFieldValue('capacity', '');
-//   //     formik.setFieldValue('capacity_cost', '');
-//   //     formik.setFieldValue('workorder_id', '');
-//   //     formik.setFieldValue('rate_id', '');
-//   //   }
-//   // }, [formik.values.nttn_work_order_id, workOrders, ratesCache]);
-
-
-//   /* ---------- auto-fill current capacity & cost when link chosen ---------- */
 //   useEffect(() => {
 //     const linkId = formik.values.nttn_work_order_id;
 //     const list = Array.isArray(workOrders) ? workOrders : [];
@@ -434,22 +364,34 @@
 //       formik.setFieldValue('capacity_cost', '');
 //       formik.setFieldValue('workorder_id', '');
 //       formik.setFieldValue('rate_id', '');
+//       setCurrentNttnId(null);
+//       setCurrentLinkTypeId(null);
+//       setCurrentRates([]);
 //       return;
 //     }
 
 //     const wo = list.find((w) => w.nttn_work_order_id === linkId);
 //     if (wo) {
-//       // Set capacity and workorder_id immediately
 //       const requestCapacity = parseFloat(wo.request_capacity) || 0;
 //       formik.setFieldValue('capacity', requestCapacity);
 //       formik.setFieldValue('workorder_id', wo.id);
 
-//       // Get rate_id from work order
+//       // ✅ Store both NTTN ID and link_type_id from the work order
+//       setCurrentNttnId(wo.nttn_id);
+//       setCurrentLinkTypeId(wo.link_type_id); // ✅ Changed from nttn_work_order_id to link_type_id
+      
+//       console.log('🔍 Selected work order:', {
+//         nttn_id: wo.nttn_id,
+//         link_type_id: wo.link_type_id,
+//         nttn_work_order_id: wo.nttn_work_order_id,
+//         request_capacity: requestCapacity,
+//       });
+
 //       const workOrderRateId = wo.rate_id;
       
 //       if (workOrderRateId) {
-//         // Find the matching rate from cached rates using rate_id
-//         const cachedRates = ratesCache.get(parseInt(wo.nttn_id)) || [];
+//         const cacheKey = wo.link_type_id ? `${wo.nttn_id}_${wo.link_type_id}` : wo.nttn_id;
+//         const cachedRates = ratesCache.get(cacheKey) || [];
 //         const matchingRate = cachedRates.find((rate) => rate.id === parseInt(workOrderRateId));
         
 //         if (matchingRate && matchingRate.rate) {
@@ -459,6 +401,15 @@
 //           formik.setFieldValue('capacity_cost', totalCost);
 //           formik.setFieldValue('rate_id', workOrderRateId);
           
+//           // Fetch and set current rates for this NTTN + link_type combination
+//           fetchRatesForNttn(wo.nttn_id, wo.link_type_id).then(rates => {
+//             console.log('✅ Rates fetched successfully:', rates);
+//             setCurrentRates(rates);
+//           }).catch(err => {
+//             console.error('❌ Failed to fetch rates:', err);
+//             setCurrentRates([]);
+//           });
+          
 //           console.log('💰 Calculated cost using rate_id:', {
 //             workOrder: wo.nttn_work_order_id,
 //             rateId: workOrderRateId,
@@ -466,30 +417,43 @@
 //             unitRate: unitRate,
 //             totalCost: totalCost,
 //             nttnId: wo.nttn_id,
+//             linkTypeId: wo.link_type_id,
 //           });
 //         } else {
-//           // Fallback: Calculate using the existing calculateRates function
 //           const rates = calculateRates(wo);
 //           formik.setFieldValue('capacity_cost', rates.totalCost);
 //           formik.setFieldValue('rate_id', rates.rateId);
           
-//           console.log('⚠️ Rate not found for rate_id, using fallback calculation:', workOrderRateId);
+//           fetchRatesForNttn(wo.nttn_id, wo.link_type_id).then(rates => {
+//             setCurrentRates(rates);
+//           }).catch(err => {
+//             console.error('❌ Failed to fetch rates (fallback):', err);
+//             setCurrentRates([]);
+//           });
 //         }
 //       } else {
-//         // No rate_id in work order, use calculateRates fallback
 //         const rates = calculateRates(wo);
 //         formik.setFieldValue('capacity_cost', rates.totalCost);
 //         formik.setFieldValue('rate_id', rates.rateId);
         
-//         console.log('⚠️ No rate_id in work order, using fallback calculation');
+//         fetchRatesForNttn(wo.nttn_id, wo.link_type_id).then(rates => {
+//           setCurrentRates(rates);
+//         }).catch(err => {
+//           console.error('❌ Failed to fetch rates (no rate_id):', err);
+//           setCurrentRates([]);
+//         });
 //       }
 //     } else {
 //       formik.setFieldValue('capacity', '');
 //       formik.setFieldValue('capacity_cost', '');
 //       formik.setFieldValue('workorder_id', '');
 //       formik.setFieldValue('rate_id', '');
+//       setCurrentNttnId(null);
+//       setCurrentLinkTypeId(null);
+//       setCurrentRates([]);
 //     }
 //   }, [formik.values.nttn_work_order_id, workOrders, ratesCache]);
+
 //   /* ---------- auto-release lock when field is cleared ---------- */
 //   useEffect(() => {
 //     if (lockedField === 'bw' && !formik.values.shifting_bw) setLockedField(null);
@@ -499,14 +463,15 @@
 //     if (lockedField === 'amount' && !formik.values.shifting_capacity) setLockedField(null);
 //   }, [formik.values.shifting_capacity, lockedField]);
 
-//   /* ---------- Calculate rates when New BW changes ---------- */
+//   /* ---------- ✅ Calculate rates when New BW changes using the API ---------- */
 //   useEffect(() => {
 //     const calculateNewRates = async () => {
 //       if (lockedField === 'amount') return;
 
 //       const bw = parseFloat(formik.values.shifting_bw);
 
-//       if (!bw || !formik.values.nttn_provider) {
+//       if (!bw || !currentNttnId) {
+//         console.log('❌ Missing BW or currentNttnId for calculation');
 //         formik.setFieldValue('shifting_unit_cost', '');
 //         formik.setFieldValue('shifting_capacity', '');
 //         return;
@@ -514,26 +479,51 @@
 
 //       setIsLoadingRates(true);
 //       try {
-//         console.log('🔄 Calculating rates for New BW:', bw);
+//         console.log('🔄 Calculating rates for New BW:', bw, 'NTTN:', currentNttnId, 'Link Type:', currentLinkTypeId);
 
-//         const rateData = await findRateForNewBandwidth(bw);
+//         // ✅ Use the API endpoint with link_type_id
+//         // This will generate: GET /api/rates/nttn/1/bandwidth/20?link_type_id=2
+//         const rateData = await fetchRateForBandwidth(currentNttnId, bw, currentLinkTypeId);
 
 //         if (rateData && rateData.rate) {
-//           console.log('✅ Setting unit rate:', rateData.rate, 'Rate ID:', rateData.rateId);
-//           formik.setFieldValue('shifting_unit_cost', rateData.rate);
+//           console.log('✅ Rate found via API:', rateData);
+//           formik.setFieldValue('shifting_unit_cost', rateData.rate.toFixed(2));
+          
+//           // ✅ Set rate_id as integer
+//           if (rateData.rateId) {
+//             const rateIdValue = typeof rateData.rateId === 'string' 
+//               ? parseInt(rateData.rateId) 
+//               : rateData.rateId;
+            
+//             console.log('🔑 Setting rate_id:', rateIdValue);
+//             formik.setFieldValue('rate_id', rateIdValue);
+//           }
 
-//           // Store rate ID in formik values for later use
-//           formik.setFieldValue('rate_id', rateData.rateId);
-
-//           // Calculate total amount = New BW × Unit Rate
 //           const totalAmount = (bw * rateData.rate).toFixed(2);
-//           console.log('✅ Setting total amount:', totalAmount);
 //           formik.setFieldValue('shifting_capacity', totalAmount);
 //         } else {
-//           console.log('❌ No rate found, clearing fields');
-//           formik.setFieldValue('shifting_unit_cost', '');
-//           formik.setFieldValue('shifting_capacity', '');
-//           formik.setFieldValue('rate_id', '');
+//           console.log('❌ No rate found, trying fallback');
+          
+//           // Fallback to cached rates
+//           const rateDataFallback = findRateForBandwidth(bw, currentRates);
+          
+//           if (rateDataFallback) {
+//             formik.setFieldValue('shifting_unit_cost', rateDataFallback.rate.toFixed(2));
+//             formik.setFieldValue('rate_id', rateDataFallback.rateId);
+//             formik.setFieldValue('shifting_capacity', (bw * rateDataFallback.rate).toFixed(2));
+//           } else {
+//             // Use current unit rate as last resort
+//             const currentUnitRate = unitRateFromCurrent();
+//             if (currentUnitRate > 0) {
+//               formik.setFieldValue('shifting_unit_cost', currentUnitRate.toFixed(2));
+//               formik.setFieldValue('shifting_capacity', (bw * currentUnitRate).toFixed(2));
+//               formik.setFieldValue('rate_id', null);
+//             } else {
+//               formik.setFieldValue('shifting_unit_cost', '');
+//               formik.setFieldValue('shifting_capacity', '');
+//               formik.setFieldValue('rate_id', null);
+//             }
+//           }
 //         }
 //       } catch (error) {
 //         console.error('❌ Error calculating new rates:', error);
@@ -545,15 +535,14 @@
 //       }
 //     };
 
-//     // Use a debounce to avoid too many API calls
 //     const timeoutId = setTimeout(() => {
 //       calculateNewRates();
 //     }, 500);
 
 //     return () => clearTimeout(timeoutId);
-//   }, [formik.values.shifting_bw, formik.values.nttn_provider, bandwidthRanges, lockedField]);
+//   }, [formik.values.shifting_bw, currentNttnId, currentLinkTypeId, lockedField]);
 
-//   // 2. BW + Unit Cost -> Amount (Keep this as fallback)
+//   // 2. BW + Unit Cost -> Amount (Fallback)
 //   useEffect(() => {
 //     if (lockedField === 'amount') return;
 //     const bw = parseFloat(formik.values.shifting_bw);
@@ -616,6 +605,18 @@
 //   const handleSave = async (values) => {
 //     setIsSubmitting(true);
 //     try {
+//       console.log('📋 Form Values Before Submission:', {
+//         workorder_id: values.workorder_id,
+//         shifting_bw: values.shifting_bw,
+//         shifting_unit_cost: values.shifting_unit_cost,
+//         shifting_capacity: values.shifting_capacity,
+//         rate_id: values.rate_id,
+//         reason_id: values.reason_id,
+//         nttn_work_order_id: values.nttn_work_order_id,
+//         capacity: values.capacity,
+//         capacity_cost: values.capacity_cost,
+//       });
+
 //       const payload = {
 //         workorder: values.workorder_id,
 //         nttn_provider: values.nttn_provider,
@@ -628,54 +629,27 @@
 //         shifting_bw: parseFloat(values.shifting_bw) || 0,
 //         shifting_capacity: parseFloat(values.shifting_capacity) || 0,
 //         shifting_unit_cost: parseFloat(values.shifting_unit_cost) || 0,
-//         // ADD NEW FIELDS TO PAYLOAD
 //         remarks: values.remarks || '',
 //         reason_id: values.reason_id || null,
 //         submission: values.submission ? format(new Date(values.submission), 'yyyy-MM-dd') : null,
+//         rate_id: values.rate_id ? parseInt(values.rate_id) : null,
 //       };
+
+//       console.log('📤 Final Payload to Backend:', payload);
+//       console.log('🔍 rate_id in payload:', payload.rate_id, 'Type:', typeof payload.rate_id);
 
 //       let res;
 //       if (isEditMode) {
+//         console.log('✏️ Updating BW Modification ID:', values.id);
 //         res = await updateBWModification(values.id, payload);
 //         showToast?.('BW Modification updated!', 'success');
 //       } else {
+//         console.log('➕ Creating new BW Modification');
 //         res = await createBWModification(payload);
 //         showToast?.('BW Modification created!', 'success');
 //       }
 
-//       if (values.workorder_id) {
-//         try {
-//           const wo = workOrders.find((w) => w.id === parseInt(values.workorder_id));
-//           if (wo) {
-//             const newBW = parseFloat(values.shifting_bw) || 0;
-//             const newUnit = parseFloat(values.shifting_unit_cost) || unitRateFromCurrent();
-//             const totalCost = (newBW * newUnit).toFixed(2);
-//             const rateId = values.rate_id || null;
-
-//             const workOrderUpdatePayload = {
-//               request_capacity: newBW,
-//               unit_rate: newUnit,
-//               total_cost_of_request_capacity: totalCost,
-//               rate_id: rateId,
-//               // Add modify_status based on whether it's an upgrade or downgrade
-//               modify_status: newBW > parseFloat(values.capacity) ? 'upgrade' : 'downgrade',
-//             };
-
-//             console.log('🔄 Updating work order:', workOrderUpdatePayload);
-
-//             await updateWorkOrderLaravel(wo.id, workOrderUpdatePayload);
-//             console.log('✅ Work order updated successfully with history tracking');
-//           }
-//         } catch (e) {
-//           console.error('❌ Work-order update failed:', e);
-//           showToast?.(
-//             'BW Modification saved but work order update failed: ' +
-//               (e.response?.data?.message || e.message),
-//             'warning'
-//           );
-//         }
-//       }
-
+//       console.log('✅ API Response:', res);
 //       onCancel();
 //     } catch (e) {
 //       console.error('❌ Save failed:', e);
@@ -694,12 +668,10 @@
 //     );
 //   }
 
-//   // ✅ FIX: Safe array mapping with fallbacks
 //   const nttnOptions = Array.isArray(nttnProviders)
 //     ? nttnProviders.map((p) => ({ value: p.id, label: p.nttn_name }))
 //     : [];
 
-//   // Use static modification types directly
 //   const modificationTypeOptions = STATIC_MODIFICATION_TYPES;
 
 //   const clientCategoryOptions = Array.isArray(clientCategories)
@@ -717,7 +689,7 @@
 //   return (
 //     <FormikProvider value={formik}>
 //       <form onSubmit={formik.handleSubmit} className="p-8 bg-gray-100 min-h-screen space-y-6">
-//         {/* header – identical to SurveyForm */}
+//         {/* header */}
 //         <div className="flex items-center space-x-3 mb-6 md:mb-8">
 //           <Button
 //             variant="icon"
@@ -836,7 +808,7 @@
 //           </div>
 //         </FormSection>
 
-//         {/* NEW SECTION: Additional Information */}
+//         {/* Additional Information */}
 //         <FormSection title="Additional Information">
 //           <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
 //             <div className="col-span-2">
@@ -889,6 +861,7 @@
 // };
 
 // export default BWModificationForm;
+
 
 
 
@@ -974,6 +947,7 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedField, setLockedField] = useState(null);
   const [isLoadingWorkOrders, setIsLoadingWorkOrders] = useState(false);
+  const [currentRateType, setCurrentRateType] = useState(null);
 
   const lockRef = useRef(lockedField);
   useEffect(() => {
@@ -1017,24 +991,34 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
     try {
       console.log(`🎯 Fetching rate for NTTN: ${nttnId}, BW: ${bandwidth}, Link Type: ${linkTypeId}`);
       
-      // Call the API that includes link_type_id as query parameter
-      // This will call: /api/rates/nttn/1/bandwidth/20?link_type_id=2
       const response = await fetchRatesByNttn(nttnId, bandwidth, linkTypeId);
       
       if (response && response.rate) {
         console.log('💰 Rate found via API:', response);
+        
+        // Convert rate_type to number if it's a string
+        const rateTypeValue = response.rate_type 
+          ? parseInt(response.rate_type, 10) 
+          : null;
+        
+        console.log('📌 Rate Type:', rateTypeValue);
+        setCurrentRateType(rateTypeValue);
+        
         return {
           rate: parseFloat(response.rate),
           rateId: response.id,
           rangeFrom: response.bw_range_from,
           rangeTo: response.bw_range_to,
+          rateType: rateTypeValue,
         };
       }
       
       console.log('❌ No rate found via API');
+      setCurrentRateType(null);
       return null;
     } catch (error) {
       console.error('❌ Error fetching rate for bandwidth:', error);
+      setCurrentRateType(null);
       return null;
     }
   };
@@ -1362,94 +1346,104 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
 
   /* ---------- ✅ Calculate rates when New BW changes using the API ---------- */
   useEffect(() => {
-    const calculateNewRates = async () => {
-      if (lockedField === 'amount') return;
+  const calculateNewRates = async () => {
+    if (lockedField === 'amount') return;
 
-      const bw = parseFloat(formik.values.shifting_bw);
+    const bw = parseFloat(formik.values.shifting_bw);
 
-      if (!bw || !currentNttnId) {
-        console.log('❌ Missing BW or currentNttnId for calculation');
-        formik.setFieldValue('shifting_unit_cost', '');
-        formik.setFieldValue('shifting_capacity', '');
-        return;
-      }
+    if (!bw || !currentNttnId) {
+      console.log('❌ Missing BW or currentNttnId for calculation');
+      formik.setFieldValue('shifting_unit_cost', '');
+      formik.setFieldValue('shifting_capacity', '');
+      setCurrentRateType(null);
+      return;
+    }
 
-      setIsLoadingRates(true);
-      try {
-        console.log('🔄 Calculating rates for New BW:', bw, 'NTTN:', currentNttnId, 'Link Type:', currentLinkTypeId);
+    setIsLoadingRates(true);
+    try {
+      console.log('📄 Calculating rates for New BW:', bw, 'NTTN:', currentNttnId, 'Link Type:', currentLinkTypeId);
 
-        // ✅ Use the API endpoint with link_type_id
-        // This will generate: GET /api/rates/nttn/1/bandwidth/20?link_type_id=2
-        const rateData = await fetchRateForBandwidth(currentNttnId, bw, currentLinkTypeId);
+      const rateData = await fetchRateForBandwidth(currentNttnId, bw, currentLinkTypeId);
 
-        if (rateData && rateData.rate) {
-          console.log('✅ Rate found via API:', rateData);
-          formik.setFieldValue('shifting_unit_cost', rateData.rate.toFixed(2));
+      if (rateData && rateData.rate) {
+        console.log('✅ Rate found via API:', rateData);
+        formik.setFieldValue('shifting_unit_cost', rateData.rate.toFixed(2));
+        
+        if (rateData.rateId) {
+          const rateIdValue = typeof rateData.rateId === 'string' 
+            ? parseInt(rateData.rateId) 
+            : rateData.rateId;
           
-          // ✅ Set rate_id as integer
-          if (rateData.rateId) {
-            const rateIdValue = typeof rateData.rateId === 'string' 
-              ? parseInt(rateData.rateId) 
-              : rateData.rateId;
-            
-            console.log('🔑 Setting rate_id:', rateIdValue);
-            formik.setFieldValue('rate_id', rateIdValue);
-          }
+          console.log('🔑 Setting rate_id:', rateIdValue);
+          formik.setFieldValue('rate_id', rateIdValue);
+        }
 
+        // Calculate total amount based on rate_type
+        if (rateData.rateType === 1) {
+          // rate_type 1: just show unit rate (no multiplication)
+          formik.setFieldValue('shifting_capacity', rateData.rate.toFixed(2));
+          console.log('📌 Rate Type 1: Total Amount = Unit Rate =', rateData.rate.toFixed(2));
+        } else if (rateData.rateType === 2) {
+          // rate_type 2: multiply BW × unit rate
           const totalAmount = (bw * rateData.rate).toFixed(2);
           formik.setFieldValue('shifting_capacity', totalAmount);
+          console.log('📌 Rate Type 2: Total Amount = BW × Unit Rate =', totalAmount);
+        }
+      } else {
+        console.log('❌ No rate found, trying fallback');
+        
+        const rateDataFallback = findRateForBandwidth(bw, currentRates);
+        
+        if (rateDataFallback) {
+          formik.setFieldValue('shifting_unit_cost', rateDataFallback.rate.toFixed(2));
+          formik.setFieldValue('rate_id', rateDataFallback.rateId);
+          formik.setFieldValue('shifting_capacity', (bw * rateDataFallback.rate).toFixed(2));
         } else {
-          console.log('❌ No rate found, trying fallback');
-          
-          // Fallback to cached rates
-          const rateDataFallback = findRateForBandwidth(bw, currentRates);
-          
-          if (rateDataFallback) {
-            formik.setFieldValue('shifting_unit_cost', rateDataFallback.rate.toFixed(2));
-            formik.setFieldValue('rate_id', rateDataFallback.rateId);
-            formik.setFieldValue('shifting_capacity', (bw * rateDataFallback.rate).toFixed(2));
+          const currentUnitRate = unitRateFromCurrent();
+          if (currentUnitRate > 0) {
+            formik.setFieldValue('shifting_unit_cost', currentUnitRate.toFixed(2));
+            formik.setFieldValue('shifting_capacity', (bw * currentUnitRate).toFixed(2));
+            formik.setFieldValue('rate_id', null);
           } else {
-            // Use current unit rate as last resort
-            const currentUnitRate = unitRateFromCurrent();
-            if (currentUnitRate > 0) {
-              formik.setFieldValue('shifting_unit_cost', currentUnitRate.toFixed(2));
-              formik.setFieldValue('shifting_capacity', (bw * currentUnitRate).toFixed(2));
-              formik.setFieldValue('rate_id', null);
-            } else {
-              formik.setFieldValue('shifting_unit_cost', '');
-              formik.setFieldValue('shifting_capacity', '');
-              formik.setFieldValue('rate_id', null);
-            }
+            formik.setFieldValue('shifting_unit_cost', '');
+            formik.setFieldValue('shifting_capacity', '');
+            formik.setFieldValue('rate_id', null);
           }
         }
-      } catch (error) {
-        console.error('❌ Error calculating new rates:', error);
-        formik.setFieldValue('shifting_unit_cost', '');
-        formik.setFieldValue('shifting_capacity', '');
-        formik.setFieldValue('rate_id', '');
-      } finally {
-        setIsLoadingRates(false);
       }
-    };
+    } catch (error) {
+      console.error('❌ Error calculating new rates:', error);
+      formik.setFieldValue('shifting_unit_cost', '');
+      formik.setFieldValue('shifting_capacity', '');
+      formik.setFieldValue('rate_id', '');
+      setCurrentRateType(null);
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
 
-    const timeoutId = setTimeout(() => {
-      calculateNewRates();
-    }, 500);
+  const timeoutId = setTimeout(() => {
+    calculateNewRates();
+  }, 500);
 
-    return () => clearTimeout(timeoutId);
-  }, [formik.values.shifting_bw, currentNttnId, currentLinkTypeId, lockedField]);
+  return () => clearTimeout(timeoutId);
+}, [formik.values.shifting_bw, currentNttnId, currentLinkTypeId, lockedField]);
 
   // 2. BW + Unit Cost -> Amount (Fallback)
   useEffect(() => {
     if (lockedField === 'amount') return;
+    
     const bw = parseFloat(formik.values.shifting_bw);
     const rate = parseFloat(formik.values.shifting_unit_cost);
-    if (isFinite(bw) && isFinite(rate) && bw > 0 && rate > 0) {
+    
+    // Only recalculate if rate_type is 2 (multiply) and we have valid values
+    if (currentRateType === 2 && isFinite(bw) && isFinite(rate) && bw > 0 && rate > 0) {
       formik.setFieldValue('shifting_capacity', (bw * rate).toFixed(2));
-    } else if (lockedField !== 'amount') {
+      console.log('📊 Recalculating total amount for rate_type 2:', (bw * rate).toFixed(2));
+    } else if (!bw || !rate) {
       formik.setFieldValue('shifting_capacity', '');
     }
-  }, [formik.values.shifting_bw, formik.values.shifting_unit_cost, lockedField]);
+  }, [formik.values.shifting_bw, formik.values.shifting_unit_cost, lockedField, currentRateType]);
 
   // Helper function for reverse calculation
   const unitRateFromCurrent = () => {
@@ -1461,12 +1455,12 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
 
   // 3. Amount -> BW + Unit Cost (Reverse Calculation)
   useEffect(() => {
-    const amount = parseFloat(formik.values.shifting_capacity);
+  const amount = parseFloat(formik.values.shifting_capacity);
     const rate = unitRateFromCurrent();
 
     if (lockRef.current !== 'amount') return;
 
-    if (isFinite(amount) && amount > 0 && isFinite(rate) && rate > 0) {
+    if (currentRateType === 2 && isFinite(amount) && amount > 0 && isFinite(rate) && rate > 0) {
       const calculatedBW = (amount / rate).toFixed(2);
       if (formik.values.shifting_bw !== calculatedBW) {
         formik.setFieldValue('shifting_bw', calculatedBW);
@@ -1475,6 +1469,11 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
       const rateStr = rate.toFixed(2);
       if (formik.values.shifting_unit_cost !== rateStr) {
         formik.setFieldValue('shifting_unit_cost', rateStr);
+      }
+    } else if (currentRateType === 1) {
+      // For rate_type 1, amount should equal unit cost, no BW calculation needed
+      if (formik.values.shifting_bw !== '') {
+        formik.setFieldValue('shifting_bw', '');
       }
     } else {
       if (formik.values.shifting_bw !== '') {
@@ -1485,7 +1484,7 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
         formik.setFieldValue('shifting_unit_cost', rateStr);
       }
     }
-  }, [formik.values.shifting_capacity, formik.values.capacity, formik.values.capacity_cost]);
+  }, [formik.values.shifting_capacity, formik.values.capacity, formik.values.capacity_cost, currentRateType]);
 
   // ✅ Auto-lock a field in edit mode if it has initial data
   useEffect(() => {
@@ -1670,31 +1669,62 @@ const BWModificationForm = ({ initialValues, isEditMode, onSubmit, onCancel, sho
         {/* New Values */}
         <FormSection title="New Values">
           <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
-            <InputField
-              name="shifting_bw"
-              label="New BW *"
-              type="number"
-              step="0.01"
-              disabled={lockedField === 'amount'}
-              onBlur={(e) => {
-                formik.handleBlur(e);
-                lockedField !== 'amount' && setLockedField('bw');
-              }}
-            />
-            <InputField
-              name="shifting_capacity"
-              label="New Total Amount *"
-              type="number"
-              step="0.01"
-              disabled={lockedField === 'bw'}
-              onChange={(e) => {
-                formik.handleChange(e);
-                if (lockedField !== 'bw') {
-                  setLockedField('amount');
-                }
-              }}
-              onBlur={formik.handleBlur}
-            />
+            {currentRateType === 1 ? (
+              <>
+                <InputField
+                  name="shifting_bw"
+                  label="New BW *"
+                  type="number"
+                  step="0.01"
+                  disabled
+                  help="Fixed rate - BW not applicable"
+                />
+                <InputField
+                  name="shifting_capacity"
+                  label="New Total Amount *"
+                  type="number"
+                  step="0.01"
+                  disabled={lockedField === 'bw'}
+                  onChange={(e) => {
+                    formik.handleChange(e);
+                    if (lockedField !== 'bw') {
+                      setLockedField('amount');
+                    }
+                  }}
+                  onBlur={formik.handleBlur}
+                  help="Fixed Rate (Unit Cost only)"
+                />
+              </>
+            ) : (
+              <>
+                <InputField
+                  name="shifting_bw"
+                  label="New BW *"
+                  type="number"
+                  step="0.01"
+                  disabled={lockedField === 'amount'}
+                  onBlur={(e) => {
+                    formik.handleBlur(e);
+                    lockedField !== 'amount' && setLockedField('bw');
+                  }}
+                />
+                <InputField
+                  name="shifting_capacity"
+                  label="New Total Amount *"
+                  type="number"
+                  step="0.01"
+                  disabled={lockedField === 'bw'}
+                  onChange={(e) => {
+                    formik.handleChange(e);
+                    if (lockedField !== 'bw') {
+                      setLockedField('amount');
+                    }
+                  }}
+                  onBlur={formik.handleBlur}
+                  help="Auto-calculated (BW × Unit Rate)"
+                />
+              </>
+            )}
             <InputField
               name="shifting_unit_cost"
               label={`Unit Cost ${isLoadingRates ? '(Loading...)' : ''}`}

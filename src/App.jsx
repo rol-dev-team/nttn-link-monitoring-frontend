@@ -186,6 +186,7 @@ const Reason = lazy(() => import('./pages/settings/Reason'));
 const Rate = lazy(() => import('./pages/settings/Rate'));
 const BwRanges = lazy(() => import('./pages/settings/BwRanges'));
 const Client = lazy(() => import('./pages/settings/Client'));
+const AggLandmark = lazy(() => import('./pages/settings/AggLandmark'));
 
 // Protected Pages
 const UserManagement = lazy(() => import('./components/users/UserManagement'));
@@ -316,6 +317,8 @@ export default function App() {
                   <Route path="/settings/rate" element={<Rate />} />
                   <Route path="/settings/bwranges" element={<BwRanges />} />
                   <Route path="/settings/client" element={<Client />} />
+                  <Route path="/settings/aggregation-landmarks" element={<AggLandmark />} />
+                  
 
                   {/* NTTN project routes */}
                   <Route path="page-management" element={<MenuAndPageManagement />} />

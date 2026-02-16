@@ -123,14 +123,14 @@ const AggLandmark = () => {
             <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button
+            {/* <Button
               variant="destructive"
               size="sm"
               onClick={() => handleDelete(row.id)}
               title="Delete"
             >
               <Trash className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </>
         ),
       },

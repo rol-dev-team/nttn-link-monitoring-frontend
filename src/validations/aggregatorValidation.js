@@ -48,13 +48,11 @@ export const AggregatorSchema = Yup.object().shape({
 
   port_sfp_details: Yup.string()
   .trim()
-  .max(500, "Port/SFP details cannot exceed 500 characters")
-  .required("Port/SFP Details is required"),
+  .max(500, "Port/SFP details cannot exceed 500 characters"),
 
   remarks: Yup.string()
     .trim()
-    .max(1000, "Remarks cannot exceed 1000 characters")
-    .required("Remarks is required"),
+    .max(1000, "Remarks cannot exceed 1000 characters"),
 
 });
 

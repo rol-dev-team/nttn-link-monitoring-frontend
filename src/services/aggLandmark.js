@@ -11,7 +11,7 @@ export const createAggLandmark = async (payload) => {
 };
 
 /* ---------- Fetch all Agg Landmarks ---------- */
-export const fetchAggLandmarks = async () => {
+export const fetchAggLandmarks = async (id) => {
   try {
     const response = await axiosInstance.get('/aggregation-landmarks');
     return response.data;

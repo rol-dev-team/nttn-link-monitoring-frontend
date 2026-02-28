@@ -332,7 +332,7 @@
 
 // export default ClientForm;
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useFormik, FormikProvider } from 'formik';
 import { ArrowLeft } from 'lucide-react';
 
@@ -366,6 +366,7 @@ const DEFAULT_VALUES = {
   district_id: '',
   thana_id: '',
   address: '',
+  status: '',
   client_lat: '',
   client_long: '',
 };
@@ -411,6 +412,8 @@ const normalizeList = (res, idKey = 'id', labelKey = 'name') => {
 };
 
 const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
+
+  console.log(' ClientForm rendered',initialValues);
   /* -------------------- local state -------------------- */
   const [categories, setCategories] = useState([]);
   const [sbuOpts, setSbuOpts] = useState([]);
@@ -423,6 +426,7 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
   const [loadingDiv, setLoadingDiv] = useState(false);
   const [loadingDis, setLoadingDis] = useState(false);
   const [loadingTha, setLoadingTha] = useState(false);
+  const isInitialLoad = useRef(true);
 
   /* -------------------- formik -------------------- */
   const formik = useFormik({
@@ -490,111 +494,115 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
 
   /* -------------------- SBU selection loads Categories -------------------- */
   useEffect(() => {
-    let active = true;
+  let active = true;
 
-    // Reset category when SBU is cleared
-    if (!formik.values.sbu_id) {
-      setCategories([]);
-      if (formik.values.cat_id) {
-        formik.setFieldValue('cat_id', '');
+  if (!formik.values.sbu_id) {
+    setCategories([]);
+    if (!isInitialLoad.current) {
+      formik.setFieldValue('cat_id', '');
+    }
+    return;
+  }
+
+  setLoadingCat(true);
+  fetchCategoriesBySBU(formik.values.sbu_id)
+    .then((response) => {
+      if (!active) return;
+      const categoryList = normalizeList(response, 'id', 'cat_name');
+      setCategories(categoryList);
+    })
+    .catch((e) => {
+      console.error('fetchCategoriesBySBU error:', e);
+      showToast(e?.response?.data?.message || 'Could not load categories', 'error');
+      if (active) {
+        setCategories([]);
       }
-      return;
-    }
+    })
+    .finally(() => {
+      if (active) setLoadingCat(false);
+    });
 
-    setLoadingCat(true);
-    fetchCategoriesBySBU(formik.values.sbu_id)
-      .then((response) => {
-        if (!active) return;
+  return () => {
+    active = false;
+  };
+}, [formik.values.sbu_id, showToast]); // ← cat_id removed from deps
 
-        const categoryList = normalizeList(response, 'id', 'cat_name');
-        setCategories(categoryList);
+/* -------------------- Division selection loads Districts -------------------- */
+useEffect(() => {
+  let active = true;
 
-        // If current category is not in the new list, reset it
-        if (
-          formik.values.cat_id &&
-          !categoryList.find((cat) => cat.value === formik.values.cat_id)
-        ) {
-          formik.setFieldValue('cat_id', '');
-        }
-      })
-      .catch((e) => {
-        console.error('fetchCategoriesBySBU error:', e);
-        showToast(e?.response?.data?.message || 'Could not load categories', 'error');
-        if (active) {
-          setCategories([]);
-          formik.setFieldValue('cat_id', '');
-        }
-      })
-      .finally(() => {
-        if (active) setLoadingCat(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [formik.values.sbu_id, formik.values.cat_id, formik.setFieldValue, showToast]);
-
-  /* -------------------- Division selection loads Districts -------------------- */
-  useEffect(() => {
-    let active = true;
-
-    if (!formik.values.division_id) {
-      setDistricts([]);
+  if (!formik.values.division_id) {
+    setDistricts([]);
+    if (!isInitialLoad.current) {
       formik.setFieldValue('district_id', '');
-      return;
-    }
-
-    setLoadingDis(true);
-    // Use the correct function that works from your original code
-    fetchDistrictDivisionWise(formik.values.division_id)
-      .then((response) => {
-        if (!active) return;
-        setDistricts(normalizeList(response, 'id', 'district_name'));
-      })
-      .catch((e) => {
-        console.error('fetchDistrictDivisionWise error:', e);
-        showToast(e?.response?.data?.message || 'Could not load districts', 'error');
-        if (active) setDistricts([]);
-      })
-      .finally(() => {
-        if (active) setLoadingDis(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [formik.values.division_id, showToast]);
-
-  /* -------------------- District selection loads Thanas -------------------- */
-  useEffect(() => {
-    let active = true;
-
-    if (!formik.values.district_id) {
-      setThanas([]);
       formik.setFieldValue('thana_id', '');
-      return;
     }
+    return;
+  }
 
-    setLoadingTha(true);
-    // Use the correct function that works from your original code
-    fetchThanaDistrictWise(formik.values.district_id)
-      .then((response) => {
-        if (!active) return;
-        setThanas(normalizeList(response, 'id', 'thana_name'));
-      })
-      .catch((e) => {
-        console.error('fetchThanaDistrictWise error:', e);
-        showToast(e?.response?.data?.message || 'Could not load thanas', 'error');
-        if (active) setThanas([]);
-      })
-      .finally(() => {
-        if (active) setLoadingTha(false);
-      });
+  setLoadingDis(true);
+  fetchDistrictDivisionWise(formik.values.division_id)
+    .then((response) => {
+      if (!active) return;
+      const districtList = normalizeList(response, 'id', 'district_name');
+      setDistricts(districtList);
+    })
+    .catch((e) => {
+      console.error('fetchDistrictDivisionWise error:', e);
+      showToast(e?.response?.data?.message || 'Could not load districts', 'error');
+      if (active) setDistricts([]);
+    })
+    .finally(() => {
+      if (active) setLoadingDis(false);
+    });
 
-    return () => {
-      active = false;
-    };
-  }, [formik.values.district_id, showToast]);
+  return () => {
+    active = false;
+  };
+}, [formik.values.division_id, showToast]);
+
+/* -------------------- District selection loads Thanas -------------------- */
+useEffect(() => {
+  let active = true;
+
+  if (!formik.values.district_id) {
+    setThanas([]);
+    if (!isInitialLoad.current) {
+      formik.setFieldValue('thana_id', '');
+    }
+    return;
+  }
+
+  setLoadingTha(true);
+  fetchThanaDistrictWise(formik.values.district_id)
+    .then((response) => {
+      if (!active) return;
+      const thanaList = normalizeList(response, 'id', 'thana_name');
+      setThanas(thanaList);
+
+      // Mark initial load as done after thanas are loaded (last in the chain)
+      isInitialLoad.current = false;
+    })
+    .catch((e) => {
+      console.error('fetchThanaDistrictWise error:', e);
+      showToast(e?.response?.data?.message || 'Could not load thanas', 'error');
+      if (active) setThanas([]);
+      isInitialLoad.current = false;
+    })
+    .finally(() => {
+      if (active) setLoadingTha(false);
+    });
+
+  return () => {
+    active = false;
+  };
+}, [formik.values.district_id, showToast]);
+
+  // // Status options
+  // const STATUS_OPTIONS = [
+  //   { id: 1, label: 'Active' },
+  //   { id: 0, label: 'Inactive' },
+  // ];
 
   /* -------------------- render -------------------- */
   return (
@@ -697,20 +705,37 @@ const ClientForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
 
           
         </FormSection>
+          <div className="flex w-full items-end justify-between mt-8 space-x-3">
+            {/* Status Dropdown - Positioned to the left of the buttons */}
+            <div className="w-48"> 
+              <SelectField
+                name="status"
+                placeholder="Select Status"
+                options={[
+                  { id: 1, label: 'Active' }, // Changed '1' to 1
+                  { id: 0, label: 'Inactive' }, // Changed '0' to 0
+                ]}
+                valueKey="id"
+                labelKey="label"
+                required
+              />
+            </div>
 
-        <div className="flex w-full justify-end mt-8 space-x-3">
-          <Button intent="cancel" type="button" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            intent="submit"
-            loading={formik.isSubmitting}
-            disabled={!formik.isValid || formik.isSubmitting}
-          >
-            {isEditMode ? 'Update Client' : 'Create Client'}
-          </Button>
-        </div>
+            <div className="flex w-full justify-end mt-8 space-x-3">
+              <Button intent="cancel" type="button" onClick={onCancel}>
+                Cancel
+              </Button>
+              
+              <Button
+                type="submit"
+                intent="submit"
+                loading={formik.isSubmitting}
+                disabled={!formik.isValid || formik.isSubmitting}
+              >
+                {isEditMode ? 'Update Client' : 'Create Client'}
+              </Button>
+            </div>
+          </div>
       </form>
     </FormikProvider>
   );

@@ -230,6 +230,7 @@ const defaultInitialValues = {
   district_id: '',
   thana_id: '',
   address: '',
+  status: 1, // Default to Active (1)
   client_lat: '',
   client_long: '',
 };
@@ -286,7 +287,8 @@ const Client = () => {
       initialValues: defaultInitialValues,
     });
 
-  const openEdit = (item) =>
+  const openEdit = (item) =>{
+    console.log('editing',item.division_name)
     setFormState({
       isOpen: true,
       isEditMode: true,
@@ -299,10 +301,12 @@ const Client = () => {
         district_id: item.district_id,
         thana_id: item.thana_id,
         address: item.address,
+        // Pass the numeric status (ensure it is a number)
+        status: Number(item.status) === 1 ? "Active" : "Inactive",
         client_lat: item.client_lat,
         client_long: item.client_long,
       },
-    });
+    })}
 
   const closeForm = () =>
     setFormState({
@@ -314,44 +318,100 @@ const Client = () => {
 
   /* ---------- real save ---------- */
   const handleSubmit = async (values) => {
-    try {
-      if (formState.isEditMode) {
-        await updateClient(formState.editingId, values);
-        pushToast('Client updated successfully!', 'success');
-      } else {
-        await createClient(values);
-        pushToast('Client created successfully!', 'success');
-      }
-      loadClients(); // refresh table
-      closeForm();
-    } catch (e) {
-      pushToast(e?.response?.data?.message || 'Save failed', 'error');
-    }
+
+  // ✅ normalize status before API call
+  const payload = {
+    ...values,
+    status:
+      values.status === "Active"
+        ? 1
+        : values.status === "Inactive"
+        ? 0
+        : values.status,
   };
+
+  try {
+    if (formState.isEditMode) {
+      await updateClient(formState.editingId, payload);
+      pushToast('Client updated successfully!', 'success');
+    } else {
+      await createClient(payload);
+      pushToast('Client created successfully!', 'success');
+    }
+
+    loadClients();
+    closeForm();
+  } catch (e) {
+    pushToast(e?.response?.data?.message || 'Save failed', 'error');
+  }
+};
+  // const handleSubmit = async (values) => {
+  //   try {
+  //     if (formState.isEditMode) {
+  //       await updateClient(formState.editingId, values);
+  //       pushToast('Client updated successfully!', 'success');
+  //     } else {
+  //       await createClient(values);
+  //       pushToast('Client created successfully!', 'success');
+  //     }
+  //     loadClients(); // refresh table
+  //     closeForm();
+  //   } catch (e) {
+  //     pushToast(e?.response?.data?.message || 'Save failed', 'error');
+  //   }
+  // };
 
   /* ---------- table columns ---------- */
   const columns = useMemo(
-    () => [
-      { key: 'sbu_name', header: 'SBU', isSortable: true },
-      { key: 'client_name', header: 'Client Name', isSortable: true },
-      { key: 'cat_name', header: 'Category', isSortable: true },
-      { key: 'division_name', header: 'Division', isSortable: true },
-      { key: 'district_name', header: 'District', isSortable: true },
-      { key: 'thana_name', header: 'Thana', isSortable: true },
-      { key: 'address', header: 'Address' },
-      {
-        key: 'actions',
-        header: 'Action',
-        render: (_, row) => (
-          <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
-            <Pencil className="h-4 w-4" />
-          </Button>
-        ),
+  () => [
+    { 
+      key: 'id', 
+      header: 'Client ID', 
+      isSortable: true,
+      
+    },
+    { key: 'sbu_name', header: 'SBU', isSortable: true },
+    { key: 'client_name', header: 'Client Name', isSortable: true },
+    { key: 'cat_name', header: 'Category', isSortable: true },
+    { key: 'division_name', header: 'Division', isSortable: true },
+    { key: 'district_name', header: 'District', isSortable: true },
+    { key: 'thana_name', header: 'Thana', isSortable: true },
+    { key: 'address', header: 'Address' },
+    {
+      key: 'status', 
+      header: 'Status',
+      isSortable: true,
+      render: (statusValue) => {
+        // Since your JSON is missing "status", we use a fallback check
+        // If statusValue is undefined, we assume 1 (Active) for now
+        const val = (statusValue === undefined || statusValue === null) ? 1 : statusValue;
+        const isActive = Number(val) === 1; 
+        
+        return (
+          <span
+            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              isActive 
+                ? 'bg-green-100 text-green-700 border-green-200' 
+                : 'bg-red-100 text-red-700 border-red-200'
+            }`}
+          >
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
+        );
       },
-    ],
-    []
-  );
-
+    },
+    {
+      key: 'actions',
+      header: 'Action',
+      render: (_, row) => (
+        <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ],
+  [openEdit] 
+);
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (
@@ -406,7 +466,7 @@ const Client = () => {
           columns={columns}
           searchable={true}
           selection={true}
-          showId={true}
+          showId={false}  // ← disable auto-generated serial numbers
           pageSizeOptions={[5, 10, 25, 50, 100]}
           initialPageSize={5}
         />

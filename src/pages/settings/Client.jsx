@@ -362,13 +362,25 @@ const Client = () => {
   // };
 
   /* ---------- table columns ---------- */
-  const columns = useMemo(
+
+  /* ---------- table columns ---------- */
+const columns = useMemo(
   () => [
     { 
+      key: 'serial', 
+      header: 'SL', 
+      // This generates a 1, 2, 3... sequence based on the row index
+      render: (_, __, index) => <span className="text-gray-400">{index + 1}</span>
+    },
+    { 
       key: 'id', 
-      header: 'Client ID', 
+      header: 'Client ID', // This is your Database Row ID
       isSortable: true,
-      
+      render: (idValue) => (
+        <span className="font-mono font-bold text-blue-600">
+          {idValue}
+        </span>
+      )
     },
     { key: 'sbu_name', header: 'SBU', isSortable: true },
     { key: 'client_name', header: 'Client Name', isSortable: true },
@@ -382,8 +394,6 @@ const Client = () => {
       header: 'Status',
       isSortable: true,
       render: (statusValue) => {
-        // Since your JSON is missing "status", we use a fallback check
-        // If statusValue is undefined, we assume 1 (Active) for now
         const val = (statusValue === undefined || statusValue === null) ? 1 : statusValue;
         const isActive = Number(val) === 1; 
         
@@ -412,6 +422,63 @@ const Client = () => {
   ],
   [openEdit] 
 );
+//   const columns = useMemo(
+//   () => [
+//     { 
+//       key: 'id', 
+//       header: 'ID', 
+//       isSortable: true,
+      
+//     },
+//     { 
+//       key: 'id', 
+//       header: 'DB ID', // Changed label to be clear
+//       isSortable: true,
+//       // Force the render to use the actual 'id' property from the row object
+//       render: (idValue, row) => <span className="font-mono font-bold">{row.id}</span>
+//     },
+//     { key: 'sbu_name', header: 'SBU', isSortable: true },
+//     { key: 'client_name', header: 'Client Name', isSortable: true },
+//     { key: 'cat_name', header: 'Category', isSortable: true },
+//     { key: 'division_name', header: 'Division', isSortable: true },
+//     { key: 'district_name', header: 'District', isSortable: true },
+//     { key: 'thana_name', header: 'Thana', isSortable: true },
+//     { key: 'address', header: 'Address' },
+//     {
+//       key: 'status', 
+//       header: 'Status',
+//       isSortable: true,
+//       render: (statusValue) => {
+//         // Since your JSON is missing "status", we use a fallback check
+//         // If statusValue is undefined, we assume 1 (Active) for now
+//         const val = (statusValue === undefined || statusValue === null) ? 1 : statusValue;
+//         const isActive = Number(val) === 1; 
+        
+//         return (
+//           <span
+//             className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+//               isActive 
+//                 ? 'bg-green-100 text-green-700 border-green-200' 
+//                 : 'bg-red-100 text-red-700 border-red-200'
+//             }`}
+//           >
+//             {isActive ? 'Active' : 'Inactive'}
+//           </span>
+//         );
+//       },
+//     },
+//     {
+//       key: 'actions',
+//       header: 'Action',
+//       render: (_, row) => (
+//         <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+//           <Pencil className="h-4 w-4" />
+//         </Button>
+//       ),
+//     },
+//   ],
+//   [openEdit] 
+// );
   /* ---------- UI ---------- */
   if (formState.isOpen) {
     return (

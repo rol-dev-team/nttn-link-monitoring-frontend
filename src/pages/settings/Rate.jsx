@@ -375,8 +375,25 @@ const Rate = () => {
   };
 
   /* ---------- columns ---------- */
+  /* ---------- columns ---------- */
   const columns = useMemo(
     () => [
+      { 
+        key: 'serial', 
+        header: 'SL', 
+        // Simple frontend counter (1, 2, 3...)
+        render: (_, __, index) => <span className="text-gray-400">{index + 1}</span>
+      },
+      { 
+        key: 'id', 
+        header: 'Rate ID', // Actual ID from your Laravel DB
+        isSortable: true,
+        render: (idValue) => (
+          <span className="font-mono font-bold text-blue-600">
+            {idValue}
+          </span>
+        )
+      },
       { key: 'nttn_name', header: 'NTTN', isSortable: true },
       { key: 'link_type_name', header: 'Link Type', isSortable: true },
       { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
@@ -384,7 +401,7 @@ const Rate = () => {
       { key: 'rate', header: 'Rate', isSortable: true },
       {
         key: 'rate_type',
-        header: 'Rate Type', // ✅ NEW COLUMN
+        header: 'Rate Type', 
         render: (_, row) => (row.rate_type === 1 ? 'Fixed' : row.rate_type === 2 ? 'Variable' : '-'),
       },
       {
@@ -407,8 +424,42 @@ const Rate = () => {
         ),
       },
     ],
-    []
+    [openEdit] // Added openEdit here to ensure the "Action" button always has the correct function reference
   );
+  // const columns = useMemo(
+  //   () => [
+  //     { key: 'nttn_name', header: 'NTTN', isSortable: true },
+  //     { key: 'link_type_name', header: 'Link Type', isSortable: true },
+  //     { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
+  //     { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
+  //     { key: 'rate', header: 'Rate', isSortable: true },
+  //     {
+  //       key: 'rate_type',
+  //       header: 'Rate Type', // ✅ NEW COLUMN
+  //       render: (_, row) => (row.rate_type === 1 ? 'Fixed' : row.rate_type === 2 ? 'Variable' : '-'),
+  //     },
+  //     {
+  //       key: 'start_date',
+  //       header: 'Start Date',
+  //       isSortable: true,
+  //     },
+  //     {
+  //       key: 'end_date',
+  //       header: 'End Date',
+  //       isSortable: true,
+  //     },
+  //     {
+  //       key: 'actions',
+  //       header: 'Action',
+  //       render: (_, row) => (
+  //         <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+  //           <Pencil className="h-4 w-4" />
+  //         </Button>
+  //       ),
+  //     },
+  //   ],
+  //   []
+  // );
 
   /* ---------- UI ---------- */
   if (formState.isOpen) {

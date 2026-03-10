@@ -84,7 +84,7 @@ export const workOrderValidationSchema = Yup.object({
   aggregator_id: Yup.string().required("Please select an Aggregator"),
   kam_id: Yup.string().required("Please select a KAM"),
   nttn_id: Yup.string().required("Please select an NTTN Name"),
-  nttn_survey_id: Yup.string().required("Please provide Provider ID"),
+  // nttn_survey_id: Yup.string().required("Please provide Provider ID"),
   // nttn_lat: Yup.string().required("NTTN latitude is required"),
   // nttn_long: Yup.string().required("NTTN longitude is required"),
 

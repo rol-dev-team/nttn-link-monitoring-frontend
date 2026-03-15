@@ -12,6 +12,7 @@ import {
   fetchCategoryWiseClientPartner,
   fetchWorkOrderDetailsForPartner,
 } from '../services/partner-link/txToPartner';
+import Select from 'react-select';
 
 // Mock Data for status options (keeping this as it's not from API)
 const MOCK_STATUS_OPTIONS = [
@@ -525,34 +526,88 @@ export default function PartnerActivationForm({ initialValues, isEditMode, onSub
               {/* Row 1: Work Order ID Dropdown */}
 
               <div className="">
-                <SelectField
-                  name="nttn_work_order_id"
-                  options={clientOptions}
-                  placeholder={loading ? 'Loading clients...' : 'Select Partner Name / Link ID'}
-                  className={''}
-                  disabled={loading}
-                  onChange={(selectedValue) => {
-                    const selectedClient = clientOptions.find(
-                      (option) => option.value === selectedValue
-                    );
-
-                    if (selectedClient) {
-                      formik.setFieldValue('nttn_work_order_id', selectedValue);
-
-                      const clientId = selectedClient.client_id
-                        ? selectedClient.client_id.toString()
-                        : '';
-                      formik.setFieldValue('client_id', clientId);
-                    } else {
-                      formik.setFieldValue('nttn_work_order_id', '');
-                      formik.setFieldValue('client_id', '');
+                <Select
+                    name="nttn_work_order_id"
+                    options={clientOptions}
+                    isDisabled={loading}
+                    isLoading={loading}
+                    placeholder={loading ? 'Loading clients...' : 'Select Partner Name / Link ID'}
+                    isClearable={true}
+                    isSearchable={true}   // ✅ allows typing to search
+                    value={
+                        clientOptions.find(
+                            (option) => option.value === formik.values.nttn_work_order_id
+                        ) || null
                     }
-
-                    setPartnerDetails({});
-                  }}
+                    onChange={(selectedOption) => {
+                        if (selectedOption) {
+                            formik.setFieldValue('nttn_work_order_id', selectedOption.value);
+                            const clientId = selectedOption.client_id
+                                ? selectedOption.client_id.toString()
+                                : '';
+                            formik.setFieldValue('client_id', clientId);
+                        } else {
+                            // ✅ handles clear button click
+                            formik.setFieldValue('nttn_work_order_id', '');
+                            formik.setFieldValue('client_id', '');
+                        }
+                        setPartnerDetails({});
+                    }}
+                    onBlur={() => formik.setFieldTouched('nttn_work_order_id', true)}
+                    styles={{
+                        control: (base, state) => ({
+                            ...base,
+                            borderRadius: '6px',
+                            borderColor: 
+                                formik.touched.nttn_work_order_id && 
+                                formik.errors.nttn_work_order_id 
+                                    ? '#ef4444'   // red border on error
+                                    : '#cccccc',
+                            boxShadow: state.isFocused ? '0 0 0 1px #4b1e85' : 'none',
+                            '&:hover': {
+                                borderColor: '#4b1e85',
+                            },
+                            padding: '2px 4px',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                        }),
+                        option: (base, state) => ({
+                            ...base,
+                            backgroundColor: state.isSelected
+                                ? '#4b1e85'
+                                : state.isFocused
+                                ? '#f0eafa'
+                                : '#ffffff',
+                            color: state.isSelected ? '#ffffff' : '#333333',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                        }),
+                        placeholder: (base) => ({
+                            ...base,
+                            color: '#aaaaaa',
+                            fontSize: '14px',
+                        }),
+                        clearIndicator: (base) => ({
+                            ...base,
+                            cursor: 'pointer',
+                            color: '#999',
+                            '&:hover': { color: '#ef4444' },
+                        }),
+                    }}
                 />
-                {loading && <p className="text-sm text-gray-500 mt-1">Loading client data...</p>}
-              </div>
+
+                {/* Validation error */}
+                {formik.touched.nttn_work_order_id && formik.errors.nttn_work_order_id && (
+                    <p className="text-sm text-red-500 mt-1">
+                        {formik.errors.nttn_work_order_id}
+                    </p>
+                )}
+
+                {/* Loading text */}
+                {loading && (
+                    <p className="text-sm text-gray-500 mt-1">Loading client data...</p>
+                )}
+            </div>
 
               {/* Partner Details Section */}
               <div className="md:col-span-3">

@@ -36,10 +36,10 @@ export const AggregatorSchema = Yup.object().shape({
     .typeError("Link Type selection is required")
     .required("Link Type is required"),
 
-  agg_link_id: Yup.string()
-    .trim()
-    .required("Agg Link ID is required")
-    .max(100, "Agg Link ID cannot exceed 100 characters"),
+  // agg_link_id: Yup.string()
+  //   .trim()
+  //   .required("Agg Link ID is required")
+  //   .max(100, "Agg Link ID cannot exceed 100 characters"),
 
   physical_capacity: Yup.number()
     .typeError("Physical Capacity must be a number")

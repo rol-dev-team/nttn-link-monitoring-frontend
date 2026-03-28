@@ -1019,7 +1019,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
             <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
               <SelectField
                 name="sbu_id"
-                placeholder="SBU"
+                placeholder="SBU*"
                 options={sbuOptions}
                 value={findSelectedOption('sbu_id', sbuOptions)}
                 onChange={(val) => handleSelectChange('sbu_id', val)}
@@ -1027,7 +1027,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               />
               <SelectField
                 name="cat_id"
-                placeholder="Category"
+                placeholder="Category*"
                 options={categoryOptions}
                 value={findSelectedOption('cat_id', categoryOptions)}
                 onChange={(val) => handleSelectChange('cat_id', val)}
@@ -1036,7 +1036,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               />
               <SelectField
                 name="client_id"
-                placeholder="Client Name"
+                placeholder="Client Name*"
                 options={clientOptions}
                 value={findSelectedOption('client_id', clientOptions)}
                 onChange={(val) => handleSelectChange('client_id', val)}
@@ -1095,7 +1095,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               </div>
               <SelectField
                 name="link_type_id"
-                placeholder="Link Type"
+                placeholder="Link Type*"
                 options={linkTypeOptions}
                 value={findSelectedOption('link_type_id', linkTypeOptions)}
                 onChange={(val) => handleSelectChange('link_type_id', val)}
@@ -1125,7 +1125,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               />
               <SelectField
                 name="aggregator_id"
-                placeholder="Aggregator"
+                placeholder="Aggregator*"
                 options={aggregatorOptions}
                 value={findSelectedOption('aggregator_id', aggregatorOptions)}
                 onChange={(val) => handleSelectChange('aggregator_id', val)}
@@ -1134,7 +1134,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               />
               <SelectField
                 name="kam_id"
-                placeholder="KAM"
+                placeholder="KAM*"
                 options={kamOptions}
                 value={findSelectedOption('kam_id', kamOptions)}
                 onChange={(val) => handleSelectChange('kam_id', val)}
@@ -1182,7 +1182,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
           <FormSection title="NTTN Details" icon={Globe}>
             <SelectField
               name="nttn_id"
-              placeholder="NTTN Name"
+              placeholder="NTTN Name*"
               options={nttnOptions}
               value={findSelectedOption('nttn_id', nttnOptions)}
               onChange={(val) => handleSelectChange('nttn_id', val)}
@@ -1272,7 +1272,7 @@ const WorkOrderForm = ({ initialValues, isEditMode, onSubmit, onCancel }) => {
               <DatePickerField
                 name="submission"
                 // label="Submission Date"
-                placeholder="Submission Date"
+                placeholder="Submission Date*"
                 field={formik.getFieldProps('submission')}
                 form={formik}
               />

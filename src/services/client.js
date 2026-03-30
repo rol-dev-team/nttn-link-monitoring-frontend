@@ -96,3 +96,13 @@ export const fetchAllSBUs = async () => {
     throw error;
   }
 };
+
+// ✅ NEW: Fetch clients filtered by SBU
+export const fetchClientsBySbu = async (sbuId) => {
+  try {
+    const response = await axiosInstance.get(`/clients/by-sbu/${sbuId}/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

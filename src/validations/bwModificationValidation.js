@@ -36,4 +36,11 @@ export const BWModificationSchema = Yup.object().shape({
   //   .required('Work Order is required')
   //   .positive('Must be a positive number')
   //   .integer('Must be an integer'),
+
+  // ✅ ADD THIS
+  sbu: Yup.number()
+    .typeError('SBU is required')
+    .required('SBU is required')
+    .positive('SBU is required')
+    .integer('SBU is required'),
 });

@@ -1,711 +1,3 @@
-// import React, { useEffect, useState, useRef } from 'react';
-// import { useFormik, FormikProvider } from 'formik';
-// import { ArrowLeft } from 'lucide-react';
-
-// import Button from '../ui/Button';
-// import InputField from '../fields/InputField';
-// import SelectField from '../fields/SelectField';
-// import { shiftCapacitySchema } from '../../validations/shiftCapacityValidation';
-
-// import { fetchNTTNs } from '../../services/nttn';
-// import { fetchCategories } from '../../services/category';
-// import { fetchClientsCategoryWise } from '../../services/client';
-// import { fetchWorkOrders } from '../../services/workOrder';
-// import { fetchBandwidthRangesByID } from '../../services/bandwidthRanges';
-
-// import {
-//   getRateBetweenBandwidthRange,
-//   getWorkOrderCategoryAndClientWise,
-//   createCapacityShifting,
-// } from '../../services/capacityShiftingApi';
-// import { getRatesBetweenShiftingBandwidth, getRatesByNttn } from '../../services/bwRateApi';
-// import { fetchLinkTypes } from '../../services/linkType';
-// import DatePickerField from '../fields/DatePickerField';
-// import { fetchReasons } from '../../services/reason';
-// import { set } from 'date-fns';
-
-// /* ---------- section wrapper (identical to SurveyForm / BWModificationForm) ---------- */
-
-// const FormSection = ({ title, children }) => (
-//   <fieldset className="col-span-full border-t border-gray-300 pt-6 mt-6">
-//     <legend className="px-2 text-xl font-semibold text-gray-900">{title}</legend>
-//     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 pt-4">{children}</div>
-//   </fieldset>
-// );
-
-// /* ---------- empty shape ---------- */
-// const emptyValues = {
-//   nttn_provider: '',
-//   link_type: '',
-//   client_category: '',
-//   client: '',
-//   nttn_link_id: '',
-//   capacity: '',
-//   capacity_cost: '',
-//   shifting_bw: '',
-//   after_shifting_capacity: '',
-//   shifting_capacity: '',
-//   shifting_client_category: '',
-//   shifting_client: '',
-//   shifting_unit_cost: '',
-//   total_shifting_cost: '',
-//   shifting_unit_price_dropdown: '',
-//   submission_date: '',
-//   reason_id: '',
-//   remarks: '',
-// };
-
-// const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
-//   const [nttnProviders, setNttnProviders] = useState([]);
-//   const [clientCategories, setClientCategories] = useState([]);
-//   const [linkTypeOptions, setLinkTypeOptions] = useState([]);
-//   const [clients, setClients] = useState([]);
-//   const [shiftingClients, setShiftingClients] = useState([]);
-//   const [workOrders, setWorkOrders] = useState([]);
-//   const [bandwidthRanges, setBandwidthRanges] = useState([]);
-//   const [nttnLinkIds, setNttnLinkIds] = useState([]);
-//   const [shiftingClientLinkIds, setShiftingClientLinkIds] = useState([]);
-//   const [workOrderDetailsData, setWorkOrderDetailsData] = useState([]);
-//   const [shiftingWorkOrderDetailsData, setShiftingWorkOrderDetailsData] = useState([]);
-//   const [shiftingSourceRates, setShiftingSourceRates] = useState(0);
-//   const [showShiftingDropdown, setShowShiftingDropdown] = useState(false);
-//   const [nttnRatesOptions, setNttnRatesOptions] = useState([]);
-//   const [shiftingNttnUnitPrice, setShiftingNttnUnitPrice] = useState(0);
-//   const [printLinkTypeName, setPrintLinkTypeName] = useState('');
-//   const [reasonsOptions, setReasonsOptions] = useState([]);
-//   const [shiftingBandwidthRateRanges, setShiftingBandwidthRateRanges] = useState([]);
-
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [isLoadingRates, setIsLoadingRates] = useState(false);
-//   const [isSubmitting, setIsSubmitting] = useState(false);
-
-//   // 💥 CRITICAL: Ref to track the last edited field for two-way binding
-//   const lastEdited = useRef(null);
-
-//   /* ---------- formik ---------- */
-//   const formik = useFormik({
-//     initialValues: { ...emptyValues, ...initialValues },
-//     validationSchema: shiftCapacitySchema,
-//     enableReinitialize: true,
-//     onSubmit: async (values, { resetForm }) => {
-//       await handleSave(values, resetForm);
-//     },
-//   });
-
-//   /* ---------- bootstrap data ---------- */
-//   useEffect(() => {
-//     const boot = async () => {
-//       try {
-//         const [nttn, cats, linkTypesRes, reasonsRes] = await Promise.all([
-//           fetchNTTNs(),
-//           fetchCategories(),
-//           fetchLinkTypes(),
-//           fetchReasons(),
-//         ]);
-//         setNttnProviders(nttn.data);
-//         setClientCategories(cats.data);
-//         setLinkTypeOptions(linkTypesRes.data);
-//         setReasonsOptions(reasonsRes.data);
-//       } catch (e) {
-//         showToast?.(e.message || 'Failed to load form data', 'error');
-//       } finally {
-//         setIsLoading(false);
-//       }
-//     };
-//     boot();
-//   }, [showToast]);
-
-//   /* ---------- cascading selects and API fetches ---------- */
-
-//   // useEffect(() => {
-//   //   if (!formik.values.nttn_provider) return;
-//   //   fetchBandwidthRangesByID(parseInt(formik.values.nttn_provider))
-//   //     .then(setBandwidthRanges)
-//   //     .catch(() => setBandwidthRanges([]));
-//   // }, [formik.values.nttn_provider]);
-
-//   // Fetch NTTN Rates and store them
-//   // useEffect(() => {
-//   //   if (!formik.values.nttn_provider) return;
-//   //   getRatesByNttn(parseInt(formik.values.nttn_provider))
-//   //     .then((res) => {
-//   //       setNttnRatesOptions(res.data);
-//   //     })
-//   //     .catch((err) => {
-//   //       console.log(err);
-//   //     });
-//   // }, [formik.values.nttn_provider]);
-//   useEffect(() => {
-//     if (!formik.values.nttn_provider || !formik.values.link_type) return;
-//     getRatesByNttn({
-//       nttn_id: parseInt(formik.values.nttn_provider),
-//       link_type_id: parseInt(formik.values.link_type),
-//     })
-//       .then((res) => {
-//         setNttnRatesOptions(res.data);
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//       });
-//   }, [formik.values.nttn_provider, formik.values.link_type]);
-
-//   // fetch bandwidth ranges when shifting_bw changes
-
-//   useEffect(() => {
-//     if (!formik.values.nttn_provider || !formik.values.link_type || !formik.values.shifting_bw)
-//       return;
-
-//     getRatesBetweenShiftingBandwidth({
-//       nttn_id: parseInt(formik.values.nttn_provider),
-//       link_type_id: parseInt(formik.values.link_type),
-//       bandwidth: parseFloat(formik.values.shifting_bw),
-//     })
-//       .then((res) => {
-//         formik.setFieldValue('shifting_unit_cost', '');
-//         setShiftingBandwidthRateRanges(res?.data);
-//         formik.setFieldValue('shifting_unit_cost', res?.data?.rate);
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//       });
-//   }, [formik.values.shifting_bw]);
-
-//   useEffect(() => {
-//     if (!formik.values.client_category) {
-//       setClients([]);
-//       formik.setFieldValue('client', '');
-//       return;
-//     }
-//     fetchClientsCategoryWise(formik.values.client_category)
-//       .then((res) => {
-//         setClients(res.data);
-//       })
-//       .catch(() => setClients([]));
-//   }, [formik.values.client_category]);
-
-//   useEffect(() => {
-//     if (!formik.values.shifting_client_category) {
-//       setShiftingClients([]);
-//       formik.setFieldValue('shifting_client', '');
-//       return;
-//     }
-//     fetchClientsCategoryWise(formik.values.shifting_client_category)
-//       .then((res) => {
-//         setShiftingClients(res.data);
-//       })
-//       .catch(() => setShiftingClients([]));
-//   }, [formik.values.shifting_client_category]);
-
-//   // get work order category and client wise (Source)
-//   useEffect(() => {
-//     const { client, client_category } = formik.values;
-//     if (!client || !client_category) return;
-
-//     // Resetting fields before fetching
-//     setNttnLinkIds([]);
-//     setWorkOrderDetailsData([]);
-//     formik.setFieldValue('nttn_link_id', '');
-
-//     const fetchData = async () => {
-//       try {
-//         const { data } = await getWorkOrderCategoryAndClientWise({
-//           cat_id: client_category,
-//           client_id: client,
-//         });
-//         setNttnLinkIds(data);
-//         setWorkOrderDetailsData(data);
-//       } catch (error) {
-//         console.error('API call failed:', error);
-//       }
-//     };
-
-//     fetchData();
-//   }, [formik.values.client, formik.values.client_category]);
-
-//   useEffect(() => {
-//     if (!formik.values.nttn_link_id) return;
-
-//     const filtered = workOrderDetailsData?.find((item) => item.id === formik.values.nttn_link_id);
-//     const totalCapasityCost = filtered?.rate * filtered?.request_capacity;
-//     if (filtered) {
-//       setShiftingSourceRates(filtered?.rate);
-//       setPrintLinkTypeName(filtered?.type_name);
-//       formik.setFieldValue('capacity', filtered?.request_capacity);
-//       formik.setFieldValue('capacity_cost', parseFloat(totalCapasityCost).toFixed(2) || 0);
-//     }
-//   }, [formik.values.nttn_link_id, workOrderDetailsData]);
-
-//   // get work order shifting category and client wise (Target)
-//   useEffect(() => {
-//     const { shifting_client, shifting_client_category } = formik.values;
-//     if (!shifting_client || !shifting_client_category) return;
-
-//     // Resetting fields before fetching
-//     setShiftingClientLinkIds([]);
-//     setShiftingWorkOrderDetailsData([]);
-//     formik.setFieldValue('shifting_link_id', '');
-
-//     const fetchShiftingData = async () => {
-//       try {
-//         const { data } = await getWorkOrderCategoryAndClientWise({
-//           cat_id: shifting_client_category,
-//           client_id: shifting_client,
-//         });
-//         setShiftingClientLinkIds(data);
-//         setShiftingWorkOrderDetailsData(data);
-//       } catch (error) {
-//         console.error('API call failed:', error);
-//       }
-//     };
-
-//     fetchShiftingData();
-//   }, [formik.values.shifting_client, formik.values.shifting_client_category]);
-
-//   useEffect(() => {
-//     if (!formik.values.shifting_link_id) return;
-
-//     const filtered = shiftingWorkOrderDetailsData?.find(
-//       (item) => item.id === formik.values.shifting_link_id
-//     );
-
-//     if (filtered) {
-//       // NOTE: We don't want this to override the Unit Cost if the user selects from the dropdown
-//       // This logic is typically for existing/linked WO, but for shifting, we rely on BW range.
-//       // Keeping it simple: it sets a default if a WO is linked, but the dropdown selection should take priority.
-//       formik.setFieldValue('shifting_unit_cost', filtered?.rate || 0);
-//     }
-//   }, [formik.values.shifting_link_id, shiftingWorkOrderDetailsData]);
-
-//   /* ------------------------------------------- */
-//   /* ---------- Two-Way Calculation Logic ---------- */
-//   /* ------------------------------------------- */
-
-//   // Calculation 1: Calculate **Shifting Amount (Capacity)** from **Shifting BW** (Cost = BW * Rate)
-//   useEffect(() => {
-//     const { shifting_bw, shifting_unit_price_dropdown } = formik.values;
-
-//     // Exit if 'capacity' was edited last, or if required values are missing
-//     if (lastEdited.current === 'capacity' || !shifting_bw || !shifting_unit_price_dropdown) {
-//       return;
-//     }
-
-//     formik.setFieldValue('shifting_capacity', '', false);
-//     // Find the selected rate
-//     const selectedRateOption = nttnRatesOptions.find(
-//       (item) => item.id === shifting_unit_price_dropdown
-//     );
-//     const unitRate = parseFloat(selectedRateOption?.rate) || 0;
-//     const bw = parseFloat(shifting_bw);
-
-//     if (unitRate <= 0 || bw <= 0) {
-//       formik.setFieldValue('shifting_capacity', '', false);
-//       return;
-//     }
-
-//     // Calculation: Shifting Amount = BW * Rate
-//     const shiftingAmount = bw * unitRate;
-
-//     // Update the Shifting Amount/Capacity field
-//     formik.setFieldValue('shifting_capacity', shiftingAmount.toFixed(2), false);
-//   }, [formik.values.shifting_bw, formik.values.shifting_unit_price_dropdown, nttnRatesOptions]);
-
-//   // Calculation 2: Calculate **Shifting BW** from **Shifting Amount (Capacity)** (BW = Cost / Rate)
-//   useEffect(() => {
-//     const { shifting_unit_price_dropdown, shifting_capacity } = formik.values;
-
-//     // Exit if 'bw' was edited last, or if required values are missing
-//     if (
-//       lastEdited.current === 'bw' ||
-//       !shifting_unit_price_dropdown ||
-//       !shifting_capacity ||
-//       parseFloat(shifting_capacity) <= 0
-//     ) {
-//       // formik.setFieldValue('shifting_bw', '', false); // Only clear if we need to remove the calculated value entirely
-//       return;
-//     }
-
-//     formik.setFieldValue('shifting_bw', '', false);
-//     // Find the selected rate
-//     const selectedRateOption = nttnRatesOptions.find(
-//       (item) => item.id === shifting_unit_price_dropdown
-//     );
-
-//     const unitRate = parseFloat(selectedRateOption?.rate);
-//     const shiftingCost = parseFloat(shifting_capacity);
-
-//     if (!unitRate || unitRate <= 0) {
-//       console.error('Selected Unit Rate is invalid or zero.');
-//       formik.setFieldValue('shifting_bw', '', false);
-//       return;
-//     }
-
-//     // Calculation: Bandwidth (BW) = Cost / Rate
-//     const calculatedBW = shiftingCost / unitRate;
-//     const finalBW = Math.floor(calculatedBW);
-
-//     formik.setFieldValue('shifting_bw', finalBW, false);
-//   }, [
-//     formik.values.shifting_capacity,
-//     formik.values.shifting_unit_price_dropdown,
-//     nttnRatesOptions,
-//   ]);
-
-//   // Calculate After Shifting Capacity and Total Shifting Cost
-//   useEffect(() => {
-//     const capacity = parseInt(formik.values.capacity) || 0;
-//     const shiftingBW = parseInt(formik.values.shifting_bw) || 0;
-
-//     let effectiveUnitCost = parseFloat(formik.values.shifting_unit_cost) || 0;
-
-//     // 1. Determine the effective Unit Cost
-//     // If a rate is selected from the dropdown, use that rate
-//     if (formik.values.shifting_unit_price_dropdown) {
-//       const selectedRateOption = nttnRatesOptions.find(
-//         (item) => item.id === formik.values.shifting_unit_price_dropdown
-//       );
-//       const dropdownRate = parseFloat(selectedRateOption?.rate);
-
-//       // Use the dropdown rate if it's a valid number
-//       if (!isNaN(dropdownRate) && dropdownRate > 0) {
-//         effectiveUnitCost = dropdownRate;
-//       }
-//     }
-
-//     // 2. Calculate Final Values
-//     const afterShiftingCapacity = capacity - shiftingBW;
-
-//     // Total Shifting Cost = After Shifting Capacity * Effective Unit Cost
-//     const totalShiftingCost = afterShiftingCapacity * effectiveUnitCost;
-
-//     if (!formik.values.shifting_unit_price_dropdown) {
-//       formik.setFieldValue('shifting_capacity', parseFloat(shiftingBW * effectiveUnitCost), false);
-//     }
-//     // 3. Update Formik State
-//     formik.setFieldValue('after_shifting_capacity', afterShiftingCapacity, false);
-//     formik.setFieldValue('total_shifting_cost', totalShiftingCost.toFixed(2), false);
-
-//     // NOTE: 'shifting_capacity' (Shifting Amount) is calculated in the two-way logic (Calculation 1 and 2).
-//     // Do NOT recalculate it here, as it conflicts with the two-way binding.
-//   }, [
-//     formik.values.capacity,
-//     formik.values.shifting_bw,
-//     formik.values.shifting_unit_cost,
-//     formik.values.shifting_unit_price_dropdown, // Crucial dependency
-//     nttnRatesOptions, // Crucial dependency
-//   ]);
-//   /* ---------- submit ---------- */
-//   const handleSave = async (values, resetForm) => {
-//     setIsSubmitting(true);
-//     try {
-//       // NOTE: Remove the 'shifting_unit_price_dropdown' field before sending to API
-//       const { shifting_unit_price_dropdown, ...payload } = values;
-
-//       const res = await createCapacityShifting(payload);
-//       showToast?.(res.message, 'success');
-
-//       resetForm();
-//       onCancel(); // close form
-//     } catch (e) {
-//       showToast?.(e.message || 'Save failed', 'error');
-//     } finally {
-//       setIsSubmitting(false);
-//     }
-//   };
-//   // console.log('formik.values', formik.values);
-//   console.log('shiftingBandwidthRateRanges', shiftingBandwidthRateRanges);
-//   /* ---------- render ---------- */
-//   if (isLoading) {
-//     return (
-//       <div className="p-8 bg-gray-100 min-h-screen flex items-center justify-center">
-//         <span className="text-gray-500">Loading form data...</span>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <FormikProvider value={formik}>
-//       <form onSubmit={formik.handleSubmit} className="p-8 bg-gray-100 min-h-screen space-y-6">
-//         {/* header – identical to SurveyForm / BWModificationForm */}
-//         <div className="flex items-center space-x-3 mb-6 md:mb-8">
-//           <Button
-//             variant="icon"
-//             type="button"
-//             onClick={onCancel}
-//             title="Go Back"
-//             className="p-1 text-gray-600 hover:text-gray-900 transition-transform hover:scale-110"
-//           >
-//             <ArrowLeft size={24} />
-//           </Button>
-//           <div>
-//             <h1 className="text-2xl font-bold text-gray-900">
-//               {isEditMode ? 'Edit Capacity Shift' : 'Add Capacity Shift'}
-//             </h1>
-//             <p className="text-gray-500">
-//               Fill in the details to {isEditMode ? 'update' : 'add a new'} capacity-shift record.
-//             </p>
-//           </div>
-//         </div>
-
-//         {/* Shifting Source */}
-//         <FormSection title="Shifting Source">
-//           <SelectField
-//             name="nttn_provider"
-//             placeholder="NTTN Name*"
-//             options={nttnProviders.map((p) => ({
-//               value: p.id,
-//               label: p.nttn_name,
-//             }))}
-//             onChange={(v) => formik.setFieldValue('nttn_provider', v)}
-//             searchable
-//           />
-
-//           <SelectField
-//             name="client_category"
-//             placeholder="Client Category *"
-//             options={clientCategories.map((c) => ({
-//               value: c.id,
-//               label: c.cat_name,
-//             }))}
-//             onChange={(v) => {
-//               formik.setFieldValue('client_category', v);
-//               formik.setFieldValue('client', '');
-//             }}
-//             searchable
-//             disabled={!formik.values.nttn_provider}
-//           />
-//           <SelectField
-//             name="client"
-//             placeholder="Client Name *"
-//             options={clients.map((c) => ({
-//               value: c.id,
-//               label: c.client_name,
-//             }))}
-//             onChange={(v) => formik.setFieldValue('client', v)}
-//             searchable
-//             disabled={!formik.values.client_category}
-//           />
-//           <SelectField
-//             name="nttn_link_id"
-//             placeholder="Work Order Link ID*"
-//             options={nttnLinkIds.map((nttn) => ({
-//               value: nttn.id,
-//               label: nttn.nttn_work_order_id,
-//             }))}
-//             onChange={(v) => formik.setFieldValue('nttn_link_id', v)}
-//             searchable
-//             disabled={!formik.values.client}
-//           />
-//         </FormSection>
-//         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4 ">
-//           <div className="grid grid-cols-1 sm:grid-cols-5 justify-items-center items-center gap-4 text-sm">
-//             <div className="flex items-center space-x-2">
-//               <p>
-//                 <strong className="text-gray-800">Link Type:</strong>{' '}
-//                 {(printLinkTypeName && printLinkTypeName) || 'N/A'}
-//               </p>
-//             </div>
-//             <div className="flex items-center space-x-2">
-//               <p>
-//                 <strong className="text-gray-800">Capacity:</strong>{' '}
-//                 {formik.values.capacity || 'N/A'}
-//               </p>
-//             </div>
-//             <div className="flex items-center space-x-2">
-//               <p>
-//                 <strong className="text-gray-800">Unit Price:</strong>{' '}
-//                 {(shiftingSourceRates && shiftingSourceRates) || '0.00'}
-//               </p>
-//             </div>
-//             <div className="flex items-center space-x-2">
-//               <p>
-//                 <strong className="text-gray-800">Capacity Cost:</strong>{' '}
-//                 {formik.values.capacity_cost || '0.00'}
-//               </p>
-//             </div>
-//             <div className="flex items-center space-x-2">
-//               <p>
-//                 <strong className="text-gray-800">After Shiffting Cost:</strong>{' '}
-//                 {formik.values.total_shifting_cost || 'N/A'}
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Shifting Target */}
-//         <FormSection title="Shifting Target">
-//           {/* ----- 3-in-a-row : Shifting Client Category / Name / Link ID ----- */}
-//           <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
-//             <SelectField
-//               name="link_type"
-//               placeholder="Link Type*"
-//               options={linkTypeOptions.map((p) => ({
-//                 value: p.id,
-//                 label: p.type_name,
-//               }))}
-//               onChange={(v) => formik.setFieldValue('link_type', v)}
-//               searchable
-//             />
-//             <SelectField
-//               name="shifting_client_category"
-//               placeholder="Shifting Client Category *"
-//               options={clientCategories.map((c) => ({
-//                 value: c.id,
-//                 label: c.cat_name,
-//               }))}
-//               onChange={(v) => {
-//                 formik.setFieldValue('shifting_client_category', v);
-//                 formik.setFieldValue('shifting_client', '');
-//               }}
-//               searchable
-//             />
-//             <SelectField
-//               name="shifting_client"
-//               placeholder="Shifting Client Name *"
-//               options={shiftingClients.map((c) => ({
-//                 value: c.id,
-//                 label: c.client_name,
-//               }))}
-//               onChange={(v) => formik.setFieldValue('shifting_client', v)}
-//               searchable
-//               disabled={!formik.values.shifting_client_category}
-//             />
-//             <SelectField
-//               name="shifting_link_id"
-//               placeholder="Shifting Work Order Link ID"
-//               options={shiftingClientLinkIds.map((nttn) => ({
-//                 value: nttn.id,
-//                 label: nttn.nttn_work_order_id,
-//               }))}
-//               onChange={(v) => formik.setFieldValue('shifting_link_id', v)}
-//               searchable
-//               isClearable
-//             />
-//           </div>
-
-//           {/* ----- 4-in-a-row : Shifting BW / Amount / Unit Cost / Total ----- */}
-//           <div className="col-span-full grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
-//             <InputField
-//               name="shifting_bw"
-//               label="Shifting BW *"
-//               type="number"
-//               step="1" // Step changed to 1 for integer BW
-//               onChange={(e) => {
-//                 formik.handleChange(e);
-//                 lastEdited.current = 'bw'; // 💥 Track last edited
-//               }}
-//             />
-//             <InputField
-//               name="shifting_capacity"
-//               label="Shifting Amount *"
-//               type="number"
-//               step="0.01"
-//               onChange={(e) => {
-//                 formik.handleChange(e);
-//                 lastEdited.current = 'capacity'; // 💥 Track last edited
-
-//                 if (e.target.value.trim() !== '' && formik.values.nttn_provider) {
-//                   setShowShiftingDropdown(true);
-//                 } else {
-//                   setShowShiftingDropdown(false);
-//                   formik.setFieldValue('shifting_unit_price_dropdown', '');
-//                 }
-//               }}
-//             />
-//             {showShiftingDropdown && (
-//               <SelectField
-//                 name="shifting_unit_price_dropdown"
-//                 placeholder="Select Unit Price"
-//                 options={nttnRatesOptions.map((r) => ({
-//                   label: `Price: ${r.rate} || Range: ${r.bw_range_from}-${r.bw_range_to}`,
-//                   value: r.id,
-//                 }))}
-//                 onChange={(selectedRateId) => {
-//                   formik.setFieldValue('shifting_unit_price_dropdown', selectedRateId);
-
-//                   // 💥 CRITICAL: Find rate and set it to the disabled Unit Cost field
-//                   // const selectedOption = nttnRatesOptions.find((opt) => opt.id === selectedRateId);
-//                   // const selectedRate = selectedOption?.rate || 0;
-//                   // formik.setFieldValue('shifting_unit_cost', parseFloat(selectedRate).toFixed(2));
-
-//                   lastEdited.current = 'capacity'; // Treat rate change like a capacity edit to trigger BW calc
-//                 }}
-//                 searchable
-//               />
-//             )}
-//             {!showShiftingDropdown && (
-//               <InputField
-//                 name="shifting_unit_cost"
-//                 label={`Unit Cost ${isLoadingRates ? '(Loading...)' : ''}`}
-//                 type="number"
-//                 step="0.01"
-//                 disabled // Keep disabled as it's derived from the dropdown
-//               />
-//             )}
-
-//             <InputField
-//               name="total_shifting_cost"
-//               label="Total Shifting Cost"
-//               type="number"
-//               step="0.01"
-//               className="hidden"
-//               disabled
-//             />
-//             <InputField
-//               name="after_shifting_capacity"
-//               label="After-Shifting Capacity"
-//               type="number"
-//               step="0.01"
-//               disabled
-//             />
-//           </div>
-//           <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-//             <SelectField
-//               name="reason_id"
-//               placeholder="Shift Reason"
-//               options={reasonsOptions.map((nttn) => ({
-//                 value: nttn.id,
-//                 label: nttn.reason,
-//               }))}
-//               onChange={(v) => formik.setFieldValue('reason_id', v)}
-//               searchable
-//               isClearable
-//             />
-//             <InputField name="remarks" label="Remarks" type="text" />
-//             <DatePickerField
-//               name="submission_date"
-//               placeholder="Submission Date"
-//               field={{ name: 'submission_date', value: formik.values.submission_date }}
-//               form={formik}
-//             />
-//           </div>
-//         </FormSection>
-
-//         {/* Actions – identical bar */}
-//         <div className="flex w-full justify-end mt-8 space-x-3">
-//           <Button intent="cancel" type="button" onClick={onCancel}>
-//             Cancel
-//           </Button>
-//           <Button
-//             intent="submit"
-//             type="submit"
-//             loading={isSubmitting}
-//             loadingText="Saving..."
-//             disabled={isSubmitting || !formik.isValid}
-//           >
-//             Save
-//           </Button>
-//         </div>
-//       </form>
-//     </FormikProvider>
-//   );
-// };
-
-// export default ShiftCapacityForm;
-
-
-
-
-
 
 
 // import React, { useEffect, useState, useRef } from 'react';
@@ -761,6 +53,8 @@
 //   submission_date: '',
 //   reason_id: '',
 //   remarks: '',
+//   target_request_capacity: '', // NEW: Store target work order request_capacity
+//   target_total_bw: '', // NEW: Store combined BW for rate calculation
 // };
 
 // const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
@@ -983,133 +277,160 @@
 
 //     if (filtered) {
 //       formik.setFieldValue('shifting_unit_cost', filtered?.rate || 0);
+//       // Store the target work order's request_capacity
+//       formik.setFieldValue('target_request_capacity', filtered?.request_capacity || 0);
 //       console.log('📊 Shifting Link Selected - request_capacity:', filtered?.request_capacity);
 //     }
 //   }, [formik.values.shifting_link_id, shiftingWorkOrderDetailsData]);
 
-//   // NEW: When shifting_bw changes, calculate total BW and fetch rate
+//   // Calculate target_total_bw whenever shifting_bw or target_request_capacity changes
 //   useEffect(() => {
+//     const targetRequestCapacity = parseFloat(formik.values.target_request_capacity) || 0;
 //     const shiftingBW = parseFloat(formik.values.shifting_bw) || 0;
-    
-//     // Get the request_capacity from the selected shifting work order
-//     const filtered = shiftingWorkOrderDetailsData?.find(
-//       (item) => item.id === formik.values.shifting_link_id
-//     );
-//     const shiftingRequestCapacity = filtered ? parseInt(filtered.request_capacity) || 0 : 0;
 
-//     console.log('📊 Shifting BW:', shiftingBW, 'Shifting Request Capacity:', shiftingRequestCapacity);
+//     if (targetRequestCapacity > 0 && shiftingBW > 0) {
+//       const totalBW = targetRequestCapacity + shiftingBW;
+//       formik.setFieldValue('target_total_bw', totalBW);
+//       console.log('📊 Target Total BW (request_capacity + shifting_bw):', totalBW);
+//     } else {
+//       formik.setFieldValue('target_total_bw', '');
+//     }
+//   }, [formik.values.shifting_bw, formik.values.target_request_capacity]);
 
-//     // If no shifting link selected or no shifting BW, don't calculate
-//     if (!formik.values.shifting_link_id || shiftingBW <= 0) {
-//       console.log('❌ Missing shifting link or shifting BW');
+//   // NEW: When shifting_bw changes, calculate total BW and fetch rate
+//   // NEW: When shifting_bw changes, calculate total BW and fetch rate
+// useEffect(() => {
+//   const shiftingBW = parseFloat(formik.values.shifting_bw) || 0;
+  
+//   // IMPORTANT: Don't fetch if user is using the dropdown for manual rate selection
+//   if (showShiftingDropdown) {
+//     console.log('⏸️ Skipping API call - dropdown is active');
+//     return;
+//   }
+  
+//   // Get the request_capacity from the selected shifting work order
+//   const filtered = shiftingWorkOrderDetailsData?.find(
+//     (item) => item.id === formik.values.shifting_link_id
+//   );
+//   const shiftingRequestCapacity = filtered ? parseInt(filtered.request_capacity) || 0 : 0;
+
+//   console.log('📊 Shifting BW:', shiftingBW, 'Shifting Request Capacity:', shiftingRequestCapacity);
+
+//   // If no shifting link selected or no shifting BW, don't calculate
+//   if (!formik.values.shifting_link_id || shiftingBW <= 0) {
+//     console.log('❌ Missing shifting link or shifting BW');
+//     return;
+//   }
+
+//   // Calculate total bandwidth = request_capacity + shifting_bw
+//   const totalBW = shiftingRequestCapacity + shiftingBW;
+//   console.log('📈 Total BW (request_capacity + shifting_bw):', totalBW);
+
+//   // Fetch rate for this total BW
+//   const fetchRateForTotalBW = async () => {
+//     if (!formik.values.nttn_provider || !formik.values.link_type) {
+//       console.log('❌ Missing NTTN provider or link type');
 //       return;
 //     }
 
-//     // Calculate total bandwidth = request_capacity + shifting_bw
-//     const totalBW = shiftingRequestCapacity + shiftingBW;
-//     console.log('📈 Total BW (request_capacity + shifting_bw):', totalBW);
+//     try {
+//       console.log('🔡 Fetching rate for total BW:', totalBW);
+      
+//       const res = await getRatesBetweenShiftingBandwidth({
+//         nttn_id: parseInt(formik.values.nttn_provider),
+//         link_type_id: parseInt(formik.values.link_type),
+//         bandwidth: totalBW,
+//       });
 
-//     // Fetch rate for this total BW
-//     const fetchRateForTotalBW = async () => {
-//       if (!formik.values.nttn_provider || !formik.values.link_type) {
-//         console.log('❌ Missing NTTN provider or link type');
-//         return;
-//       }
+//       if (res?.data && res.data.rate) {
+//         const unitRate = parseFloat(res.data.rate);
+//         const rateTypeValue = res.data.rate_type ? parseInt(res.data.rate_type, 10) : 2;
 
-//       try {
-//         console.log('🔡 Fetching rate for total BW:', totalBW);
+//         console.log('💰 Unit Rate for total BW found:', unitRate, 'Rate Type:', rateTypeValue);
         
-//         const res = await getRatesBetweenShiftingBandwidth({
-//           nttn_id: parseInt(formik.values.nttn_provider),
-//           link_type_id: parseInt(formik.values.link_type),
-//           bandwidth: totalBW,
-//         });
+//         // Update shifting_unit_cost with the new rate
+//         formik.setFieldValue('shifting_unit_cost', unitRate.toFixed(2));
 
-//         if (res?.data && res.data.rate) {
-//           const unitRate = parseFloat(res.data.rate);
-//           const rateTypeValue = res.data.rate_type ? parseInt(res.data.rate_type, 10) : 2;
-
-//           console.log('💰 Unit Rate for total BW found:', unitRate, 'Rate Type:', rateTypeValue);
-          
-//           // Update shifting_unit_cost with the new rate
-//           formik.setFieldValue('shifting_unit_cost', unitRate.toFixed(2));
-
-//           // Calculate shifting_capacity based on rate_type
-//           if (rateTypeValue === 1) {
-//             // rate_type 1: Shifting Amount = Unit Rate (fixed rate)
-//             formik.setFieldValue('shifting_capacity', unitRate.toFixed(2));
-//             console.log('📌 Rate Type 1: Shifting Amount = Unit Rate =', unitRate);
-//           } else {
-//             // rate_type 2: Shifting Amount = Shifting BW * Unit Rate
-//             const shiftingAmount = shiftingBW * unitRate;
-//             formik.setFieldValue('shifting_capacity', shiftingAmount.toFixed(2));
-//             console.log('📌 Rate Type 2: Shifting Amount = Shifting BW (' + shiftingBW + ') × Unit Rate (' + unitRate + ') =', shiftingAmount);
-//           }
+//         // Calculate shifting_capacity based on rate_type
+//         if (rateTypeValue === 1) {
+//           // rate_type 1: Shifting Amount = Unit Rate (fixed rate)
+//           formik.setFieldValue('shifting_capacity', unitRate.toFixed(2));
+//           console.log('📌 Rate Type 1: Shifting Amount = Unit Rate =', unitRate);
 //         } else {
-//           console.log('❌ No rate data in response for total BW');
+//           // rate_type 2: Shifting Amount = Shifting BW * Unit Rate
+//           const shiftingAmount = shiftingBW * unitRate;
+//           formik.setFieldValue('shifting_capacity', shiftingAmount.toFixed(2));
+//           console.log('📌 Rate Type 2: Shifting Amount = Shifting BW (' + shiftingBW + ') × Unit Rate (' + unitRate + ') =', shiftingAmount);
 //         }
-//       } catch (error) {
-//         console.error('❌ Error fetching rate for total BW:', error);
+//       } else {
+//         console.log('❌ No rate data in response for total BW');
 //       }
-//     };
+//     } catch (error) {
+//       console.error('❌ Error fetching rate for total BW:', error);
+//     }
+//   };
 
-//     fetchRateForTotalBW();
+//   fetchRateForTotalBW();
 
-//   }, [
-//     formik.values.shifting_bw,
-//     formik.values.shifting_link_id,
-//     formik.values.nttn_provider,
-//     formik.values.link_type,
-//     shiftingWorkOrderDetailsData,
-//   ]);
+// }, [
+//   formik.values.shifting_bw,
+//   formik.values.shifting_link_id,
+//   formik.values.nttn_provider,
+//   formik.values.link_type,
+//   shiftingWorkOrderDetailsData,
+//   showShiftingDropdown, // Add this dependency
+// ]);
 
 //   /* ------------------------------------------- */
 //   /* ---------- Two-Way Calculation Logic ---------- */
 //   /* ------------------------------------------- */
 
 //   // Calculation 1: Calculate Shifting Amount from Shifting BW based on rate_type
-//   useEffect(() => {
-//     const { shifting_bw, shifting_unit_price_dropdown } = formik.values;
+// useEffect(() => {
+//   const { shifting_bw, shifting_unit_price_dropdown } = formik.values;
 
-//     // Exit if 'capacity' was edited last, or if required values are missing
-//     if (lastEdited.current === 'capacity' || !shifting_bw || !shifting_unit_price_dropdown) {
-//       return;
-//     }
+//   // Exit if 'capacity' was edited last, or if required values are missing
+//   if (lastEdited.current === 'capacity' || !shifting_bw || !shifting_unit_price_dropdown) {
+//     return;
+//   }
 
+//   formik.setFieldValue('shifting_capacity', '', false);
+
+//   // Find the selected rate
+//   const selectedRateOption = nttnRatesOptions.find((item) => item.id === shifting_unit_price_dropdown);
+//   const unitRate = parseFloat(selectedRateOption?.rate) || 0;
+//   const bw = parseFloat(shifting_bw);
+
+//   if (unitRate <= 0 || bw <= 0) {
 //     formik.setFieldValue('shifting_capacity', '', false);
+//     return;
+//   }
 
-//     // Find the selected rate
-//     const selectedRateOption = nttnRatesOptions.find((item) => item.id === shifting_unit_price_dropdown);
-//     const unitRate = parseFloat(selectedRateOption?.rate) || 0;
-//     const bw = parseFloat(shifting_bw);
+//   // Check if this rate has rate_type info
+//   const rateTypeForDropdown = selectedRateOption?.rate_type
+//     ? parseInt(selectedRateOption.rate_type, 10)
+//     : 2; // Default to 2 if not available
 
-//     if (unitRate <= 0 || bw <= 0) {
-//       formik.setFieldValue('shifting_capacity', '', false);
-//       return;
-//     }
+//   console.log('📌 Rate Type from dropdown:', rateTypeForDropdown);
 
-//     // Check if this rate has rate_type info
-//     const rateTypeForDropdown = selectedRateOption?.rate_type
-//       ? parseInt(selectedRateOption.rate_type, 10)
-//       : 2; // Default to 2 if not available
+//   let shiftingAmount;
 
-//     console.log('📌 Rate Type from dropdown:', rateTypeForDropdown);
+//   if (rateTypeForDropdown === 1) {
+//     // rate_type 1: Shifting Amount = Unit Rate (no multiplication)
+//     shiftingAmount = unitRate;
+//     console.log('📌 Rate Type 1: Shifting Amount = Unit Rate =', unitRate);
+//   } else {
+//     // rate_type 2: Shifting Amount = BW * Rate
+//     shiftingAmount = bw * unitRate;
+//     console.log('📌 Rate Type 2: Shifting Amount = BW × Unit Rate =', shiftingAmount);
+//   }
 
-//     let shiftingAmount;
-
-//     if (rateTypeForDropdown === 1) {
-//       // rate_type 1: Shifting Amount = Unit Rate (no multiplication)
-//       shiftingAmount = unitRate;
-//       console.log('📌 Rate Type 1: Shifting Amount = Unit Rate =', unitRate);
-//     } else {
-//       // rate_type 2: Shifting Amount = BW * Rate
-//       shiftingAmount = bw * unitRate;
-//       console.log('📌 Rate Type 2: Shifting Amount = BW × Unit Rate =', shiftingAmount);
-//     }
-
-//     // Update the Shifting Amount/Capacity field
-//     formik.setFieldValue('shifting_capacity', shiftingAmount.toFixed(2), false);
-//   }, [formik.values.shifting_bw, formik.values.shifting_unit_price_dropdown, nttnRatesOptions]);
+//   // Update the Shifting Amount/Capacity field
+//   formik.setFieldValue('shifting_capacity', shiftingAmount.toFixed(2), false);
+  
+//   // Reset lastEdited so future changes can trigger calculations again
+//   lastEdited.current = null;
+// }, [formik.values.shifting_bw, formik.values.shifting_unit_price_dropdown, nttnRatesOptions]);
 
 //   // Calculation 2: Calculate Shifting BW from Shifting Amount based on rate_type
 //   useEffect(() => {
@@ -1269,8 +590,15 @@
 //   const handleSave = async (values, resetForm) => {
 //     setIsSubmitting(true);
 //     try {
-//       // NOTE: Remove the 'shifting_unit_price_dropdown' field before sending to API
-//       const { shifting_unit_price_dropdown, ...payload } = values;
+//       // NOTE: Remove the 'shifting_unit_price_dropdown' and helper fields before sending to API
+//       const { shifting_unit_price_dropdown, target_request_capacity, ...payload } = values;
+
+//       console.log('📤 Payload to Backend:', {
+//         ...payload,
+//         shifting_bw: parseFloat(payload.shifting_bw) || 0,
+//         target_total_bw: parseFloat(payload.target_total_bw) || 0,
+//         link_type: parseInt(payload.link_type) || null,
+//       });
 
 //       const res = await createCapacityShifting(payload);
 //       showToast?.(res.message, 'success');
@@ -1371,7 +699,7 @@
 //         </FormSection>
 
 //         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4 ">
-//           <div className="grid grid-cols-1 sm:grid-cols-5 justify-items-center items-center gap-4 text-sm">
+//           <div className="grid grid-cols-1 sm:grid-cols-6 justify-items-center items-center gap-3 text-sm">
 //             <div className="flex items-center space-x-2">
 //               <p>
 //                 <strong className="text-gray-800">Link Type:</strong>{' '}
@@ -1398,8 +726,14 @@
 //             </div>
 //             <div className="flex items-center space-x-2">
 //               <p>
-//                 <strong className="text-gray-800">After Shiffting Cost:</strong>{' '}
+//                 <strong className="text-gray-800">After Shifting Cost:</strong>{' '}
 //                 {formik.values.total_shifting_cost || 'N/A'}
+//               </p>
+//             </div>
+//             <div className="flex items-center space-x-2">
+//               <p>
+//                 <strong className="text-gray-800">After Shifting Capacity:</strong>{' '}
+//                 {formik.values.after_shifting_capacity || 'N/A'}
 //               </p>
 //             </div>
 //           </div>
@@ -1477,9 +811,10 @@
 //                 formik.handleChange(e);
 //                 lastEdited.current = 'capacity';
 
-//                 if (e.target.value.trim() !== '' && formik.values.nttn_provider) {
+//                 // Only show/hide dropdown when user manually types, not when value is auto-calculated
+//                 if (e.target.value.trim() !== '' && formik.values.nttn_provider && !showShiftingDropdown) {
 //                   setShowShiftingDropdown(true);
-//                 } else {
+//                 } else if (e.target.value.trim() === '') {
 //                   setShowShiftingDropdown(false);
 //                   formik.setFieldValue('shifting_unit_price_dropdown', '');
 //                 }
@@ -1522,7 +857,7 @@
 //               disabled
 //             />
 //             <InputField
-//               name="after_shifting_capacity"
+//               name="target_total_bw"
 //               label="After-Shifting Capacity"
 //               type="number"
 //               step="0.01"
@@ -1573,7 +908,6 @@
 // };
 
 // export default ShiftCapacityForm;
-
 
 
 
@@ -1711,6 +1045,12 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
 
   // Update: Fetch rates for shifting bandwidth with rate_type handling
   useEffect(() => {
+    // Skip if user manually selected a rate from dropdown
+    if (formik.values.shifting_unit_price_dropdown) {
+      console.log('⏸️ Skipping auto-rate fetch - rate already selected from dropdown');
+      return;
+    }
+
     if (!formik.values.nttn_provider || !formik.values.link_type || !formik.values.shifting_bw)
       return;
 
@@ -1754,7 +1094,7 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
         setCurrentRateType(null);
         setShiftingRateData(null);
       });
-  }, [formik.values.shifting_bw, formik.values.nttn_provider, formik.values.link_type]);
+  }, [formik.values.shifting_bw, formik.values.nttn_provider, formik.values.link_type, formik.values.shifting_unit_price_dropdown]);
 
   useEffect(() => {
     if (!formik.values.client_category) {
@@ -1880,8 +1220,8 @@ useEffect(() => {
   const shiftingBW = parseFloat(formik.values.shifting_bw) || 0;
   
   // IMPORTANT: Don't fetch if user is using the dropdown for manual rate selection
-  if (showShiftingDropdown) {
-    console.log('⏸️ Skipping API call - dropdown is active');
+  if (showShiftingDropdown || formik.values.shifting_unit_price_dropdown) {
+    console.log('⏸️ Skipping API call - dropdown is active or rate already selected');
     return;
   }
   
@@ -1955,7 +1295,8 @@ useEffect(() => {
   formik.values.nttn_provider,
   formik.values.link_type,
   shiftingWorkOrderDetailsData,
-  showShiftingDropdown, // Add this dependency
+  showShiftingDropdown,
+  formik.values.shifting_unit_price_dropdown, // Add this dependency
 ]);
 
   /* ------------------------------------------- */
@@ -2053,7 +1394,12 @@ useEffect(() => {
       // rate_type 2: BW = Cost / Rate
       calculatedBW = shiftingCost / unitRate;
       const finalBW = Math.floor(calculatedBW);
-      console.log('📌 Rate Type 2: BW = Cost / Rate =', finalBW);
+      console.log('📌 Rate Type 2: Shifting BW = Shifting Amount (' + shiftingCost + ') ÷ Rate (' + unitRate + ') =', finalBW);
+      
+      // Set lastEdited.current = 'capacity' BEFORE setting shifting_bw
+      // This prevents Calculation 1 from running and overwriting shifting_capacity
+      lastEdited.current = 'capacity';
+      
       formik.setFieldValue('shifting_bw', finalBW, false);
     }
   }, [
@@ -2409,6 +1755,13 @@ useEffect(() => {
                 }))}
                 onChange={(selectedRateId) => {
                   formik.setFieldValue('shifting_unit_price_dropdown', selectedRateId);
+                  
+                  // Find and set the unit cost immediately
+                  const selectedRate = nttnRatesOptions.find((r) => r.id === selectedRateId);
+                  if (selectedRate) {
+                    formik.setFieldValue('shifting_unit_cost', parseFloat(selectedRate.rate).toFixed(2));
+                    console.log('💰 Selected Rate:', selectedRate.rate, 'for range:', selectedRate.bw_range_from, '-', selectedRate.bw_range_to);
+                  }
 
                   lastEdited.current = 'capacity';
                 }}

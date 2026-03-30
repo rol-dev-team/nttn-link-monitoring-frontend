@@ -34,7 +34,7 @@ const InterfaceConfigSchema = Yup.object().shape({
 const ActivationPlanSchema = Yup.object().shape({
   // Renamed from nttn_link_id to work_order_id for clarity
   nttn_work_order_id: Yup.string().required('Partner Name / Work Order ID is required'),
-  nttn_vlan: Yup.string().max(10).required('NTTN VLAN is required'),
+  nttn_vlan: Yup.string().max(50).required('NTTN VLAN is required'),
   int_peering_ip: Yup.string().max(50).required('IP is required'),
   ggc_peering_ip: Yup.string().max(50).required('IP is required'),
   fna_peering_ip: Yup.string().max(50).required('IP is required'),

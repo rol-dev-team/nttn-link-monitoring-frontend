@@ -911,9 +911,10 @@
 
 
 
+// src/components/shiftCapacity/ShiftCapacityForm.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useFormik, FormikProvider } from 'formik';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Columns2 } from 'lucide-react';
 
 import Button from '../ui/Button';
 import InputField from '../fields/InputField';
@@ -921,8 +922,10 @@ import SelectField from '../fields/SelectField';
 import { shiftCapacitySchema } from '../../validations/shiftCapacityValidation';
 
 import { fetchNTTNs } from '../../services/nttn';
+import { fetchSBUs } from '../../services/sbu'; // New added
+import { fetchCategoriesBySBU } from '../../services/client'; // New added
 import { fetchCategories } from '../../services/category';
-import { fetchClientsCategoryWise } from '../../services/client';
+import { fetchClientsCategoryWise, fetchClientsByNttn } from '../../services/client';
 import { fetchWorkOrders } from '../../services/workOrder';
 import { fetchBandwidthRangesByID } from '../../services/bandwidthRanges';
 
@@ -946,6 +949,7 @@ const FormSection = ({ title, children }) => (
 
 /* ---------- empty shape ---------- */
 const emptyValues = {
+  sbu: '',  // New added
   nttn_provider: '',
   link_type: '',
   client_category: '',
@@ -970,6 +974,10 @@ const emptyValues = {
 
 const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
   const [nttnProviders, setNttnProviders] = useState([]);
+  const [sbus, setSbus] = useState([]); // New added
+  const [isLoadingSbus, setIsLoadingSbus] = useState(false); // New added
+  const [filteredCategories, setFilteredCategories] = useState([]); // New added
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false); // New added
   const [clientCategories, setClientCategories] = useState([]);
   const [linkTypeOptions, setLinkTypeOptions] = useState([]);
   const [clients, setClients] = useState([]);
@@ -1010,16 +1018,19 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
   useEffect(() => {
     const boot = async () => {
       try {
-        const [nttn, cats, linkTypesRes, reasonsRes] = await Promise.all([
+        const [nttn, cats, linkTypesRes, reasonsRes, sbusRes] = await Promise.all([
           fetchNTTNs(),
           fetchCategories(),
           fetchLinkTypes(),
           fetchReasons(),
+          fetchSBUs(),  // New added
         ]);
         setNttnProviders(nttn.data);
         setClientCategories(cats.data);
         setLinkTypeOptions(linkTypesRes.data);
         setReasonsOptions(reasonsRes.data);
+        const sbusData = sbusRes?.data || sbusRes || []; // New added
+        setSbus(sbusData.map(s => ({ value: s.id, label: s.name || s.sbu_name }))); // New added
       } catch (e) {
         showToast?.(e.message || 'Failed to load form data', 'error');
       } finally {
@@ -1028,6 +1039,22 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
     };
     boot();
   }, [showToast]);
+
+  // New added: Fetch categories when SBU changes
+  useEffect(() => {
+    if (!formik.values.sbu) {
+      setFilteredCategories([]);
+      setClients([]);
+      formik.setFieldValue('client_category', '');
+      formik.setFieldValue('client', '');
+      return;
+    }
+    setIsLoadingCategories(true);
+    fetchCategoriesBySBU(formik.values.sbu)
+      .then(res => setFilteredCategories(res?.data || res || []))
+      .catch(() => setFilteredCategories([]))
+      .finally(() => setIsLoadingCategories(false));
+  }, [formik.values.sbu]);
 
   useEffect(() => {
     if (!formik.values.nttn_provider || !formik.values.link_type) return;
@@ -1096,18 +1123,42 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
       });
   }, [formik.values.shifting_bw, formik.values.nttn_provider, formik.values.link_type, formik.values.shifting_unit_price_dropdown]);
 
+  // Clients fetching based on both category and NTTN provider selection New added
   useEffect(() => {
-    if (!formik.values.client_category) {
+    if (!formik.values.client_category || !formik.values.nttn_provider) {
       setClients([]);
       formik.setFieldValue('client', '');
       return;
     }
-    fetchClientsCategoryWise(formik.values.client_category)
-      .then((res) => {
-        setClients(res.data);
+
+    Promise.all([
+      fetchClientsCategoryWise(formik.values.client_category),
+      fetchClientsByNttn(formik.values.nttn_provider),
+    ])
+      .then(([catRes, nttnRes]) => {
+        const catClients = Array.isArray(catRes) ? catRes : catRes?.data || [];
+        const nttnClients = Array.isArray(nttnRes) ? nttnRes : nttnRes?.data || [];
+
+        const nttnClientIds = new Set(nttnClients.map((c) => c.id));
+        const filtered = catClients.filter((c) => nttnClientIds.has(c.id));
+
+        setClients(filtered.length > 0 ? filtered : catClients);
       })
       .catch(() => setClients([]));
-  }, [formik.values.client_category]);
+  }, [formik.values.client_category, formik.values.nttn_provider]); // ← added nttn_provider dependency
+
+  // useEffect(() => {
+  //   if (!formik.values.client_category) {
+  //     setClients([]);
+  //     formik.setFieldValue('client', '');
+  //     return;
+  //   }
+  //   fetchClientsCategoryWise(formik.values.client_category)
+  //     .then((res) => {
+  //       setClients(res.data);
+  //     })
+  //     .catch(() => setClients([]));
+  // }, [formik.values.client_category]);
 
   useEffect(() => {
     if (!formik.values.shifting_client_category) {
@@ -1574,7 +1625,7 @@ useEffect(() => {
         <FormSection title="Shifting Source">
           <SelectField
             name="nttn_provider"
-            placeholder="NTTN Name*"
+            placeholder="NTTN Name *"
             options={nttnProviders.map((p) => ({
               value: p.id,
               label: p.nttn_name,
@@ -1583,7 +1634,22 @@ useEffect(() => {
             searchable
           />
 
+          {/* SBU New added */}
           <SelectField
+            className='col-span-1 md:col-span-2'
+            name="sbu"
+            placeholder={`SBU * ${isLoadingSbus ? '(Loading...)' : ''}`}
+            options={sbus}
+            onChange={(v) => {
+              formik.setFieldValue('sbu', v);
+              formik.setFieldValue('client_category', '');
+              formik.setFieldValue('client', '');
+            }}
+            searchable
+            disabled={isLoadingSbus}
+          />
+
+          {/* <SelectField
             name="client_category"
             placeholder="Client Category *"
             options={clientCategories.map((c) => ({
@@ -1596,8 +1662,21 @@ useEffect(() => {
             }}
             searchable
             disabled={!formik.values.nttn_provider}
+          /> */}
+          {/* Client Category New added */}
+          <SelectField
+            name="client_category"
+            placeholder={`Client Category * ${isLoadingCategories ? '(Loading...)' : ''}`}
+            options={filteredCategories.map(c => ({ value: c.id, label: c.cat_name }))}  // ← changed
+            onChange={(v) => {
+              formik.setFieldValue('client_category', v);
+              formik.setFieldValue('client', '');
+            }}
+            searchable
+            disabled={!formik.values.sbu || isLoadingCategories}  // ← lock until SBU chosen
           />
           <SelectField
+            className='col-span-1 md:col-span-2'
             name="client"
             placeholder="Client Name *"
             options={clients.map((c) => ({
@@ -1609,6 +1688,7 @@ useEffect(() => {
             disabled={!formik.values.client_category}
           />
           <SelectField
+            className='col-span-1 md:col-span-2'
             name="nttn_link_id"
             placeholder="Work Order Link ID*"
             options={nttnLinkIds.map((nttn) => ({

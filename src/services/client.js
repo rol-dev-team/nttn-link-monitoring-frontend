@@ -36,6 +36,16 @@ export const fetchCategoriesBySBU = async (sbuId) => {
   }
 };
 
+// NTTN wise Client fetching service
+export const fetchClientsByNttn = async (nttnId) => {
+  try {
+    const response = await axiosInstance.get(`/clients/by-nttn/${nttnId}/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const updateClient = async (id, data) => {
   try {
     const response = await axiosInstance.put(`/clients/${id}/`, data);

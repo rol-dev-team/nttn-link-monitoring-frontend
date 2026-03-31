@@ -5,6 +5,10 @@ export const shiftCapacitySchema = Yup.object().shape({
     .required('NTTN Provider is required')
     .positive('NTTN Provider must be selected'),
 
+  sbu: Yup.number()
+    .required('SBU is required')
+    .positive('SBU must be selected'),
+
   client_category: Yup.number()
     .required('Client Category is required')
     .positive('Client Category must be selected'),

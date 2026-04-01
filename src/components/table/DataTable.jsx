@@ -675,7 +675,7 @@ export default function DataTable({
   searchable = true,
   selection = true,
   showId = false,
-  pageSizeOptions = [5, 10, 25, 50],
+  pageSizeOptions = [5, 10, 25, 50,100, 250, 500, 1000, 2500, 5000, 10000],
   initialPageSize = 5,
   initialSort,
   stickyHeader = true,

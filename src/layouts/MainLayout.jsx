@@ -23,7 +23,7 @@ export default function MainLayout() {
           )}
           
           {/* Let main grow so the footer stays at the bottom */}
-          <main className="container mx-auto max-w-[1600px] grow">
+          <main className="w-full grow">
             <Outlet />
           </main>
 

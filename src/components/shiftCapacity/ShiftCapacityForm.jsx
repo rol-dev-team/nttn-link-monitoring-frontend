@@ -1683,67 +1683,8 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
           />
         </FormSection>
 
-        {/* ── Info Panel ── */}
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-7 justify-items-center items-start gap-4 text-sm">
-            {/* Link Type */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">Link Type:</strong>{' '}
-                {printLinkTypeName || 'N/A'}
-              </p>
-            </div>
 
-            {/* Capacity */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">Capacity:</strong>{' '}
-                {formik.values.capacity || 'N/A'}
-              </p>
-            </div>
-
-            {/* Unit Price */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">Unit Price:</strong>{' '}
-                {shiftingSourceRates || '0.00'}
-              </p>
-            </div>
-
-            {/* Capacity Cost */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">Capacity Cost:</strong>{' '}
-                {formik.values.capacity_cost || '0.00'}
-              </p>
-            </div>
-
-            {/* After Shifting Cost */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">After Shifting Cost:</strong>{' '}
-                {formik.values.total_shifting_cost || 'N/A'}
-              </p>
-            </div>
-
-            {/* After Shifting Capacity */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">After Shifting Capacity:</strong>{' '}
-                {formik.values.after_shifting_capacity || 'N/A'}
-              </p>
-            </div>
-
-            {/* After Shifting Unit Rate — fetched from API based on After Shifting Capacity */}
-            <div className="flex items-center space-x-2">
-              <p>
-                <strong className="text-gray-800">After Shifting Unit Rate:</strong>{' '}
-                {afterShiftingUnitRate ? afterShiftingUnitRate.toFixed(2) : 'N/A'}
-              </p>
-            </div>
-          </div>
-
-          {/* ── NEW: Shifting BW input + Shifting Amount display (below the info row) ── */}
+        {/* ── NEW: Shifting BW input + Shifting Amount display (below the info row) ── */}
           <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3 items-end">
             {/* Shifting BW input (upper panel) */}
             <div>
@@ -1790,6 +1731,76 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
             <div />
             <div />
           </div>
+
+        {/* ── Info Panel ── */}
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 justify-items-center items-start gap-4 text-sm">
+
+            {/* Capacity Cost */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">Capacity Cost:</strong>{' '}
+                {formik.values.capacity_cost || '0.00'}
+              </p>
+            </div>
+
+
+            
+
+            {/* Capacity */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">Capacity:</strong>{' '}
+                {formik.values.capacity || 'N/A'}
+              </p>
+            </div>
+
+            {/* Unit Price */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">Unit Price:</strong>{' '}
+                {shiftingSourceRates || '0.00'}
+              </p>
+            </div>
+
+
+
+            {/* Link Type */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">Link Type:</strong>{' '}
+                {printLinkTypeName || 'N/A'}
+              </p>
+            </div>
+
+            
+
+            {/* After Shifting Cost */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">After Shifting Cost:</strong>{' '}
+                {formik.values.total_shifting_cost || 'N/A'}
+              </p>
+            </div>
+
+            {/* After Shifting Capacity */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">After Shifting Capacity:</strong>{' '}
+                {formik.values.after_shifting_capacity || 'N/A'}
+              </p>
+            </div>
+
+            {/* After Shifting Unit Rate — fetched from API based on After Shifting Capacity */}
+            <div className="flex items-center space-x-2">
+              <p>
+                <strong className="text-gray-800">After Shifting Unit Rate:</strong>{' '}
+                {afterShiftingUnitRate ? afterShiftingUnitRate.toFixed(2) : 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          
         </div>
 
         {/* Shifting Target */}
@@ -1947,13 +1958,17 @@ const ShiftCapacityForm = ({ initialValues, isEditMode, onSubmit, onCancel, show
               searchable
               isClearable
             />
-            <InputField name="remarks" label="Remarks" type="text" />
+
+
             <DatePickerField
               name="submission_date"
               placeholder="Submission Date"
               field={{ name: 'submission_date', value: formik.values.submission_date }}
               form={formik}
             />
+            
+            <InputField name="remarks" label="Remarks" type="text" />
+            
           </div>
         </FormSection>
 

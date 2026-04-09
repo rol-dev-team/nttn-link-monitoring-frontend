@@ -254,6 +254,7 @@ export default function PartnerActivationDashboard() {
                 key: "client_id",
                 header: "Client Name",
                 render: (_, row) => row.client?.client_name || "N/A",
+                searchValue: (row) => row.client?.client_name || "",
             },
             { key: "asn", header: "ASN" },
             { key: "nas_ip", header: "NAS IP" },

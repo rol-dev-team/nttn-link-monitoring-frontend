@@ -813,11 +813,12 @@ export default function DataTable({
         ? data.filter((row) => {
             const q = query.toLowerCase();
             const keys = inferredCols.map((c) => c.key);
-            return keys.some((k) =>
-              String(row?.[k] ?? '')
-                .toLowerCase()
-                .includes(q)
-            );
+            return inferredCols.some((col) => {
+              const value = col.searchValue
+                ? col.searchValue(row)
+                : String(row?.[col.key] ?? '');
+              return value.toLowerCase().includes(q);
+            });
           })
         : data;
 

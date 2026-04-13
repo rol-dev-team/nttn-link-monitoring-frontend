@@ -20,8 +20,8 @@ export const surveySchema = Yup.object({
   capacity_mb: Yup.number()
     .typeError('Capacity must be a number')
     .positive('Capacity must be a positive number'),
-  distance: Yup.number()
-    .typeError('Distance must be a number')
-    .positive('Distance must be a positive number'),
-  unit_type: Yup.string().required('Please select a Unit Type'),
+  // distance: Yup.number()
+  //   .typeError('Distance must be a number')
+  //   .positive('Distance must be a positive number'),
+  // unit_type: Yup.string().required('Please select a Unit Type'),
 });

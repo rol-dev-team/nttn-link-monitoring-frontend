@@ -468,6 +468,7 @@ const defaultFormValues = {
   district: '',
   thana: '',
   address: '',
+  remarks: '',
 };
 
 const SurveyForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }) => {
@@ -786,6 +787,15 @@ const SurveyForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast }
                 field={{ name: 'submission', value: formik.values.submission }}
                 form={formik}
               />
+            </div>
+
+            <div className="mt-6">
+              <InputField
+                              name="remarks"
+                              label="Remarks"
+                              type="textarea"
+                              className="md:col-span-1"
+                            />
             </div>
           </fieldset>
 

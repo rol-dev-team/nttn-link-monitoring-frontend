@@ -68,6 +68,7 @@ const defaultInitialValues = {
   unit_type: null,
   mac_user: '',
   submission: '',
+  remarks: '',
 };
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -332,6 +333,7 @@ const Survey = () => {
           searchable: true,
         },
       },
+      { key: 'remarks', header: 'Remarks' },
       {
         key: 'actions',
         header: 'Action',

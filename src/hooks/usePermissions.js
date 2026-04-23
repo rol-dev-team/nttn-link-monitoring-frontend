@@ -32,9 +32,8 @@
 //   return { hasPermission };
 // }
 
-
 // src/hooks/usePermissions.js
-import { useAuth } from "../app/AuthContext";
+import { useAuth } from '../app/AuthContext';
 
 export function usePermissions() {
   const { user } = useAuth();
@@ -45,11 +44,25 @@ export function usePermissions() {
     const roles = user.roles || [];
 
     // Give full access to admin/super-admin roles
-    if (roles.some(r => ["admin", "super-admin"].includes(String(r?.name).toLowerCase()))) {
+    if (
+      roles.some((r) =>
+        [
+          'admin',
+          'super-admin',
+          'nttn_admin',
+          'nttn_user',
+          'partner_admin',
+          'partner_user',
+          'nttn_customer',
+          'management',
+          'user',
+        ].includes(String(r?.name).toLowerCase())
+      )
+    ) {
       return true;
     }
 
-    const all = roles.flatMap(r => (r?.permissions || []).map(p => p?.name)).filter(Boolean);
+    const all = roles.flatMap((r) => (r?.permissions || []).map((p) => p?.name)).filter(Boolean);
     return all.includes(permissionName);
   };
 

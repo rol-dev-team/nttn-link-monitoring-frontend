@@ -5,62 +5,47 @@ export const shiftCapacitySchema = Yup.object().shape({
     .required('NTTN Provider is required')
     .positive('NTTN Provider must be selected'),
 
-  client_category: Yup.number()
-    .required('Client Category is required')
-    .positive('Client Category must be selected'),
+  // sbu: Yup.number()
+  //   .required('SBU is required')
+  //   .positive('SBU must be selected'),
 
-  client: Yup.number()
-    .required('Client is required')
-    .positive('Client must be selected'),
+  // client_category: Yup.number()
+  //   .required('Client Category is required')
+  //   .positive('Client Category must be selected'),
 
-  shifting_client_category: Yup.number()
-    .required('Shifting Client Category is required')
-    .positive('Shifting Client Category must be selected'),
+  // client: Yup.number().required('Client is required').positive('Client must be selected'),
 
-  shifting_client: Yup.number()
-    .required('Shifting Client is required')
-    .positive('Shifting Client must be selected'),
+  // shifting_client_category: Yup.number()
+  //   .required('Shifting Client Category is required')
+  //   .positive('Shifting Client Category must be selected'),
 
-  nttn_link_id: Yup.string()
-    .required('NTTN Link ID is required'),
+  // shifting_client: Yup.number()
+  //   .required('Shifting Client is required')
+  //   .positive('Shifting Client must be selected'),
 
-  capacity: Yup.number()
-    .required('Capacity is required')
-    .min(0, 'Capacity cannot be negative'),
+  // nttn_link_id: Yup.string().required('NTTN Link ID is required'),
+  // shifting_link_id: Yup.string().required('Shifting Link ID is required'),
 
-  capacity_cost: Yup.number()
-    .min(0, 'Capacity cost cannot be negative'),
+  // capacity: Yup.number().required('Capacity is required').min(0, 'Capacity cannot be negative'),
 
-  shifting_bw: Yup.number()
-    .required('Shifting BW is required')
-    .positive('Shifting BW must be positive')
-    .test(
-      'is-less-than-capacity',
-      'Shifting BW cannot be greater than Capacity',
-      function (value) {
-        const { capacity } = this.parent;
-        return value <= capacity;
-      }
-    ),
+  // capacity_cost: Yup.number().min(0, 'Capacity cost cannot be negative'),
 
-  after_shifting_capacity: Yup.number()
-    .min(0, 'After shifting capacity cannot be negative'),
+  // shifting_bw: Yup.number()
+  //   .required('Shifting BW is required')
+  //   .positive('Shifting BW must be positive')
+  //   .test('is-less-than-capacity', 'Shifting BW cannot be greater than Capacity', function (value) {
+  //     const { capacity } = this.parent;
+  //     return value <= capacity;
+  //   }),
 
-  shifting_capacity: Yup.number()
-    .min(0, 'Shifting capacity cannot be negative'),
+  // after_shifting_capacity: Yup.number().min(0, 'After shifting capacity cannot be negative'),
 
-  shifting_unit_cost: Yup.number()
-    .min(0, 'Shifting unit cost cannot be negative'),
+  // shifting_capacity: Yup.number().min(0, 'Shifting capacity cannot be negative'),
 
-  total_shifting_cost: Yup.number()
-    .required('Total shifting cost is required')
-    .min(0, 'Total shifting cost cannot be negative'),
+  // shifting_unit_cost: Yup.number().min(0, 'Shifting unit cost cannot be negative'),
 
-  workorder_id: Yup.number()
-    .required('WorkOrder ID is required')
-    .positive('WorkOrder ID must be positive'),
-
-  vlan: Yup.string()
-    .nullable()
-    .max(100, 'VLAN must be less than 100 characters'),
+  // total_shifting_cost: Yup.number()
+  //   .required('Total shifting cost is required')
+  //   .min(0, 'Total shifting cost cannot be negative'),
+  // submission_date: Yup.date().required('Submission date is required'),
 });

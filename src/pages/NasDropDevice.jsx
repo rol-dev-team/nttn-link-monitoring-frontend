@@ -341,431 +341,890 @@
 
 // export default NasDropDevicePage;
 
-import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import axios from "axios";
-import { Trash2, PlusCircle, FileSpreadsheet, Plus } from "lucide-react";
+// import React, { useMemo, useCallback, useState, useEffect } from 'react';
+// import { useFormik } from 'formik';
+// import * as Yup from 'yup';
+// import axios from 'axios';
+// import { Trash2, PlusCircle, FileSpreadsheet, Plus, ArrowLeft } from 'lucide-react';
 
-import TextInputField from "../components/fields/TextInputField";
-import Button from "../components/ui/Button";
-import DataTable from "../components/table/DataTable";
-import ExportButton from "../components/ui/ExportButton";
-import SelectInput from "../components/fields/SelectInput";
+// import TextInputField from '../components/fields/TextInputField';
+// import Button from '../components/ui/Button';
+// import DataTable from '../components/table/DataTable';
+// import ExportButton from '../components/ui/ExportButton';
+// import SelectInput from '../components/fields/SelectInput';
 
-import { fetchNasIps } from "../services/partner-link/partnerInterfaceConfig";
-import { createPartnerDropDeviceConfig } from "../services/partner-link/partnerDropDeviceConfig";
+// import { fetchNasIps } from '../services/partner-link/partnerInterfaceConfig';
+// import { createPartnerDropDeviceConfig,  } from '../services/partner-link/partnerDropDeviceConfig';
+
+// // Validation schema for individual rows (Drop Devices)
+// const DropDeviceSchema = Yup.object().shape({
+//   device_ip: Yup.string().required('Device IP is required'),
+//   usage_vlan: Yup.string().required('Usage VLAN is required'),
+//   connected_port: Yup.string().required('Connected Port is required'),
+// });
+
+// // Main validation schema for the entire form
+// const MainDropDeviceSchema = Yup.object().shape({
+//   // Validation for the NAS SelectInput (expects an object { value, label })
+//   activation_plan_id: Yup.object()
+//     .shape({
+//       value: Yup.string().required('NAS IP is required'),
+//     })
+//     .nullable()
+//     .required('Please select a NAS.'),
+
+//   // Validation for the array of drop devices
+//   drop_devices: Yup.array().min(1, 'Please add at least one drop device before submitting.'),
+// });
+
+// const NasDropDevicePage = () => {
+//   const [viewMode, setViewMode] = useState('table'); // "table" | "form"
+//   const [nasIpOptions, setNasIpOptions] = useState([]);
+//   const [loading, setLoading] = useState(false);
+//   const [existingConfigs, setExistingConfigs] = useState([]);
+
+//   const addToast = (msg, type = 'info') => alert(`${type.toUpperCase()}: ${msg}`);
+
+//   // Fetch NAS IPs on component mount
+//   useEffect(() => {
+//     const loadNasIps = async () => {
+//       setLoading(true);
+//       try {
+//         const response = await fetchNasIps();
+//         if (response.status) {
+//           const options = response.data.map((item) => ({
+//             value: item.id.toString(), // activation_plan_id as value
+//             label: `NAS ${item.nas_ip} / ${item.client_name}`,
+//             nas_ip: item.nas_ip,
+//           }));
+//           setNasIpOptions(options);
+//         } else {
+//           addToast(response.message, 'error');
+//         }
+//       } catch (error) {
+//         addToast(error.message, 'error');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     loadNasIps();
+//   }, []);
+
+//   const formik = useFormik({
+//     initialValues: {
+//       activation_plan_id: null, // Changed from nas_ip to activation_plan_id
+//       drop_devices: [],
+//       new_device_ip: '',
+//       new_usage_vlan: '',
+//       new_connected_port: '',
+//     },
+//     validationSchema: MainDropDeviceSchema,
+//     onSubmit: async (values) => {
+//       if (values.drop_devices.length === 0) {
+//         addToast('Please add at least one device before submitting.', 'error');
+//         return;
+//       }
+
+//       try {
+//         setLoading(true);
+
+//         // Submit each device configuration individually
+//         const promises = values.drop_devices.map((device) =>
+//           createPartnerDropDeviceConfig({
+//             activation_plan_id: values.activation_plan_id.value, // Extract the value (id)
+//             device_ip: device.device_ip,
+//             usage_vlan: device.usage_vlan,
+//             connected_port: device.connected_port,
+//           })
+//         );
+
+//         const results = await Promise.all(promises);
+
+//         // Check if all requests were successful
+//         const allSuccess = results.every((result) => result.status === true);
+
+//         if (allSuccess) {
+//           addToast('All devices submitted successfully!', 'success');
+
+//           // Update existing configs for table view
+//           const newConfigs = results.map((result) => result.data);
+//           setExistingConfigs((prev) => [...prev, ...newConfigs]);
+
+//           formik.resetForm();
+//           setViewMode('table');
+//         } else {
+//           addToast('Some devices failed to submit', 'error');
+//         }
+//       } catch (error) {
+//         console.error(error);
+//         addToast('Failed to submit devices. Please try again.', 'error');
+//       } finally {
+//         setLoading(false);
+//       }
+//     },
+//   });
+
+//   // Handle select change to store only the value
+//   const handleActivationPlanChange = (selectedOption) => {
+//     formik.setFieldValue('activation_plan_id', selectedOption);
+//   };
+
+//   // Get the selected option for display
+//   const selectedNasIpOption = nasIpOptions.find(
+//     (option) => option.value === formik.values.activation_plan_id?.value
+//   );
+
+//   // ✅ Add Device Handler
+//   const handleAddRow = useCallback(() => {
+//     const newEntry = {
+//       device_ip: formik.values.new_device_ip,
+//       usage_vlan: formik.values.new_usage_vlan,
+//       connected_port: formik.values.new_connected_port,
+//     };
+
+//     DropDeviceSchema.validate(newEntry, { abortEarly: false })
+//       .then(() => {
+//         formik.setFieldValue('drop_devices', [
+//           ...formik.values.drop_devices,
+//           { ...newEntry, id: Date.now() },
+//         ]);
+//         formik.setFieldValue('new_device_ip', '');
+//         formik.setFieldValue('new_usage_vlan', '');
+//         formik.setFieldValue('new_connected_port', '');
+//         addToast('Device added successfully!', 'success');
+//       })
+//       .catch((err) => {
+//         const msg = err.errors?.[0] || 'Please fill in all required fields for the new device.';
+//         addToast(msg, 'error');
+//       });
+//   }, [formik, addToast]);
+
+//   // ✅ Remove Device Handler
+//   const handleRemoveRow = useCallback(
+//     (index) => {
+//       const newDevices = [...formik.values.drop_devices];
+//       const removedDevice = newDevices.splice(index, 1)[0];
+//       formik.setFieldValue('drop_devices', newDevices);
+//       addToast(`Removed device: ${removedDevice.device_ip}`, 'warning');
+//     },
+//     [formik, addToast]
+//   );
+
+//   // ✅ Table columns
+//   const DROP_DEVICE_COLUMNS = useMemo(
+//     () => [
+//       { key: 'device_ip', header: 'Device IP' },
+//       { key: 'usage_vlan', header: 'Usage VLAN' },
+//       { key: 'connected_port', header: 'Connected Port' },
+//       {
+//         key: 'actions',
+//         header: 'Actions',
+//         align: 'center',
+//         width: '5rem',
+//         isSortable: false,
+//         render: (v, row, index) => (
+//           <button
+//             type="button"
+//             onClick={() => handleRemoveRow(index)}
+//             className="btn btn-ghost btn-xs text-red-500 hover:text-red-700"
+//             title="Remove Device"
+//           >
+//             <Trash2 className="h-4 w-4" />
+//           </button>
+//         ),
+//       },
+//     ],
+//     [handleRemoveRow]
+//   );
+
+//   // Table columns for saved configurations
+//   const SAVED_DEVICE_COLUMNS = useMemo(
+//     () => [
+//       { key: 'device_ip', header: 'Device IP' },
+//       { key: 'usage_vlan', header: 'Usage VLAN' },
+//       { key: 'connected_port', header: 'Connected Port' },
+//       {
+//         key: 'activation_plan_id',
+//         header: 'Activation Plan ID',
+//         render: (value) => value || 'N/A',
+//       },
+//     ],
+//     []
+//   );
+
+//   // ---
+//   // ✅ Conditional Rendering (Table View)
+//   // ---
+//   if (viewMode === 'table') {
+//     return (
+//       <div className="p-4 lg:p-6">
+//         <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-200">
+//           <div>
+//             <h1 className="text-3xl font-extrabold text-gray-900">Drop Devices Configuration</h1>
+//             <p className="text-sm text-gray-500">
+//               View and manage drop device configurations for a NAS.
+//             </p>
+//           </div>
+
+//           <div className="px-6 flex gap-2">
+//             <ExportButton
+//               data={existingConfigs}
+//               columns={SAVED_DEVICE_COLUMNS}
+//               fileName="drop_devices_export"
+//               intent="primary"
+//               leftIcon={FileSpreadsheet}
+//               className="text-white bg-green-700 hover:bg-green-800 border-none"
+//             >
+//               Export
+//             </ExportButton>
+
+//             <Button
+//               intent="primary"
+//               onClick={() => setViewMode('form')}
+//               leftIcon={Plus}
+//               disabled={loading}
+//             >
+//               {loading ? 'Loading...' : 'Create New Device'}
+//             </Button>
+//           </div>
+//         </header>
+
+//         <DataTable
+//           title="Drop Device Records"
+//           data={existingConfigs}
+//           columns={SAVED_DEVICE_COLUMNS}
+//           searchable={true}
+//           showId={true}
+//           selection={false}
+//         />
+//       </div>
+//     );
+//   }
+
+//   // ---
+//   // ✅ Form View
+//   // ---
+//   return (
+//     <form onSubmit={formik.handleSubmit} className="p-6 md:col-span-3 space-y-6">
+//       <header className="mb-10 pb-6 border-b border-gray-200 flex items-start justify-between">
+//         <div>
+//           <h1 className="text-3xl font-extrabold text-gray-900">
+//             <Button
+//               variant="ghost"
+//               leftIcon={ArrowLeft}
+//               onClick={() => setViewMode('table')}
+//               className="-ml-4 text-lg font-semibold"
+//               type="button"
+//             ></Button>
+//             Drop Devices Configuration
+//           </h1>
+//           <p className="text-sm text-gray-500 ml-10">Create drop device configuration</p>
+//         </div>
+//       </header>
+
+//       {/* 1. NAS Selection Dropdown */}
+//       <div className="space-y-4">
+//         <h3 className="text-2xl font-semibold text-gray-800">NAS IP Selection</h3>
+//         <SelectInput
+//           name="activation_plan_id"
+//           formik={formik}
+//           options={nasIpOptions}
+//           label="Select NAS IP / Link"
+//           isDisabled={formik.values.drop_devices.length > 0 || loading}
+//           isSearchable={true}
+//           isClearable={true}
+//           isLoading={loading}
+//           placeholder={loading ? 'Loading NAS IPs...' : 'Select NAS IP...'}
+//           onChange={handleActivationPlanChange}
+//           value={selectedNasIpOption}
+//         />
+
+//         {/* Error handling for NAS selection */}
+//         {formik.submitCount > 0 &&
+//           formik.touched.activation_plan_id &&
+//           formik.errors.activation_plan_id && (
+//             <p className="text-sm text-red-600 mt-1">
+//               {typeof formik.errors.activation_plan_id === 'string'
+//                 ? formik.errors.activation_plan_id
+//                 : formik.errors.activation_plan_id.value}
+//             </p>
+//           )}
+//       </div>
+//       <hr className="border-gray-200 my-6" />
+//       {/* 2. Add New Device Row */}
+//       <div className="space-y-4">
+//         <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
+//           <TextInputField
+//             name="new_device_ip"
+//             placeholder="Device IP"
+//             formik={formik}
+//             disabled={!formik.values.activation_plan_id}
+//           />
+//           <TextInputField
+//             name="new_usage_vlan"
+//             placeholder="Usage VLAN"
+//             formik={formik}
+//             disabled={!formik.values.activation_plan_id}
+//           />
+//           <TextInputField
+//             name="new_connected_port"
+//             placeholder="Connected Port"
+//             formik={formik}
+//             disabled={!formik.values.activation_plan_id}
+//           />
+
+//           <div className="flex items-center pt-1 md:pt-0">
+//             <Button
+//               type="button"
+//               onClick={handleAddRow}
+//               intent="primary"
+//               size="sm"
+//               leftIcon={PlusCircle}
+//               className="w-full md:w-auto"
+//               disabled={
+//                 !formik.values.activation_plan_id ||
+//                 !formik.values.new_device_ip ||
+//                 !formik.values.new_usage_vlan ||
+//                 !formik.values.new_connected_port ||
+//                 loading
+//               }
+//             >
+//               {loading ? 'Adding...' : 'Add Device'}
+//             </Button>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* 3. Device List Table */}
+//       {formik.values.drop_devices.length > 0 && (
+//         <div className="pt-6 border-t border-gray-200">
+//           <DataTable
+//             data={formik.values.drop_devices}
+//             columns={DROP_DEVICE_COLUMNS}
+//             searchable={false}
+//             selection={false}
+//             initialPageSize={5}
+//             pageSizeOptions={[5, 10, 25]}
+//             stickyHeader={false}
+//             title={`Device List (${formik.values.drop_devices.length})`}
+//           />
+//         </div>
+//       )}
+
+//       <hr className="border-gray-200 my-6" />
+//       {/* 4. Submission Button and Array Validation Error */}
+//       <div className="flex justify-end">
+//         {/* Array validation error message */}
+//         {formik.submitCount > 0 && formik.errors.drop_devices && (
+//           <p className="text-sm text-red-600 mb-4">{formik.errors.drop_devices}</p>
+//         )}
+
+//         <Button
+//           type="submit"
+//           intent="success"
+//           size="md"
+//           disabled={
+//             loading ||
+//             formik.isSubmitting ||
+//             !formik.isValid ||
+//             !formik.values.activation_plan_id ||
+//             formik.values.drop_devices.length === 0
+//           }
+//           className="w-full md:w-auto"
+//         >
+//           {loading
+//             ? 'Submitting...'
+//             : `Submit All Configurations to NAS (${
+//                 formik.values.activation_plan_id?.label || 'Select NAS'
+//               })`}
+//         </Button>
+//       </div>
+//     </form>
+//   );
+// };
+
+// export default NasDropDevicePage;
+
+
+
+
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { Trash2, PlusCircle, FileSpreadsheet, Plus, ArrowLeft } from 'lucide-react';
+
+import TextInputField from '../components/fields/TextInputField';
+import Button from '../components/ui/Button';
+import DataTable from '../components/table/DataTable';
+import ExportButton from '../components/ui/ExportButton';
+import SelectInput from '../components/fields/SelectInput';
+import { useToast } from '../hooks/useToast';
+
+import { createPartnerDropDeviceConfig, fetchPartnerDropDeviceConfigs } from '../services/partner-link/partnerDropDeviceConfig';
+import { fetchCategoryWiseClientPartnerWithNas } from '../services/partner-link/txToPartner';
 
 // Validation schema for individual rows (Drop Devices)
 const DropDeviceSchema = Yup.object().shape({
-    device_ip: Yup.string().required("Device IP is required"),
-    usage_vlan: Yup.string().required("Usage VLAN is required"),
-    connected_port: Yup.string().required("Connected Port is required"),
+  device_ip: Yup.string().required('Device IP is required'),
+  usage_vlan: Yup.string().required('Usage VLAN is required'),
+  connected_port: Yup.string().required('Connected Port is required'),
 });
 
 // Main validation schema for the entire form
 const MainDropDeviceSchema = Yup.object().shape({
-    // Validation for the NAS SelectInput (expects an object { value, label })
-    activation_plan_id: Yup.object()
-        .shape({
-            value: Yup.string().required("NAS IP is required"),
-        })
-        .nullable()
-        .required("Please select a NAS."),
+  // Validation for the NAS SelectInput (expects an object { value, label })
+  activation_plan_id: Yup.object()
+    .shape({
+      value: Yup.string().required('NAS IP is required'),
+    })
+    .nullable()
+    .required('Please select a NAS.'),
 
-    // Validation for the array of drop devices
-    drop_devices: Yup.array().min(
-        1,
-        "Please add at least one drop device before submitting."
-    ),
+  // Validation for the array of drop devices
+  drop_devices: Yup.array().min(1, 'Please add at least one drop device before submitting.'),
 });
 
 const NasDropDevicePage = () => {
-    const [viewMode, setViewMode] = useState("table"); // "table" | "form"
-    const [nasIpOptions, setNasIpOptions] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [existingConfigs, setExistingConfigs] = useState([]);
+  const { addToast } = useToast();
+  const [viewMode, setViewMode] = useState('table'); // "table" | "form"
+  const [nasIpOptions, setNasIpOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [existingConfigs, setExistingConfigs] = useState([]);
 
-    const addToast = (msg, type = "info") =>
-        alert(`${type.toUpperCase()}: ${msg}`);
-
-    // Fetch NAS IPs on component mount
-    useEffect(() => {
-        const loadNasIps = async () => {
-            setLoading(true);
-            try {
-                const response = await fetchNasIps();
-                if (response.status) {
-                    const options = response.data.map((item) => ({
-                        value: item.id.toString(), // activation_plan_id as value
-                        label: `NAS ${item.nas_ip} / Partner ${item.id}`,
-                        nas_ip: item.nas_ip,
-                    }));
-                    setNasIpOptions(options);
-                } else {
-                    addToast(response.message, "error");
-                }
-            } catch (error) {
-                addToast(error.message, "error");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadNasIps();
-    }, []);
-
-    const formik = useFormik({
-        initialValues: {
-            activation_plan_id: null, // Changed from nas_ip to activation_plan_id
-            drop_devices: [],
-            new_device_ip: "",
-            new_usage_vlan: "",
-            new_connected_port: "",
-        },
-        validationSchema: MainDropDeviceSchema,
-        onSubmit: async (values) => {
-            if (values.drop_devices.length === 0) {
-                addToast(
-                    "Please add at least one device before submitting.",
-                    "error"
-                );
-                return;
-            }
-
-            try {
-                setLoading(true);
-
-                // Submit each device configuration individually
-                const promises = values.drop_devices.map((device) =>
-                    createPartnerDropDeviceConfig({
-                        activation_plan_id: values.activation_plan_id.value, // Extract the value (id)
-                        device_ip: device.device_ip,
-                        usage_vlan: device.usage_vlan,
-                        connected_port: device.connected_port,
-                    })
-                );
-
-                const results = await Promise.all(promises);
-
-                // Check if all requests were successful
-                const allSuccess = results.every(
-                    (result) => result.status === true
-                );
-
-                if (allSuccess) {
-                    addToast("All devices submitted successfully!", "success");
-
-                    // Update existing configs for table view
-                    const newConfigs = results.map((result) => result.data);
-                    setExistingConfigs((prev) => [...prev, ...newConfigs]);
-
-                    formik.resetForm();
-                    setViewMode("table");
-                } else {
-                    addToast("Some devices failed to submit", "error");
-                }
-            } catch (error) {
-                console.error(error);
-                addToast(
-                    "Failed to submit devices. Please try again.",
-                    "error"
-                );
-            } finally {
-                setLoading(false);
-            }
-        },
-    });
-
-    // Handle select change to store only the value
-    const handleActivationPlanChange = (selectedOption) => {
-        formik.setFieldValue("activation_plan_id", selectedOption);
+  // Fetch NAS IPs from API on component mount
+  useEffect(() => {
+    const loadNasIps = async () => {
+      setLoading(true);
+      try {
+        const response = await fetchCategoryWiseClientPartnerWithNas();
+        
+        if (response.status === 'success' && response.data) {
+          console.log('API Response:', response.data); // Debug log
+          
+          // Transform the API response to create NAS IP options
+          const options = response.data
+            .filter(item => item.nas_ip && item.id)
+            .map((item) => ({
+              value: item.id.toString(), // activation_plan_id
+              label: `${item.client_name} - ${item.nttn_work_order_id} - ${item.nas_ip}`,
+              nas_ip: item.nas_ip,
+              client_name: item.client_name,
+              nttn_work_order_id: item.nttn_work_order_id,
+            }));
+          
+          setNasIpOptions(options);
+          console.log('Transformed NAS Options:', options); // Debug log
+          addToast(`Loaded ${options.length} NAS IPs successfully`, 'success');
+        } else {
+          addToast('Failed to load NAS IP data', 'error');
+          setNasIpOptions([]);
+        }
+      } catch (error) {
+        console.error('Error fetching NAS IP data:', error);
+        addToast('Error loading NAS IP data', 'error');
+        setNasIpOptions([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Get the selected option for display
-    const selectedNasIpOption = nasIpOptions.find(
-        (option) => option.value === formik.values.activation_plan_id?.value
-    );
+    loadNasIps();
+  }, [addToast]);
 
-    // ✅ Add Device Handler
-    const handleAddRow = useCallback(() => {
-        const newEntry = {
-            device_ip: formik.values.new_device_ip,
-            usage_vlan: formik.values.new_usage_vlan,
-            connected_port: formik.values.new_connected_port,
-        };
-
-        DropDeviceSchema.validate(newEntry, { abortEarly: false })
-            .then(() => {
-                formik.setFieldValue("drop_devices", [
-                    ...formik.values.drop_devices,
-                    { ...newEntry, id: Date.now() },
-                ]);
-                formik.setFieldValue("new_device_ip", "");
-                formik.setFieldValue("new_usage_vlan", "");
-                formik.setFieldValue("new_connected_port", "");
-                addToast("Device added successfully!", "success");
-            })
-            .catch((err) => {
-                const msg =
-                    err.errors?.[0] ||
-                    "Please fill in all required fields for the new device.";
-                addToast(msg, "error");
-            });
-    }, [formik, addToast]);
-
-    // ✅ Remove Device Handler
-    const handleRemoveRow = useCallback(
-        (index) => {
-            const newDevices = [...formik.values.drop_devices];
-            const removedDevice = newDevices.splice(index, 1)[0];
-            formik.setFieldValue("drop_devices", newDevices);
-            addToast(`Removed device: ${removedDevice.device_ip}`, "warning");
-        },
-        [formik, addToast]
-    );
-
-    // ✅ Table columns
-    const DROP_DEVICE_COLUMNS = useMemo(
-        () => [
-            { key: "device_ip", header: "Device IP" },
-            { key: "usage_vlan", header: "Usage VLAN" },
-            { key: "connected_port", header: "Connected Port" },
-            {
-                key: "actions",
-                header: "Actions",
-                align: "center",
-                width: "5rem",
-                isSortable: false,
-                render: (v, row, index) => (
-                    <button
-                        type="button"
-                        onClick={() => handleRemoveRow(index)}
-                        className="btn btn-ghost btn-xs text-red-500 hover:text-red-700"
-                        title="Remove Device"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </button>
-                ),
-            },
-        ],
-        [handleRemoveRow]
-    );
-
-    // Table columns for saved configurations
-    const SAVED_DEVICE_COLUMNS = useMemo(
-        () => [
-            { key: "device_ip", header: "Device IP" },
-            { key: "usage_vlan", header: "Usage VLAN" },
-            { key: "connected_port", header: "Connected Port" },
-            {
-                key: "activation_plan_id",
-                header: "Activation Plan ID",
-                render: (value) => value || "N/A",
-            },
-        ],
-        []
-    );
-
-    // ---
-    // ✅ Conditional Rendering (Table View)
-    // ---
-    if (viewMode === "table") {
-        return (
-            <div className="p-4 lg:p-6">
-                <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-200">
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-gray-900">
-                            Drop Devices Configuration
-                        </h1>
-                        <p className="text-sm text-gray-500">
-                            View and manage drop device configurations for a
-                            NAS.
-                        </p>
-                    </div>
-
-                    <div className="px-6 flex gap-2">
-                        <ExportButton
-                            data={existingConfigs}
-                            columns={SAVED_DEVICE_COLUMNS}
-                            fileName="drop_devices_export"
-                            intent="primary"
-                            leftIcon={FileSpreadsheet}
-                            className="text-white bg-green-700 hover:bg-green-800 border-none"
-                        >
-                            Export
-                        </ExportButton>
-
-                        <Button
-                            intent="primary"
-                            onClick={() => setViewMode("form")}
-                            leftIcon={Plus}
-                            disabled={loading}
-                        >
-                            {loading ? "Loading..." : "Create New Device"}
-                        </Button>
-                    </div>
-                </header>
-
-                <DataTable
-                    title="Drop Device Records"
-                    data={existingConfigs}
-                    columns={SAVED_DEVICE_COLUMNS}
-                    searchable={true}
-                    showId={true}
-                    selection={false}
-                />
-            </div>
-        );
+  // Fetch existing drop device configurations
+  const fetchExistingConfigs = useCallback(async () => {
+    setTableLoading(true);
+    try {
+      const response = await fetchPartnerDropDeviceConfigs();
+      if (response.status) {
+        setExistingConfigs(response.data || []);
+        console.log('Fetched drop device configs:', response.data); // Debug log
+      } else {
+        throw new Error(response.message || 'Failed to fetch drop device configurations');
+      }
+    } catch (err) {
+      console.error(err);
+      addToast('Failed to fetch drop device configurations', 'error');
+    } finally {
+      setTableLoading(false);
     }
+  }, [addToast]);
 
-    // ---
-    // ✅ Form View
-    // ---
+  // Load existing configs when component mounts and when view mode changes to table
+  useEffect(() => {
+    if (viewMode === 'table') {
+      fetchExistingConfigs();
+    }
+  }, [viewMode, fetchExistingConfigs]);
+
+  const formik = useFormik({
+    initialValues: {
+      activation_plan_id: null, // Changed from nas_ip to activation_plan_id
+      drop_devices: [],
+      new_device_ip: '',
+      new_usage_vlan: '',
+      new_connected_port: '',
+    },
+    validationSchema: MainDropDeviceSchema,
+    onSubmit: async (values) => {
+      if (values.drop_devices.length === 0) {
+        addToast('Please add at least one device before submitting.', 'error');
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Submit each device configuration individually
+        const promises = values.drop_devices.map((device) =>
+          createPartnerDropDeviceConfig({
+            activation_plan_id: values.activation_plan_id.value, // Extract the value (id)
+            device_ip: device.device_ip,
+            usage_vlan: device.usage_vlan,
+            connected_port: device.connected_port,
+          })
+        );
+
+        const results = await Promise.all(promises);
+
+        // Check if all requests were successful
+        const allSuccess = results.every((result) => result.status === true);
+
+        if (allSuccess) {
+          addToast('All devices submitted successfully!', 'success');
+
+          formik.resetForm();
+          setViewMode('table');
+
+          // Refresh the table data
+          fetchExistingConfigs();
+        } else {
+          addToast('Some devices failed to submit', 'error');
+        }
+      } catch (error) {
+        console.error(error);
+        addToast('Failed to submit devices. Please try again.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
+
+  // Handle select change to store only the value
+  const handleActivationPlanChange = (selectedOption) => {
+    formik.setFieldValue('activation_plan_id', selectedOption);
+  };
+
+  // Get the selected option for display
+  const selectedNasIpOption = nasIpOptions.find(
+    (option) => option.value === formik.values.activation_plan_id?.value
+  );
+
+  // ✅ Add Device Handler
+  const handleAddRow = useCallback(() => {
+    const newEntry = {
+      device_ip: formik.values.new_device_ip,
+      usage_vlan: formik.values.new_usage_vlan,
+      connected_port: formik.values.new_connected_port,
+    };
+
+    DropDeviceSchema.validate(newEntry, { abortEarly: false })
+      .then(() => {
+        formik.setFieldValue('drop_devices', [
+          ...formik.values.drop_devices,
+          { ...newEntry, id: Date.now() },
+        ]);
+        formik.setFieldValue('new_device_ip', '');
+        formik.setFieldValue('new_usage_vlan', '');
+        formik.setFieldValue('new_connected_port', '');
+        addToast('Device added successfully!', 'success');
+      })
+      .catch((err) => {
+        const msg = err.errors?.[0] || 'Please fill in all required fields for the new device.';
+        addToast(msg, 'error');
+      });
+  }, [formik, addToast]);
+
+  // ✅ Remove Device Handler
+  const handleRemoveRow = useCallback(
+    (index) => {
+      const newDevices = [...formik.values.drop_devices];
+      const removedDevice = newDevices.splice(index, 1)[0];
+      formik.setFieldValue('drop_devices', newDevices);
+      addToast(`Removed device: ${removedDevice.device_ip}`, 'warning');
+    },
+    [formik, addToast]
+  );
+
+  // ✅ Table columns
+  const DROP_DEVICE_COLUMNS = useMemo(
+    () => [
+      { key: 'device_ip', header: 'Device IP' },
+      { key: 'usage_vlan', header: 'Usage VLAN' },
+      { key: 'connected_port', header: 'Connected Port' },
+      {
+        key: 'actions',
+        header: 'Actions',
+        align: 'center',
+        width: '5rem',
+        isSortable: false,
+        render: (v, row, index) => (
+          <button
+            type="button"
+            onClick={() => handleRemoveRow(index)}
+            className="btn btn-ghost btn-xs text-red-500 hover:text-red-700"
+            title="Remove Device"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        ),
+      },
+    ],
+    [handleRemoveRow]
+  );
+
+  // Table columns for saved configurations
+  const SAVED_DEVICE_COLUMNS = useMemo(
+    () => [
+      { key: 'id', header: 'ID' },
+      { key: 'device_ip', header: 'Device IP' },
+      { key: 'usage_vlan', header: 'Usage VLAN' },
+      { key: 'connected_port', header: 'Connected Port' },
+      {
+        key: 'activation_plan_id',
+        header: 'Activation Plan ID',
+        render: (value) => value || 'N/A',
+      },
+      {
+        key: 'nas_ip',
+        header: 'NAS IP',
+        render: (_, row) => row.activation_plan?.nas_ip || 'N/A',
+      },
+      // {
+      //   key: 'client_name',
+      //   header: 'Client Name',
+      //   render: (_, row) => row.activation_plan?.client?.client_name || 'N/A',
+      // },
+      {
+        key: 'work_order_id',
+        header: 'Work Order ID',
+        render: (_, row) => row.activation_plan?.work_order_id || 'N/A',
+      },
+      {
+        key: 'created_at',
+        header: 'Created At',
+        render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A',
+      },
+      {
+        key: 'updated_at',
+        header: 'Updated At',
+        render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A',
+      },
+    ],
+    []
+  );
+
+  // ---
+  // ✅ Conditional Rendering (Table View)
+  // ---
+  if (viewMode === 'table') {
     return (
-        <form
-            onSubmit={formik.handleSubmit}
-            className="p-6 md:col-span-3 space-y-6"
-        >
-            <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-semibold text-gray-800">
-                    Create Drop Device Configuration
-                </h3>
-                <Button
-                    type="button"
-                    intent="secondary"
-                    onClick={() => setViewMode("table")}
-                    disabled={loading}
-                >
-                    Back to Table
-                </Button>
-            </div>
+      <div className="p-4 lg:p-6">
+        <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-200">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">Drop Devices Configuration</h1>
+            <p className="text-sm text-gray-500">
+              View and manage drop device configurations for a NAS.
+            </p>
+          </div>
 
-            {/* 1. NAS Selection Dropdown */}
-            <div className="space-y-4">
-                <SelectInput
-                    name="activation_plan_id"
-                    formik={formik}
-                    options={nasIpOptions}
-                    label="Select NAS IP / Link"
-                    isDisabled={
-                        formik.values.drop_devices.length > 0 || loading
-                    }
-                    isSearchable={true}
-                    isClearable={true}
-                    isLoading={loading}
-                    placeholder={
-                        loading ? "Loading NAS IPs..." : "Select NAS IP..."
-                    }
-                    onChange={handleActivationPlanChange}
-                    value={selectedNasIpOption}
-                />
+          <div className="px-6 flex gap-2">
+            <ExportButton
+              data={existingConfigs}
+              columns={SAVED_DEVICE_COLUMNS}
+              fileName="drop_devices_export"
+              intent="primary"
+              leftIcon={FileSpreadsheet}
+              className="text-white bg-green-700 hover:bg-green-800 border-none"
+            >
+              Export
+            </ExportButton>
 
-                {/* Error handling for NAS selection */}
-                {formik.submitCount > 0 &&
-                    formik.touched.activation_plan_id &&
-                    formik.errors.activation_plan_id && (
-                        <p className="text-sm text-red-600 mt-1">
-                            {typeof formik.errors.activation_plan_id ===
-                            "string"
-                                ? formik.errors.activation_plan_id
-                                : formik.errors.activation_plan_id.value}
-                        </p>
-                    )}
-            </div>
+            <Button
+              intent="primary"
+              onClick={() => setViewMode('form')}
+              leftIcon={Plus}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Create New Device'}
+            </Button>
+          </div>
+        </header>
 
-            {/* 2. Add New Device Row */}
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
-                    <TextInputField
-                        name="new_device_ip"
-                        placeholder="Device IP"
-                        formik={formik}
-                        disabled={!formik.values.activation_plan_id}
-                    />
-                    <TextInputField
-                        name="new_usage_vlan"
-                        placeholder="Usage VLAN"
-                        formik={formik}
-                        disabled={!formik.values.activation_plan_id}
-                    />
-                    <TextInputField
-                        name="new_connected_port"
-                        placeholder="Connected Port"
-                        formik={formik}
-                        disabled={!formik.values.activation_plan_id}
-                    />
-
-                    <div className="flex items-center pt-1 md:pt-0">
-                        <Button
-                            type="button"
-                            onClick={handleAddRow}
-                            intent="primary"
-                            size="sm"
-                            leftIcon={PlusCircle}
-                            className="w-full md:w-auto"
-                            disabled={
-                                !formik.values.activation_plan_id ||
-                                !formik.values.new_device_ip ||
-                                !formik.values.new_usage_vlan ||
-                                !formik.values.new_connected_port ||
-                                loading
-                            }
-                        >
-                            {loading ? "Adding..." : "Add Device"}
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. Device List Table */}
-            {formik.values.drop_devices.length > 0 && (
-                <div className="pt-6 border-t border-gray-200">
-                    <DataTable
-                        data={formik.values.drop_devices}
-                        columns={DROP_DEVICE_COLUMNS}
-                        searchable={false}
-                        selection={false}
-                        initialPageSize={5}
-                        pageSizeOptions={[5, 10, 25]}
-                        stickyHeader={false}
-                        title={`Device List (${formik.values.drop_devices.length})`}
-                    />
-                </div>
-            )}
-
-            {/* 4. Submission Button and Array Validation Error */}
-            <div className="pt-6">
-                {/* Array validation error message */}
-                {formik.submitCount > 0 && formik.errors.drop_devices && (
-                    <p className="text-sm text-red-600 mb-4">
-                        {formik.errors.drop_devices}
-                    </p>
-                )}
-
-                <Button
-                    type="submit"
-                    intent="success"
-                    size="md"
-                    disabled={
-                        loading ||
-                        formik.isSubmitting ||
-                        !formik.isValid ||
-                        !formik.values.activation_plan_id ||
-                        formik.values.drop_devices.length === 0
-                    }
-                    className="w-full md:w-auto"
-                >
-                    {loading
-                        ? "Submitting..."
-                        : `Submit All Configurations to NAS (${
-                              formik.values.activation_plan_id?.label ||
-                              "Select NAS"
-                          })`}
-                </Button>
-            </div>
-        </form>
+        {tableLoading ? (
+          <div className="flex justify-center items-center py-20 text-gray-500">
+            <p>Loading drop device configurations...</p>
+          </div>
+        ) : (
+          <DataTable
+            title={`Drop Device Records (${existingConfigs.length})`}
+            data={existingConfigs}
+            columns={SAVED_DEVICE_COLUMNS}
+            searchable={true}
+            showId={false}
+            selection={false}
+          />
+        )}
+      </div>
     );
+  }
+
+  // ---
+  // ✅ Form View
+  // ---
+  return (
+    <form onSubmit={formik.handleSubmit} className="p-6 md:col-span-3 space-y-6">
+      <header className="mb-10 pb-6 border-b border-gray-200 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            <Button
+              variant="ghost"
+              leftIcon={ArrowLeft}
+              onClick={() => setViewMode('table')}
+              className="-ml-4 text-lg font-semibold"
+              type="button"
+            ></Button>
+            Drop Devices Configuration
+          </h1>
+          <p className="text-sm text-gray-500 ml-10">Create drop device configuration</p>
+        </div>
+      </header>
+
+      {/* 1. NAS Selection Dropdown */}
+      <div className="space-y-4">
+        <h3 className="text-2xl font-semibold text-gray-800">NAS IP Selection</h3>
+        <SelectInput
+          name="activation_plan_id"
+          formik={formik}
+          options={nasIpOptions}
+          label="Select NAS IP / Link"
+          isDisabled={formik.values.drop_devices.length > 0 || loading}
+          isSearchable={true}
+          isClearable={true}
+          isLoading={loading}
+          placeholder={loading ? 'Loading NAS IPs...' : 'Select NAS IP...'}
+          onChange={handleActivationPlanChange}
+          value={selectedNasIpOption}
+        />
+
+        {/* Error handling for NAS selection */}
+        {formik.submitCount > 0 &&
+          formik.touched.activation_plan_id &&
+          formik.errors.activation_plan_id && (
+            <p className="text-sm text-red-600 mt-1">
+              {typeof formik.errors.activation_plan_id === 'string'
+                ? formik.errors.activation_plan_id
+                : formik.errors.activation_plan_id.value}
+            </p>
+          )}
+        
+        {!loading && nasIpOptions.length === 0 && (
+          <p className="text-sm text-yellow-500">No NAS IPs available</p>
+        )}
+      </div>
+      <hr className="border-gray-200 my-6" />
+      {/* 2. Add New Device Row */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-x-14">
+          <TextInputField
+            name="new_device_ip"
+            placeholder="Device IP"
+            formik={formik}
+            disabled={!formik.values.activation_plan_id}
+          />
+          <TextInputField
+            name="new_usage_vlan"
+            placeholder="Usage VLAN"
+            formik={formik}
+            disabled={!formik.values.activation_plan_id}
+          />
+          <TextInputField
+            name="new_connected_port"
+            placeholder="Connected Port"
+            formik={formik}
+            disabled={!formik.values.activation_plan_id}
+          />
+
+          <div className="flex items-center pt-1 md:pt-0">
+            <Button
+              type="button"
+              onClick={handleAddRow}
+              intent="primary"
+              size="sm"
+              leftIcon={PlusCircle}
+              className="w-full md:w-auto"
+              disabled={
+                !formik.values.activation_plan_id ||
+                !formik.values.new_device_ip ||
+                !formik.values.new_usage_vlan ||
+                !formik.values.new_connected_port ||
+                loading
+              }
+            >
+              {loading ? 'Adding...' : 'Add Device'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Device List Table */}
+      {formik.values.drop_devices.length > 0 && (
+        <div className="pt-6 border-t border-gray-200">
+          <DataTable
+            data={formik.values.drop_devices}
+            columns={DROP_DEVICE_COLUMNS}
+            searchable={false}
+            selection={false}
+            initialPageSize={5}
+            pageSizeOptions={[5, 10, 25]}
+            stickyHeader={false}
+            title={`Device List (${formik.values.drop_devices.length})`}
+          />
+        </div>
+      )}
+
+      <hr className="border-gray-200 my-6" />
+      {/* 4. Submission Button and Array Validation Error */}
+      <div className="flex justify-end">
+        {/* Array validation error message */}
+        {formik.submitCount > 0 && formik.errors.drop_devices && (
+          <p className="text-sm text-red-600 mb-4">{formik.errors.drop_devices}</p>
+        )}
+
+        <Button
+          type="submit"
+          intent="success"
+          size="md"
+          disabled={
+            loading ||
+            formik.isSubmitting ||
+            !formik.isValid ||
+            !formik.values.activation_plan_id ||
+            formik.values.drop_devices.length === 0
+          }
+          className="w-full md:w-auto"
+        >
+          {loading
+            ? 'Submitting...'
+            : `Submit All Configurations to NAS (${
+                formik.values.activation_plan_id?.label || 'Select NAS'
+              })`}
+        </Button>
+      </div>
+    </form>
+  );
 };
 
 export default NasDropDevicePage;

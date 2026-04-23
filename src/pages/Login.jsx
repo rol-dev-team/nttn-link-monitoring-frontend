@@ -1,47 +1,60 @@
+import React, { useState } from 'react';
+import { useFormik, FormikProvider } from 'formik';
+import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom';
 
-import React, { useState } from "react";
-import { useFormik, FormikProvider } from "formik";
-import * as Yup from "yup";
-import { useNavigate } from "react-router-dom";
-
-import { useAuth } from "../app/AuthContext";
-import authService from "../services/authService";
-import InputField from "../components/fields/InputField";
-import { User, Lock } from "lucide-react";
-
+import { useAuth } from '../app/AuthContext';
+import authService from '../services/authService';
+import InputField from '../components/fields/InputField';
+import { User, Lock } from 'lucide-react';
 
 const sanitizeUsername = (input) =>
-  input.toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9_]/g, "");
+  input
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9_]/g, '');
+
+const roleRoutes = {
+  admin: '/dashboard',
+  nttn_admin: '/nttn/dashboard',
+  nttn_user: '/nttn/dashboard',
+  partner_admin: '/dashboard',
+  partner_user: '/dashboard',
+  nttn_customer: '/nttn/dashboard',
+  user: '/dashboard',
+  management: '/dashboard',
+};
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [apiError, setApiError] = useState("");
+  const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formik = useFormik({
-    initialValues: { name: "", password: "" },
+    initialValues: { name: '', password: '' },
     validationSchema: Yup.object({
       name: Yup.string()
-        .required("Username is required.")
-        .matches(/^[a-z0-9_]+$/, "Only lowercase letters, numbers, and underscores allowed."),
-      password: Yup.string().required("Password is required."),
+        .required('Username is required.')
+        .matches(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores allowed.'),
+      password: Yup.string().required('Password is required.'),
     }),
     validateOnMount: true,
     onSubmit: async (values) => {
       setIsSubmitting(true);
-      setApiError("");
+      setApiError('');
       try {
         if (!navigator.onLine) {
-          setApiError("No internet connection.");
+          setApiError('No internet connection.');
           return;
         }
         const sanitizedName = sanitizeUsername(values.name);
         const data = await authService.login(sanitizedName, values.password);
         login(data.user, data.token);
-        navigate("/dashboard", { replace: true });
+        const roleName = data.user?.roles?.[0]?.name || '';
+        navigate(roleRoutes[roleName] || '/login', { replace: true });
       } catch (error) {
-        setApiError(error.message || "Login failed");
+        setApiError(error.message || 'Login failed');
       } finally {
         setIsSubmitting(false);
       }
@@ -56,7 +69,6 @@ const Login = () => {
           className="px-8 py-14 bg-white shadow-xl rounded-2xl w-full max-w-md"
           noValidate
         >
-        
           <h2 className="text-3xl font-bold text-center mb-6">Login</h2>
 
           <InputField
@@ -71,7 +83,6 @@ const Login = () => {
             labelBgClass="bg-white"
             autoComplete="username"
             required
-          
             minChars={1}
             disabled={isSubmitting}
           />
@@ -101,7 +112,7 @@ const Login = () => {
               className="btn btn-primary w-full rounded-lg shadow-lg"
               disabled={isSubmitting || !formik.isValid}
             >
-              {isSubmitting ? <span className="loading loading-spinner" /> : "Log In"}
+              {isSubmitting ? <span className="loading loading-spinner" /> : 'Log In'}
             </button>
           </div>
         </form>
@@ -171,7 +182,7 @@ export default Login;
 //           className="px-8 py-14 bg-white shadow-xl rounded-2xl w-full max-w-md"
 //           noValidate
 //         >
-        
+
 //           <h2 className="text-3xl font-bold text-center mb-6">Login</h2>
 
 //           {/* Username with icon in the floating label */}

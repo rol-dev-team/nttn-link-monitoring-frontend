@@ -1,4 +1,5 @@
 import api from "./api";
+import axiosInstance from "./partner-link/apiConfig";
 // export const createWorkOrder = async (payload) => {
 //   try {
 //     const response = await api.post("/work-orders/", payload);
@@ -8,51 +9,27 @@ import api from "./api";
 //   }
 // };
 
-
-
-/* -------------------------------------------------
-   ✅ MODIFIED: fetchWorkOrders (Updated for Date Range Filtering)
-   ------------------------------------------------- */
-/**
- * Fetches work orders from the backend with support for filtering and pagination.
- *
- * @param {Object} [filters={}] - Contains query parameters (e.g., page, limit, sbu_id).
- * @returns {Promise<{data: Array, totalCount: number}>} List of work orders and the total count.
- */
 export const fetchWorkOrders = async (filters = {}) => {
   try {
-    // 1. Create a new object for the final query parameters
     const params = { ...filters };
 
-    // 2. Iterate through the filters to handle date ranges
-    //    We assume the date range filters are passed in as an object,
-    //    e.g., { requested_delivery: ['2025-08-22T...', '2025-09-02T...'] }
     for (const key in filters) {
       const value = filters[key];
 
-      // Check if the value is an array of two dates (our date range format)
       if (Array.isArray(value) && value.length === 2) {
-        // Delete the original key from the parameters object
         delete params[key];
 
-        // Add the new start and end date parameters
         params[`${key}_start`] = value[0];
         params[`${key}_end`] = value[1];
       }
     }
 
-    // 3. Make the API request with the formatted parameters
     const response = await api.get("/work-orders/", {
       params: params,
     });
-
-    // 💡 Read the custom header from the backend for the total record count
     const headerValue = response.headers["x-total-count"];
 
-    // Convert to integer, defaulting to 0 if the header is missing or invalid
     const totalCount = parseInt(headerValue, 10) || 0;
-
-    // Return a structured object containing the paginated data and the total count
     return {
       data: response.data,
       totalCount: totalCount,
@@ -102,6 +79,192 @@ export const deleteWorkOrder = async (id) => {
     const response = await api.delete(`/work-orders/${id}/`);
     return response.data;
   } catch (error) {
+    throw error;
+  }
+};
+
+
+
+
+export const createWorkOrderLaravel = async (payload) => {
+  try {
+    const response = await axiosInstance.post("/work-orders/", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+
+export const fetchWorkOrdersLaravel = async (filters = {}) => {
+  try {
+    const params = { ...filters };
+
+    for (const key in filters) {
+      const value = filters[key];
+
+      if (Array.isArray(value) && value.length === 2) {
+        delete params[key];
+
+        params[`${key}_start`] = value[0];
+        params[`${key}_end`] = value[1];
+      }
+    }
+    const response = await axiosInstance.get("/work-orders/", {
+      params: params,
+    });
+
+    const headerValue = response.headers["x-total-count"];
+    const totalCount = parseInt(headerValue, 10) || 0;
+    return {
+      data: response.data,
+      totalCount: totalCount,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+
+export const updateWorkOrderLaravel = async (id, data) => {
+  try {
+    const response = await axiosInstance.put(`/work-orders/${id}/`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+// export const fetchWorkOrderLaravel = async (id) => {
+//   try {
+//     const response = await axiosInstance.get(`/work-orders/${id}/`);
+//     return response.data;
+//   } catch (error) {
+//     throw error;
+//   }
+// };
+
+
+// export const fetchWorkOrder = async (id) => {
+//   try {
+//     const response = await api.get(`/work-orders/${id}/`);
+//     return response.data;
+//   } catch (error) {
+//     throw error;
+//   }
+// };
+
+
+export const fetchWorkOrderLaravel = async (id) => {
+  try {
+    console.log(`📡 Fetching work order with ID: ${id}`);
+    const response = await axiosInstance.get(`/work-orders/${id}/`);
+    console.log('✅ Work order API response:', response.data);
+    
+    
+    if (response.data && response.data.data) {
+      return response.data.data;
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching work order:', error);
+    throw error;
+  }
+};
+
+
+
+// export const fetchWorkOrderLaravel = async (id) => {
+//   try {
+//     console.log(`📡 Fetching work order with ID: ${id}`);
+//     const response = await axiosInstance.get(`/work-orders/${id}/`);
+//     console.log('✅ Work order API response:', response.data);
+    
+//     // Check different response structures
+//     if (response.data && response.data.success && response.data.data) {
+//       // Structure: { success: true, data: {...}, message: "..." }
+//       console.log('📊 Found data in response.data.data');
+//       return response.data.data;
+//     } else if (response.data && response.data.data && response.data.data.items) {
+//       // Structure: { data: { items: [{...}] } }
+//       console.log('📊 Found data in response.data.data.items');
+//       return response.data.data.items[0];
+//     } else if (response.data && response.data.data) {
+//       // Structure: { data: {...} }
+//       console.log('📊 Found data in response.data.data');
+//       return response.data.data;
+//     } else {
+//       // Direct data
+//       console.log('📊 Using direct response.data');
+//       return response.data;
+//     }
+//   } catch (error) {
+//     console.error('❌ Error fetching work order:', error);
+//     console.error('Error response:', error.response?.data);
+//     throw error;
+//   }
+// };
+
+
+// services/workOrder.js
+
+
+
+export const fetchWorkOrderBeModification = async (id = null, clientId = null) => {
+  try {
+    let url = '/work-orders';
+    
+    if (id) {
+      // Fetch single work order by ID
+      console.log(`📡 Fetching work order with ID: ${id}`);
+      url += `/${id}`;
+    } else if (clientId) {
+      // Fetch work orders by client ID - NEW ENDPOINT
+      console.log(`📡 Fetching work orders for client ID: ${clientId}`);
+      url += `/client/${clientId}`;
+    } else {
+      // Fetch all work orders
+      console.log('📡 Fetching all work orders');
+    }
+    
+    const response = await axiosInstance.get(url);
+    console.log('✅ Work order API response:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching work orders:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+export const fetchActiveNttnWorkOrderIds = async () => {
+  try {
+    const response = await axiosInstance.get('/active-nttn-ids');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching active NTTN work order IDs:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+export const fetchActiveNttnProviderIds = async () => {
+  try {
+    const response = await axiosInstance.get('/active-provider-ids');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching active NTTN work order IDs:', error);
     throw error;
   }
 };

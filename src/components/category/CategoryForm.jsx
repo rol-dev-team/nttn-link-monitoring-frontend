@@ -16,7 +16,7 @@ const CategoryForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast
     useEffect(() => {
         fetchSBUs()
             .then((res) =>
-                setSbuOptions(res.map((s) => ({ value: s.id, label: s.sbu_name })))
+                setSbuOptions(res.data.map((s) => ({ value: s.id, label: s.sbu_name })))
             )
             .catch((e) =>
                 showToast?.(e?.message || "Could not load SBUs", "error")
@@ -69,11 +69,13 @@ const CategoryForm = ({ initialValues, isEditMode, onSubmit, onCancel, showToast
                         {/* SBU selector */}
                         <SelectField
                             name="sbu_id"
-                            label="SBU *"
+                            // label="SBU *"
+                            placeholder="Select SBU"
                             options={sbuOptions}
                             onChange={(v) => formik.setFieldValue("sbu_id", v)}
                             searchable
                         />
+
                         {/* Category name */}
                         <InputField
                             name="cat_name"

@@ -1,21 +1,21 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import CategoryForm from "../../components/category/CategoryForm";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import CategoryForm from '../../components/category/CategoryForm';
 
-
-/* ---------- NEW: real CRUD services ---------- */
+/* ---------- CRUD services ---------- */
 import {
   fetchCategories,
   createCategory,
   updateCategory,
-} from "../../services/category";
+  deleteCategory,
+} from '../../services/category';
 
-const defaultInitialValues = { sbu_id: "", cat_name: "" };
+const defaultInitialValues = { sbu_id: '', cat_name: '' };
 
 const Category = () => {
   /* ---------- state ---------- */
@@ -43,10 +43,22 @@ const Category = () => {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const data = await fetchCategories();
-      setRecords(data);
+      const response = await fetchCategories();
+
+      // Check if response has data array
+      if (response && Array.isArray(response.data)) {
+        setRecords(response.data);
+      } else if (Array.isArray(response)) {
+        setRecords(response.data);
+      } else {
+        console.error('Unexpected API response format:', response);
+        setRecords([]);
+        pushToast('Unexpected data format from server', 'error');
+      }
     } catch (e) {
-      pushToast(e?.message || "Failed to load categories", "error");
+      console.error('Error loading categories:', e);
+      pushToast(e?.message || 'Failed to load categories', 'error');
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -58,50 +70,103 @@ const Category = () => {
 
   /* ---------- form flow ---------- */
   const openNew = () =>
-    setFormState({ isOpen: true, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: true,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   const openEdit = (item) =>
     setFormState({
       isOpen: true,
       isEditMode: true,
       editingId: item.id,
-      initialValues: { sbu_id: item.sbu_id, cat_name: item.cat_name },
+      initialValues: {
+        sbu_id: item.sbu_id || '',
+        cat_name: item.cat_name || '',
+      },
     });
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this SBU?')) {
+      return;
+    }
+
+    try {
+      const response = await deleteCategory(id);
+      if (response.success) {
+        pushToast('Deleted successfully!', 'success');
+        loadCategories();
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+    }
+  };
+
   const closeForm = () =>
-    setFormState({ isOpen: false, isEditMode: false, editingId: null, initialValues: defaultInitialValues });
+    setFormState({
+      isOpen: false,
+      isEditMode: false,
+      editingId: null,
+      initialValues: defaultInitialValues,
+    });
 
   /* ---------- real save ---------- */
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
         await updateCategory(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
+        pushToast('Updated successfully!', 'success');
       } else {
         await createCategory(values);
-        pushToast("Created successfully!", "success");
+        pushToast('Created successfully!', 'success');
       }
       loadCategories(); // refresh list
       closeForm();
     } catch (e) {
-      pushToast(e?.message || "Save failed", "error");
+      pushToast(e?.message || 'Save failed', 'error');
     }
   };
 
-  /* ---------- table columns ---------- */
+  /* ---------- table columns - FIXED: removed sbu_name column ---------- */
   const columns = useMemo(
     () => [
-      { key: "sbu_name", header: "SBU", isSortable: true }, // backend returns sbu.sbu_name
-      { key: "cat_name", header: "Category Name", isSortable: true },
       {
-        key: "actions",
-        header: "Action",
+        key: 'id',
+        header: 'ID',
+        isSortable: true,
+      },
+      {
+        key: 'sbu_name',
+        header: 'Sbu Name',
+        isSortable: true,
+      },
+      {
+        key: 'cat_name',
+        header: 'Category Name',
+        isSortable: true,
+      },
+      {
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
-          <div className="flex gap-2">
-            <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
-              <Pencil className="h-4 w-4" />
-            </Button>
-          </div>
+          <>
+            <div className="flex gap-2">
+              <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              {/* <Button
+                className="hover:bg-red-800"
+                variant="destructive" // Standard variant for red/destructive actions
+                size="sm"
+                onClick={() => handleDelete(row.id)} // Function to trigger deletion logic
+                title="Delete"
+              >
+                <Trash className="h-4 w-4" />
+              </Button> */}
+            </div>
+          </>
         ),
       },
     ],

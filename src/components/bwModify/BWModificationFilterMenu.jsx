@@ -1,3 +1,276 @@
+// import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+// import { Filter, X } from 'lucide-react';
+// import clsx from 'clsx';
+// import { useOutside } from '../../hooks/useOutside';
+// import Button from '../ui/Button';
+// import { useFormik, FormikProvider, Field } from 'formik';
+// import SelectField from '../fields/SelectField';
+// import DateField from '../fields/DateField';
+
+// // Helper function to safely get nested data
+// const getNestedValue = (obj, path) => {
+//     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+// };
+
+// // Helper: Maps Name (label) to ID (value) for Foreign Keys
+// const getUniqueOptionsWithIds = (records = [], namePath, idPath) => {
+//     const uniqueMap = new Map();
+//     records.forEach(record => {
+//         const name = getNestedValue(record, namePath);
+//         const id = getNestedValue(record, idPath);
+//         if (name && id) {
+//             uniqueMap.set(name, id);
+//         }
+//     });
+
+//     return Array.from(uniqueMap.entries()).sort().map(([name, id]) => ({
+//         label: name,
+//         value: id,
+//     }));
+// };
+
+// // Helper to extract unique simple options
+// const getUniqueOptions = (records = [], key) => {
+//     const uniqueValues = new Set();
+//     records.forEach(record => {
+//         const value = getNestedValue(record, key);
+//         if (value !== null && value !== undefined && String(value).trim() !== "") {
+//             uniqueValues.add(String(value).trim());
+//         }
+//     });
+
+//     return Array.from(uniqueValues).sort().map(value => ({
+//         label: value,
+//         value: value,
+//     }));
+// };
+
+// const BWModificationFilterMenu = ({ records, onFilterChange, live = false }) => {
+//     const [drawerOpen, setDrawerOpen] = useState(false);
+//     const drawerRef = useRef(null);
+
+//     const initialValues = {
+//         nttn_provider: '',
+//         modification_type: '',
+//         client_category: '',
+//         client: '',
+//         created_at: '',
+//     };
+
+//     const formik = useFormik({
+//         initialValues,
+//         onSubmit: (values) => {
+//             const activeFilters = Object.entries(values).reduce((acc, [key, value]) => {
+//                 if (value !== null && value !== '' && value !== undefined) {
+//                     acc[key] = value;
+//                 }
+//                 return acc;
+//             }, {});
+
+//             onFilterChange(activeFilters);
+//             setDrawerOpen(false);
+//         },
+//     });
+
+//     const dynamicOptions = useMemo(() => {
+//         return {
+//             nttn_provider: getUniqueOptionsWithIds(records, 'nttn_provider_details.nttn_name', 'nttn_provider_details.id'),
+//             modification_type: getUniqueOptions(records, 'modification_type'),
+//             client_category: getUniqueOptionsWithIds(records, 'client_category_details.cat_name', 'client_category_details.id'),
+//             created_at: getUniqueOptions(records, 'created_at').map(opt => ({
+//                 ...opt,
+//                 label: opt.label.substring(0, 10),
+//             })),
+//         };
+//     }, [records]);
+
+//     // Dependent Client options
+//     const clientOptions = useMemo(() => {
+//         let filteredRecords = records;
+//         if (formik.values.nttn_provider) {
+//             filteredRecords = filteredRecords.filter(
+//                 (record) => getNestedValue(record, 'nttn_provider_details.id') === formik.values.nttn_provider
+//             );
+//         }
+//         return getUniqueOptionsWithIds(filteredRecords, 'client_details.client_name', 'client_details.id');
+//     }, [records, formik.values.nttn_provider]);
+
+//     // Reset the dependent 'client' field if 'nttn_provider' changes
+//     useEffect(() => {
+//         const currentClientId = formik.values.client;
+//         const isClientValid = clientOptions.some(opt => opt.value === currentClientId);
+//         if (!isClientValid && currentClientId) {
+//             formik.setFieldValue('client', '');
+//         }
+//     }, [formik.values.nttn_provider, formik.setFieldValue, clientOptions]);
+
+//     const handleLiveChange = useCallback(() => {
+//         if (live) {
+//             onFilterChange(formik.values);
+//         }
+//     }, [live, onFilterChange, formik.values]);
+
+//     useEffect(() => {
+//         handleLiveChange();
+//     }, [formik.values, handleLiveChange]);
+
+//     useEffect(() => {
+//         const handleKeyDown = (event) => {
+//             if (event.key === 'Escape' && drawerOpen) {
+//                 setDrawerOpen(false);
+//             }
+//         };
+//         window.addEventListener('keydown', handleKeyDown);
+//         return () => {
+//             window.removeEventListener('keydown', handleKeyDown);
+//         };
+//     }, [drawerOpen]);
+
+//     useOutside(drawerRef, (e) => {
+//         if (document.querySelector('[data-calendar-portal]')?.contains(e.target)) return;
+//         setDrawerOpen(false);
+//     });
+
+//     const clearFilters = () => {
+//         formik.resetForm({ values: initialValues });
+//         onFilterChange({});
+//     };
+
+//     const activeFiltersCount = useMemo(() => {
+//         return Object.values(formik.values).filter(
+//             (value) => value !== null && value !== ''
+//         ).length;
+//     }, [formik.values]);
+
+//     const handleOpenDrawer = () => setDrawerOpen(true);
+//     const handleCloseDrawer = () => setDrawerOpen(false);
+
+//     return (
+//         <>
+//             <Button onClick={handleOpenDrawer} leftIcon={Filter} variant="icon">
+//                 Filters
+//                 {activeFiltersCount > 0 && (
+//                     <span className="inline-flex items-center justify-center h-4 w-4 rounded-full text-xs font-semibold bg-blue-500 text-white ml-1">
+//                         {activeFiltersCount}
+//                     </span>
+//                 )}
+//             </Button>
+
+//             {drawerOpen && (
+//                 <div
+//                     className="fixed inset-0 bg-black bg-opacity-40 z-40"
+//                     onClick={handleCloseDrawer}
+//                 />
+//             )}
+
+//             <div
+//                 ref={drawerRef}
+//                 className={clsx(
+//                     'fixed top-0 right-0 h-full w-80 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out flex flex-col',
+//                     drawerOpen ? 'translate-x-0' : 'translate-x-full'
+//                 )}
+//             >
+//                 <div className="flex-none flex items-center justify-between p-4 border-b border-gray-200">
+//                     <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+//                         <Filter className="h-5 w-5" /> Filter
+//                     </h2>
+//                     <Button
+//                         onClick={handleCloseDrawer}
+//                         variant="icon"
+//                         size="sm"
+//                         title="Close Filters"
+//                     >
+//                         <X className="h-5 w-5 text-gray-500 hover:text-gray-800" />
+//                     </Button>
+//                 </div>
+
+//                 <FormikProvider value={formik}>
+//                     <form
+//                         className="flex-1 p-4 space-y-4 overflow-y-auto"
+//                         onSubmit={formik.handleSubmit}
+//                     >
+//                         {/* NTTN Provider Filter */}
+//                         <Field
+//                             name="nttn_provider"
+//                             as={SelectField}
+//                             label="NTTN Provider"
+//                             options={dynamicOptions.nttn_provider}
+//                             floating={true}
+//                             searchable={true}
+//                             value={formik.values.nttn_provider}
+//                             onChange={(v) => formik.setFieldValue('nttn_provider', v)}
+//                         />
+
+//                         {/* Dependent Client Filter */}
+//                         <Field
+//                             name="client"
+//                             as={SelectField}
+//                             label="Client"
+//                             options={clientOptions}
+//                             floating={true}
+//                             searchable={true}
+//                             value={formik.values.client}
+//                             onChange={(v) => formik.setFieldValue('client', v)}
+//                         />
+
+//                         {/* Modification Type Filter */}
+//                         <Field
+//                             name="modification_type"
+//                             as={SelectField}
+//                             label="Modification Type"
+//                             options={dynamicOptions.modification_type}
+//                             floating={true}
+//                             searchable={true}
+//                             value={formik.values.modification_type}
+//                             onChange={(v) => formik.setFieldValue('modification_type', v)}
+//                         />
+
+//                         {/* Client Category Filter */}
+//                         <Field
+//                             name="client_category"
+//                             as={SelectField}
+//                             label="Client Category"
+//                             options={dynamicOptions.client_category}
+//                             floating={true}
+//                             searchable={true}
+//                             value={formik.values.client_category}
+//                             onChange={(v) => formik.setFieldValue('client_category', v)}
+//                         />
+
+//                         {/* Created At Date Filter */}
+//                         <Field
+//                             name="created_at"
+//                             as={DateField}
+//                             label="Created Date"
+//                             floating={true}
+//                             className="mb-0"
+//                             searchable={true}
+//                             options={dynamicOptions.created_at}
+//                             value={formik.values.created_at}
+//                             onChange={(v) => formik.setFieldValue('created_at', v)}
+//                         />
+//                     </form>
+//                 </FormikProvider>
+
+//                 <div className="flex-none p-4 border-t border-gray-200 bg-white flex justify-end gap-2">
+//                     <Button onClick={clearFilters} intent="ghost" type="button">
+//                         Clear All
+//                     </Button>
+//                     <Button intent="primary" type="submit" onClick={formik.handleSubmit}>
+//                         Apply
+//                     </Button>
+//                 </div>
+//             </div>
+//         </>
+//     );
+// };
+
+// export default BWModificationFilterMenu;
+
+
+
+
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Filter, X } from 'lucide-react';
 import clsx from 'clsx';
@@ -6,27 +279,14 @@ import Button from '../ui/Button';
 import { useFormik, FormikProvider, Field } from 'formik';
 import SelectField from '../fields/SelectField';
 import DateField from '../fields/DateField';
+import { fetchSBUs } from '../../services/sbu';
+import { fetchClients } from '../../services/client';
+import { fetchActiveNttnWorkOrderIds } from '../../services/workOrder';
 
 // Helper function to safely get nested data
 const getNestedValue = (obj, path) => {
+    if (!obj) return undefined;
     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-};
-
-// Helper: Maps Name (label) to ID (value) for Foreign Keys
-const getUniqueOptionsWithIds = (records = [], namePath, idPath) => {
-    const uniqueMap = new Map();
-    records.forEach(record => {
-        const name = getNestedValue(record, namePath);
-        const id = getNestedValue(record, idPath);
-        if (name && id) {
-            uniqueMap.set(name, id);
-        }
-    });
-
-    return Array.from(uniqueMap.entries()).sort().map(([name, id]) => ({
-        label: name,
-        value: id,
-    }));
 };
 
 // Helper to extract unique simple options
@@ -45,64 +305,330 @@ const getUniqueOptions = (records = [], key) => {
     }));
 };
 
+// Simple Text Input Component
+const SimpleTextField = ({ 
+    label, 
+    value, 
+    onChange, 
+    placeholder, 
+    type = "text",
+    floating = true,
+    ...props 
+}) => {
+    
+    const inputId = `text-field-${label.replace(/\s+/g, '-').toLowerCase()}`;
+    
+    return (
+        <div className="relative mb-4">
+            {floating ? (
+                <div className="relative">
+                    <input
+                        id={inputId}
+                        type={type}
+                        value={value || ''}
+                        onChange={onChange}
+                        placeholder=" "
+                        className="block px-2.5 pb-2.5 pt-4 w-full text-sm text-gray-900 bg-transparent rounded-lg border border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                        {...props}
+                    />
+                    <label
+                        htmlFor={inputId}
+                        className="absolute text-sm text-gray-500 duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] bg-white px-2 peer-focus:px-2 peer-focus:text-blue-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-1"
+                    >
+                        {label}
+                    </label>
+                </div>
+            ) : (
+                <div>
+                    <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+                        {label}
+                    </label>
+                    <input
+                        id={inputId}
+                        type={type}
+                        value={value || ''}
+                        onChange={onChange}
+                        placeholder={placeholder}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        {...props}
+                    />
+                </div>
+            )}
+        </div>
+    );
+};
+
 const BWModificationFilterMenu = ({ records, onFilterChange, live = false }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const drawerRef = useRef(null);
+    
+    // State for API data
+    const [sbuOptions, setSbuOptions] = useState([]);
+    const [clientOptions, setClientOptions] = useState([]);
+    const [nttnWorkOrderIds, setNttnWorkOrderIds] = useState([]);
+    const [nttnSurveyIds, setNttnSurveyIds] = useState([]);
+    const [isLoadingSbu, setIsLoadingSbu] = useState(false);
+    const [isLoadingClients, setIsLoadingClients] = useState(false);
+    const [isLoadingNttnWorkOrderIds, setIsLoadingNttnWorkOrderIds] = useState(false);
+    const [isLoadingNttnSurveyIds, setIsLoadingNttnSurveyIds] = useState(false);
+    const [sbuNameMap, setSbuNameMap] = useState(new Map());
 
     const initialValues = {
-        nttn_provider: '',
-        modification_type: '',
-        client_category: '',
-        client: '',
-        created_at: '',
+        sbu_id: '',
+        sbu_name: '',
+        client_id: '',
+        client_name: '',
+        client_lat: '',
+        client_long: '',
+        nttn_work_order_id: '',
+        nttn_survey_id: '',
     };
 
     const formik = useFormik({
         initialValues,
         onSubmit: (values) => {
-            const activeFilters = Object.entries(values).reduce((acc, [key, value]) => {
+            // Clean up the values before sending
+            const activeFilters = {};
+            
+            Object.entries(values).forEach(([key, value]) => {
                 if (value !== null && value !== '' && value !== undefined) {
-                    acc[key] = value;
+                    activeFilters[key] = value;
+                    
+                    // If sbu_id is selected, also filter by sbu_name for consistency
+                    if (key === 'sbu_id' && value) {
+                        const sbuName = sbuNameMap.get(String(value));
+                        if (sbuName) {
+                            activeFilters['sbu_name'] = sbuName;
+                        }
+                    }
                 }
-                return acc;
-            }, {});
+            });
 
+            console.log('🔍 Applying filters:', activeFilters);
             onFilterChange(activeFilters);
             setDrawerOpen(false);
         },
     });
 
-    const dynamicOptions = useMemo(() => {
-        return {
-            nttn_provider: getUniqueOptionsWithIds(records, 'nttn_provider_details.nttn_name', 'nttn_provider_details.id'),
-            modification_type: getUniqueOptions(records, 'modification_type'),
-            client_category: getUniqueOptionsWithIds(records, 'client_category_details.cat_name', 'client_category_details.id'),
-            created_at: getUniqueOptions(records, 'created_at').map(opt => ({
-                ...opt,
-                label: opt.label.substring(0, 10),
-            })),
+    // Fetch SBU data from API
+    useEffect(() => {
+        const loadSBUs = async () => {
+            setIsLoadingSbu(true);
+            try {
+                const response = await fetchSBUs();
+                const sbuData = Array.isArray(response) ? response : response?.data || [];
+                
+                const mappedOptions = sbuData.map(sbu => ({
+                    value: String(sbu.id), // Ensure string format
+                    label: sbu.sbu_name || sbu.name || `SBU ${sbu.id}`,
+                }));
+                
+                // Create a map of ID to name for filtering
+                const nameMap = new Map();
+                sbuData.forEach(sbu => {
+                    nameMap.set(String(sbu.id), sbu.sbu_name || sbu.name || `SBU ${sbu.id}`);
+                });
+                
+                setSbuOptions(mappedOptions);
+                setSbuNameMap(nameMap);
+                console.log('✅ SBU options loaded:', mappedOptions);
+            } catch (error) {
+                console.error('❌ Error fetching SBUs:', error);
+                setSbuOptions([]);
+            } finally {
+                setIsLoadingSbu(false);
+            }
         };
+
+        loadSBUs();
+    }, []);
+
+    // Fetch Client data from API
+    useEffect(() => {
+        const loadClients = async () => {
+            setIsLoadingClients(true);
+            try {
+                const response = await fetchClients();
+                
+                console.log('🔍 Client API response:', response);
+                
+                let clientData = [];
+                
+                if (response && response.success && Array.isArray(response.data)) {
+                    clientData = response.data;
+                } else if (Array.isArray(response)) {
+                    clientData = response;
+                } else if (response && Array.isArray(response.data)) {
+                    clientData = response.data;
+                }
+                
+                console.log('📋 Raw client data:', clientData);
+                
+                // Transform API response
+                const mappedClientOptions = clientData.map(client => {
+                    const clientId = client.id;
+                    const clientName = client.client_name;
+                    
+                    return {
+                        value: String(clientId), // Convert to string
+                        label: clientName,
+                        // Store additional data
+                        client_lat: client.client_lat || client.lat,
+                        client_long: client.client_long || client.lng || client.long,
+                        originalData: client,
+                    };
+                });
+                
+                console.log('✅ Mapped client options:', mappedClientOptions);
+                setClientOptions(mappedClientOptions);
+                
+            } catch (error) {
+                console.error('❌ Error fetching clients:', error);
+                console.error('Error details:', error.response?.data || error.message);
+                setClientOptions([]);
+            } finally {
+                setIsLoadingClients(false);
+            }
+        };
+
+        // Load clients on mount
+        loadClients();
+    }, []);
+
+    // Fetch NTTN Work Order IDs (Link/SCR ID)
+    useEffect(() => {
+        const loadNttnWorkOrderIds = async () => {
+            setIsLoadingNttnWorkOrderIds(true);
+            try {
+                const response = await fetchActiveNttnWorkOrderIds();
+                console.log('🔍 NTTN Work Order IDs API response:', response);
+                
+                let nttnWorkOrderData = [];
+                
+                if (response && response.success && Array.isArray(response.data)) {
+                    nttnWorkOrderData = response.data;
+                } else if (Array.isArray(response)) {
+                    nttnWorkOrderData = response;
+                } else if (response && Array.isArray(response.data)) {
+                    nttnWorkOrderData = response.data;
+                }
+                
+                console.log('📋 Raw NTTN Work Order IDs:', nttnWorkOrderData);
+                
+                const mappedNttnWorkOrderOptions = nttnWorkOrderData
+                    .filter(id => id && String(id).trim() !== '')
+                    .map((id, index) => ({
+                        value: String(id),
+                        label: String(id),
+                    }));
+                
+                console.log('✅ Mapped NTTN Work Order ID options:', mappedNttnWorkOrderOptions);
+                setNttnWorkOrderIds(mappedNttnWorkOrderOptions);
+                
+            } catch (error) {
+                console.error('❌ Error fetching NTTN Work Order IDs:', error);
+                console.error('Error details:', error.response?.data || error.message);
+                setNttnWorkOrderIds([]);
+            } finally {
+                setIsLoadingNttnWorkOrderIds(false);
+            }
+        };
+
+        loadNttnWorkOrderIds();
     }, [records]);
 
-    // Dependent Client options
-    const clientOptions = useMemo(() => {
+    // Fetch NTTN Survey IDs (NTTN Provider ID)
+    useEffect(() => {
+        const loadNttnSurveyIds = async () => {
+            setIsLoadingNttnSurveyIds(true);
+            try {
+                const uniqueSurveyIds = getUniqueOptions(records, 'nttn_survey_id')
+                    .filter(opt => opt.value && opt.value.trim() !== '');
+                
+                console.log('📋 Extracted NTTN Survey IDs from records:', uniqueSurveyIds);
+                setNttnSurveyIds(uniqueSurveyIds);
+                
+            } catch (error) {
+                console.error('❌ Error fetching NTTN Survey IDs:', error);
+                setNttnSurveyIds([]);
+            } finally {
+                setIsLoadingNttnSurveyIds(false);
+            }
+        };
+
+        if (records.length > 0) {
+            loadNttnSurveyIds();
+        }
+    }, [records]);
+
+    // Filter client options based on SBU and NTTN selections
+    const filteredClientOptions = useMemo(() => {
+        console.log('🔄 Filtering client options...');
+        console.log('SBU ID:', formik.values.sbu_id);
+        console.log('NTTN ID:', formik.values.nttn_id);
+        console.log('Total client options:', clientOptions.length);
+        
+        // If no SBU or NTTN filter is applied, show all client options
+        if (!formik.values.sbu_id && !formik.values.nttn_id) {
+            console.log('✅ No filters applied, showing all client options');
+            return clientOptions;
+        }
+        
         let filteredRecords = records;
-        if (formik.values.nttn_provider) {
+
+        if (formik.values.sbu_id) {
             filteredRecords = filteredRecords.filter(
-                (record) => getNestedValue(record, 'nttn_provider_details.id') === formik.values.nttn_provider
+                (record) => {
+                    const recordSbuId = getNestedValue(record, 'survey_data.sbu_id');
+                    return String(recordSbuId) === formik.values.sbu_id;
+                }
             );
         }
-        return getUniqueOptionsWithIds(filteredRecords, 'client_details.client_name', 'client_details.id');
-    }, [records, formik.values.nttn_provider]);
 
-    // Reset the dependent 'client' field if 'nttn_provider' changes
-    useEffect(() => {
-        const currentClientId = formik.values.client;
-        const isClientValid = clientOptions.some(opt => opt.value === currentClientId);
-        if (!isClientValid && currentClientId) {
-            formik.setFieldValue('client', '');
+        if (formik.values.nttn_id) {
+            filteredRecords = filteredRecords.filter(
+                (record) => {
+                    const recordNttnId = getNestedValue(record, 'survey_data.nttn_id');
+                    return String(recordNttnId) === formik.values.nttn_id;
+                }
+            );
         }
-    }, [formik.values.nttn_provider, formik.setFieldValue, clientOptions]);
+
+        // Get unique client IDs from filtered records
+        const clientIdsInRecords = new Set();
+        filteredRecords.forEach(record => {
+            const clientId = getNestedValue(record, 'survey_data.client_id');
+            if (clientId) {
+                clientIdsInRecords.add(String(clientId));
+            }
+        });
+        
+        console.log('📊 Client IDs in filtered records:', Array.from(clientIdsInRecords));
+
+        // Filter client options to only show clients that exist in the filtered records
+        const filteredOptions = clientOptions.filter(clientOption => 
+            clientIdsInRecords.has(clientOption.value)
+        );
+        
+        console.log('✅ Filtered client options:', filteredOptions.length, 'options');
+        return filteredOptions;
+    }, [records, formik.values.sbu_id, formik.values.nttn_id, clientOptions]);
+
+    // Use filtered options when filters are applied, otherwise use all options
+    const displayClientOptions = useMemo(() => {
+        return filteredClientOptions.length > 0 ? filteredClientOptions : clientOptions;
+    }, [filteredClientOptions, clientOptions]);
+
+    // Reset client_id if not valid in filtered options
+    useEffect(() => {
+        const currentClientId = formik.values.client_id;
+        const isClientValid = displayClientOptions.some(opt => opt.value === currentClientId);
+
+        if (!isClientValid && currentClientId) {
+            console.log('🔄 Resetting invalid client selection');
+            formik.setFieldValue('client_id', '');
+        }
+    }, [formik.values.sbu_id, formik.values.nttn_id, formik.setFieldValue, displayClientOptions]);
 
     const handleLiveChange = useCallback(() => {
         if (live) {
@@ -138,12 +664,43 @@ const BWModificationFilterMenu = ({ records, onFilterChange, live = false }) => 
 
     const activeFiltersCount = useMemo(() => {
         return Object.values(formik.values).filter(
-            (value) => value !== null && value !== ''
+            (value) => value !== null && value !== '' && value !== undefined
         ).length;
     }, [formik.values]);
 
     const handleOpenDrawer = () => setDrawerOpen(true);
     const handleCloseDrawer = () => setDrawerOpen(false);
+
+    const handleSbuChange = (value) => {
+        console.log('📝 SBU changed to:', value);
+        formik.setFieldValue('sbu_id', value);
+        
+        if (value && sbuNameMap.has(String(value))) {
+            const sbuName = sbuNameMap.get(String(value));
+            formik.setFieldValue('sbu_name', sbuName);
+        } else {
+            formik.setFieldValue('sbu_name', '');
+        }
+    };
+
+    const handleClientChange = (value) => {
+        console.log('📝 Client changed to:', value);
+        console.log('Available client options:', displayClientOptions);
+        formik.setFieldValue('client_id', value);
+        
+        if (value) {
+            const selectedClient = clientOptions.find(client => client.value === value);
+            console.log('🔍 Selected client:', selectedClient);
+            if (selectedClient) {
+                if (selectedClient.client_lat) {
+                    formik.setFieldValue('client_lat', selectedClient.client_lat);
+                }
+                if (selectedClient.client_long) {
+                    formik.setFieldValue('client_long', selectedClient.client_long);
+                }
+            }
+        }
+    };
 
     return (
         <>
@@ -189,66 +746,79 @@ const BWModificationFilterMenu = ({ records, onFilterChange, live = false }) => 
                         className="flex-1 p-4 space-y-4 overflow-y-auto"
                         onSubmit={formik.handleSubmit}
                     >
-                        {/* NTTN Provider Filter */}
-                        <Field
-                            name="nttn_provider"
-                            as={SelectField}
-                            label="NTTN Provider"
-                            options={dynamicOptions.nttn_provider}
-                            floating={true}
-                            searchable={true}
-                            value={formik.values.nttn_provider}
-                            onChange={(v) => formik.setFieldValue('nttn_provider', v)}
-                        />
+                        <div className="pb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-2">Survey & Work Order Filters</h3>
+                            
+                            {/* SBU Filter */}
+                            <SelectField
+                                name="sbu_id"
+                                label={`SBU ${isLoadingSbu ? '(Loading...)' : ''}`}
+                                options={sbuOptions}
+                                floating={true}
+                                searchable={true}
+                                value={formik.values.sbu_id}
+                                onChange={handleSbuChange}
+                                disabled={isLoadingSbu}
+                            />
 
-                        {/* Dependent Client Filter */}
-                        <Field
-                            name="client"
-                            as={SelectField}
-                            label="Client"
-                            options={clientOptions}
-                            floating={true}
-                            searchable={true}
-                            value={formik.values.client}
-                            onChange={(v) => formik.setFieldValue('client', v)}
-                        />
+                            {/* Client Name Filter (API) */}
+                            <SelectField
+                                name="client_id"
+                                label={`Client Name ${isLoadingClients ? '(Loading...)' : ''}`}
+                                options={displayClientOptions}
+                                floating={true}
+                                searchable={true}
+                                value={formik.values.client_id}
+                                onChange={handleClientChange}
+                                disabled={isLoadingClients}
+                            />
 
-                        {/* Modification Type Filter */}
-                        <Field
-                            name="modification_type"
-                            as={SelectField}
-                            label="Modification Type"
-                            options={dynamicOptions.modification_type}
-                            floating={true}
-                            searchable={true}
-                            value={formik.values.modification_type}
-                            onChange={(v) => formik.setFieldValue('modification_type', v)}
-                        />
+                            {/* Link / SCR ID Filter */}
+                            <SelectField
+                                name="nttn_work_order_id"
+                                label={`Link / SCR ID ${isLoadingNttnWorkOrderIds ? '(Loading...)' : ''}`}
+                                options={nttnWorkOrderIds}
+                                floating={true}
+                                searchable={true}
+                                value={formik.values.nttn_work_order_id}
+                                onChange={(value) => formik.setFieldValue('nttn_work_order_id', value)}
+                                disabled={isLoadingNttnWorkOrderIds}
+                            />
 
-                        {/* Client Category Filter */}
-                        <Field
-                            name="client_category"
-                            as={SelectField}
-                            label="Client Category"
-                            options={dynamicOptions.client_category}
-                            floating={true}
-                            searchable={true}
-                            value={formik.values.client_category}
-                            onChange={(v) => formik.setFieldValue('client_category', v)}
-                        />
+                            {/* NTTN Provider ID Filter */}
+                            <SelectField
+                                name="nttn_survey_id"
+                                label={`NTTN Provider ID ${isLoadingNttnSurveyIds ? '(Loading...)' : ''}`}
+                                options={nttnSurveyIds}
+                                floating={true}
+                                searchable={true}
+                                value={formik.values.nttn_survey_id}
+                                onChange={(value) => formik.setFieldValue('nttn_survey_id', value)}
+                                disabled={isLoadingNttnSurveyIds}
+                            />
 
-                        {/* Created At Date Filter */}
-                        <Field
-                            name="created_at"
-                            as={DateField}
-                            label="Created Date"
-                            floating={true}
-                            className="mb-0"
-                            searchable={true}
-                            options={dynamicOptions.created_at}
-                            value={formik.values.created_at}
-                            onChange={(v) => formik.setFieldValue('created_at', v)}
-                        />
+                            {/* Client Lat Filter */}
+                            <div className="mb-4">
+                                <SimpleTextField
+                                    label="Client Latitude"
+                                    value={formik.values.client_lat}
+                                    onChange={(e) => formik.setFieldValue('client_lat', e.target.value)}
+                                    placeholder="Enter latitude (exact match)"
+                                    type="text"
+                                />
+                            </div>
+
+                            {/* Client Long Filter */}
+                            <div className="mb-4">
+                                <SimpleTextField
+                                    label="Client Longitude"
+                                    value={formik.values.client_long}
+                                    onChange={(e) => formik.setFieldValue('client_long', e.target.value)}
+                                    placeholder="Enter longitude (exact match)"
+                                    type="text"
+                                />
+                            </div>
+                        </div>
                     </form>
                 </FormikProvider>
 
@@ -256,9 +826,11 @@ const BWModificationFilterMenu = ({ records, onFilterChange, live = false }) => 
                     <Button onClick={clearFilters} intent="ghost" type="button">
                         Clear All
                     </Button>
-                    <Button intent="primary" type="submit" onClick={formik.handleSubmit}>
-                        Apply
-                    </Button>
+                    {!live && (
+                        <Button intent="primary" type="submit" onClick={formik.handleSubmit}>
+                            Apply
+                        </Button>
+                    )}
                 </div>
             </div>
         </>

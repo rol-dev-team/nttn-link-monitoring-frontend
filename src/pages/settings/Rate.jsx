@@ -1,28 +1,276 @@
-// src/pages/rate/Rate.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Pencil } from "lucide-react";
-import Button from "../../components/ui/Button";
-import DataTable from "../../components/table/DataTable";
-import ToastContainer from "../../components/ui/ToastContainer";
-import ExportButton from "../../components/ui/ExportButton";
-import { FaFileExcel } from "react-icons/fa";
-import RateForm from "../../components/rate/RateForm";
-import { createRate, fetchRates, updateRate } from "../../services/rate";
 
+// // src/pages/rate/Rate.jsx
+// import React, { useEffect, useState, useMemo, useCallback } from 'react';
+// import { Plus, Pencil } from 'lucide-react';
+// import Button from '../../components/ui/Button';
+// import DataTable from '../../components/table/DataTable';
+// import ToastContainer from '../../components/ui/ToastContainer';
+// import ExportButton from '../../components/ui/ExportButton';
+// import { FaFileExcel } from 'react-icons/fa';
+// import RateForm from '../../components/rate/RateForm';
+
+// import { createBwRates, fetchSBwRates, updateBwRates } from '../../services/bwRateApi';
+// import { fetchLinkTypes } from '../../services/linkType';
+
+// import moment from 'moment';
+
+// const defaultInitialValues = {
+//   nttn_id: '',
+//   bw_range_from: '',
+//   bw_range_to: '',
+//   rate: '',
+//   start_date: '',
+//   end_date: '',
+//   link_type_id: '',   // NEW FIELD
+// };
+
+// const Rate = () => {
+//   const [records, setRecords] = useState([]);
+//   const [linkTypes, setLinkTypes] = useState([]);   // NEW STATE
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+//   const [toasts, setToasts] = useState([]);
+
+//   const [formState, setFormState] = useState({
+//     isOpen: false,
+//     isEditMode: false,
+//     editingId: null,
+//     initialValues: defaultInitialValues,
+//   });
+
+//   /* ---------- toast helpers ---------- */
+//   const pushToast = useCallback((msg, type) => {
+//     const t = { id: Date.now(), message: msg, type };
+//     setToasts((c) => [...c, t]);
+//     setTimeout(() => setToasts((c) => c.filter((x) => x.id !== t.id)), 5000);
+//   }, []);
+
+//   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
+
+//   /* ---------- fetch all rates ---------- */
+//   const fetchAll = useCallback(async () => {
+//     setLoading(true);
+//     setError(null);
+//     try {
+//       const { data } = await fetchSBwRates();
+//       setRecords(data);
+//     } catch (e) {
+//       const msg = e?.response?.data?.message || 'Failed to load rates';
+//       setError(msg);
+//       pushToast(msg, 'error');
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [pushToast]);
+
+//   /* ---------- fetch link types ---------- */
+//   const fetchTypeList = useCallback(async () => {
+//     try {
+//       const { data } = await fetchLinkTypes();
+//       setLinkTypes(data);
+//     } catch (e) {
+//       pushToast('Failed to load link types', 'error');
+//     }
+//   }, [pushToast]);
+
+//   useEffect(() => {
+//     fetchAll();
+//     fetchTypeList();
+//   }, [fetchAll, fetchTypeList]);
+
+//   /* ---------- form flow ---------- */
+//   const openNew = () =>
+//     setFormState({
+//       isOpen: true,
+//       isEditMode: false,
+//       editingId: null,
+//       initialValues: defaultInitialValues,
+//     });
+
+//   /* ---------- edit ---------- */
+//   const openEdit = (item) =>
+//     setFormState({
+//       isOpen: true,
+//       isEditMode: true,
+//       editingId: item.id,
+//       initialValues: {
+//         id: item.id,
+//         nttn_id: item.nttn_id,
+//         bw_range_from: item.bw_range_from,
+//         bw_range_to: item.bw_range_to,
+//         start_date: item.start_date,
+//         end_date: item.end_date,
+//         rate: item.rate,
+//         link_type_id: item.link_type_id, // NEW FIELD
+//       },
+//     });
+
+//   const closeForm = () =>
+//     setFormState({
+//       isOpen: false,
+//       isEditMode: false,
+//       editingId: null,
+//       initialValues: defaultInitialValues,
+//     });
+
+//   const handleSubmit = async (values) => {
+//     try {
+//       if (formState.isEditMode) {
+//         await updateBwRates(formState.editingId, values);
+//         pushToast('Updated successfully!', 'success');
+//       } else {
+//         await createBwRates(values);
+//         pushToast('Created successfully!', 'success');
+//       }
+//       fetchAll();
+//       closeForm();
+//     } catch (e) {
+//       pushToast(e?.response?.data?.message || 'Save failed', 'error');
+//     }
+//   };
+
+//   /* ---------- columns ---------- */
+//   const columns = useMemo(
+//     () => [
+//       { key: 'nttn_name', header: 'NTTN', isSortable: true },
+//       { key: 'link_type_name', header: 'Link Type', isSortable: true },
+//       { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
+//       { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
+//       { key: 'rate', header: 'Rate', isSortable: true },
+
+//       {
+//         key: 'type_name',
+//         header: 'Link Type',   // NEW FIELD
+//         render: (_, row) => row.type_name,
+//       },
+
+//       {
+//         key: 'start_date',
+//         header: 'Start Date',
+//         isSortable: true,
+//       },
+//       {
+//         key: 'end_date',
+//         header: 'End Date',
+//         isSortable: true,
+//       },
+
+//       {
+//         key: 'actions',
+//         header: 'Action',
+//         render: (_, row) => (
+//           <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+//             <Pencil className="h-4 w-4" />
+//           </Button>
+//         ),
+//       },
+//     ],
+//     []
+//   );
+
+//   /* ---------- UI ---------- */
+//   if (formState.isOpen) {
+//     return (
+//       <div className="p-8 bg-gray-100 min-h-screen">
+//         <RateForm
+//           initialValues={formState.initialValues}
+//           isEditMode={formState.isEditMode}
+//           onSubmit={handleSubmit}
+//           onCancel={closeForm}
+//           showToast={pushToast}
+//           linkTypes={linkTypes}  // PASS LINK TYPES TO FORM
+//         />
+//         <ToastContainer toasts={toasts} removeToast={removeToast} />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="p-8 bg-gray-100 min-h-screen">
+//       <div className="flex justify-between items-center pb-16">
+//         <div>
+//           <h1 className="text-2xl font-bold">Rate List</h1>
+//           <p className="text-gray-500">View and manage bandwidth rates.</p>
+//         </div>
+//         <div className="flex items-center gap-4">
+//           <ExportButton
+//             data={records}
+//             columns={columns}
+//             fileName="rate_list"
+//             intent="primary"
+//             leftIcon={FaFileExcel}
+//             className="text-white bg-green-700 hover:bg-green-800 border-none"
+//           >
+//             Export
+//           </ExportButton>
+//           <Button intent="primary" onClick={openNew} leftIcon={Plus}>
+//             Add Rate
+//           </Button>
+//         </div>
+//       </div>
+
+//       {loading ? (
+//         <div className="flex justify-center items-center py-20 text-gray-500">
+//           <p>Loading records...</p>
+//         </div>
+//       ) : error ? (
+//         <div className="flex justify-center items-center py-20 text-red-500">
+//           <p>Error: {error}</p>
+//         </div>
+//       ) : (
+//         <DataTable
+//           data={records}
+//           columns={columns}
+//           searchable={true}
+//           selection={true}
+//           showId={true}
+//           pageSizeOptions={[5, 10, 25, 50, 100]}
+//           initialPageSize={5}
+//         />
+//       )}
+
+//       <ToastContainer toasts={toasts} removeToast={removeToast} />
+//     </div>
+//   );
+// };
+
+// export default Rate;
+
+
+
+
+
+
+
+// src/pages/rate/Rate.jsx
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import DataTable from '../../components/table/DataTable';
+import ToastContainer from '../../components/ui/ToastContainer';
+import ExportButton from '../../components/ui/ExportButton';
+import { FaFileExcel } from 'react-icons/fa';
+import RateForm from '../../components/rate/RateForm';
+
+import { createBwRates, fetchSBwRates, updateBwRates } from '../../services/bwRateApi';
+import { fetchLinkTypes } from '../../services/linkType';
+
+import moment from 'moment';
 
 const defaultInitialValues = {
-  id: "",
-  nttn_id: "",
-  bw_id: "",
-  rate: "",
-  effective_from: "",
-  effective_to: "",
-  continue: false,
-  status: 1,
+  nttn_id: '',
+  bw_range_from: '',
+  bw_range_to: '',
+  rate: '',
+  start_date: '',
+  end_date: '',
+  link_type_id: '', // NEW FIELD
+  rate_type: '',    // ✅ NEW FIELD
 };
 
 const Rate = () => {
   const [records, setRecords] = useState([]);
+  const [linkTypes, setLinkTypes] = useState([]); // NEW STATE
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -43,32 +291,36 @@ const Rate = () => {
 
   const removeToast = (id) => setToasts((c) => c.filter((t) => t.id !== id));
 
-  /* ---------- fetch ---------- */
+  /* ---------- fetch all rates ---------- */
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const raw = await fetchRates();
-
-      // flatten: add friendly nttn_name, keep everything else as-is
-      const flat = raw.map((r) => ({
-        nttn_name: r.nttn?.nttn_name ?? "N/A",
-        ...r,
-      }));
-
-      setRecords(flat);
+      const { data } = await fetchSBwRates();
+      setRecords(data);
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to load rates";
+      const msg = e?.response?.data?.message || 'Failed to load rates';
       setError(msg);
-      pushToast(msg, "error");
+      pushToast(msg, 'error');
     } finally {
       setLoading(false);
     }
   }, [pushToast]);
 
+  /* ---------- fetch link types ---------- */
+  const fetchTypeList = useCallback(async () => {
+    try {
+      const { data } = await fetchLinkTypes();
+      setLinkTypes(data);
+    } catch (e) {
+      pushToast('Failed to load link types', 'error');
+    }
+  }, [pushToast]);
+
   useEffect(() => {
     fetchAll();
-  }, [fetchAll]);
+    fetchTypeList();
+  }, [fetchAll, fetchTypeList]);
 
   /* ---------- form flow ---------- */
   const openNew = () =>
@@ -79,6 +331,7 @@ const Rate = () => {
       initialValues: defaultInitialValues,
     });
 
+  /* ---------- edit ---------- */
   const openEdit = (item) =>
     setFormState({
       isOpen: true,
@@ -87,12 +340,13 @@ const Rate = () => {
       initialValues: {
         id: item.id,
         nttn_id: item.nttn_id,
-        bw_id: item.bw_id,
+        bw_range_from: item.bw_range_from,
+        bw_range_to: item.bw_range_to,
+        start_date: item.start_date,
+        end_date: item.end_date,
         rate: item.rate,
-        effective_from: item.effective_from,
-        effective_to: item.effective_to,
-        continue: item.continue,
-        status: item.status,
+        link_type_id: item.link_type_id, // EXISTING FIELD
+        rate_type: item.rate_type || '',  // ✅ NEW FIELD
       },
     });
 
@@ -107,53 +361,62 @@ const Rate = () => {
   const handleSubmit = async (values) => {
     try {
       if (formState.isEditMode) {
-        await updateRate(formState.editingId, values);
-        pushToast("Updated successfully!", "success");
+        await updateBwRates(formState.editingId, values);
+        pushToast('Updated successfully!', 'success');
       } else {
-        await createRate(values);
-        pushToast("Created successfully!", "success");
+        await createBwRates(values);
+        pushToast('Created successfully!', 'success');
       }
       fetchAll();
       closeForm();
     } catch (e) {
-      pushToast(e?.response?.data?.message || "Save failed", "error");
+      pushToast(e?.response?.data?.message || 'Save failed', 'error');
     }
   };
 
-  /* ---------- columns (unchanged) ---------- */
+  /* ---------- columns ---------- */
+  /* ---------- columns ---------- */
   const columns = useMemo(
     () => [
-
-      { key: "nttn_name", header: "NTTN", isSortable: true },
-      { key: "bw_id", header: "BW ID", isSortable: true },
-      { key: "rate", header: "Rate", isSortable: true },
-      {
-        key: "effective_from",
-        header: "Effective From",
+      { 
+        key: 'serial', 
+        header: 'SL', 
+        // Simple frontend counter (1, 2, 3...)
+        render: (_, __, index) => <span className="text-gray-400">{index + 1}</span>
+      },
+      { 
+        key: 'id', 
+        header: 'Rate ID', // Actual ID from your Laravel DB
         isSortable: true,
-        render: (v) => (v ? new Date(v).toLocaleDateString() : "-"),
+        render: (idValue) => (
+          <span className="font-mono font-bold text-blue-600">
+            {idValue}
+          </span>
+        )
+      },
+      { key: 'nttn_name', header: 'NTTN', isSortable: true },
+      { key: 'link_type_name', header: 'Link Type', isSortable: true },
+      { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
+      { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
+      { key: 'rate', header: 'Rate', isSortable: true },
+      {
+        key: 'rate_type',
+        header: 'Rate Type', 
+        render: (_, row) => (row.rate_type === 1 ? 'Fixed' : row.rate_type === 2 ? 'Variable' : '-'),
       },
       {
-        key: "effective_to",
-        header: "Effective To",
+        key: 'start_date',
+        header: 'Start Date',
         isSortable: true,
-        render: (v) => (v ? new Date(v).toLocaleDateString() : "-"),
       },
       {
-        key: "continue",
-        header: "Continue",
+        key: 'end_date',
+        header: 'End Date',
         isSortable: true,
-        render: (v) => (v ? "Yes" : "No"),
       },
       {
-        key: "status",
-        header: "Status",
-        isSortable: true,
-        render: (v) => (v === 1 ? "Active" : "Inactive"),
-      },
-      {
-        key: "actions",
-        header: "Action",
+        key: 'actions',
+        header: 'Action',
         render: (_, row) => (
           <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
             <Pencil className="h-4 w-4" />
@@ -161,8 +424,42 @@ const Rate = () => {
         ),
       },
     ],
-    []
+    [openEdit] // Added openEdit here to ensure the "Action" button always has the correct function reference
   );
+  // const columns = useMemo(
+  //   () => [
+  //     { key: 'nttn_name', header: 'NTTN', isSortable: true },
+  //     { key: 'link_type_name', header: 'Link Type', isSortable: true },
+  //     { key: 'bw_range_from', header: 'BW Range From', isSortable: true },
+  //     { key: 'bw_range_to', header: 'BW Range To', isSortable: true },
+  //     { key: 'rate', header: 'Rate', isSortable: true },
+  //     {
+  //       key: 'rate_type',
+  //       header: 'Rate Type', // ✅ NEW COLUMN
+  //       render: (_, row) => (row.rate_type === 1 ? 'Fixed' : row.rate_type === 2 ? 'Variable' : '-'),
+  //     },
+  //     {
+  //       key: 'start_date',
+  //       header: 'Start Date',
+  //       isSortable: true,
+  //     },
+  //     {
+  //       key: 'end_date',
+  //       header: 'End Date',
+  //       isSortable: true,
+  //     },
+  //     {
+  //       key: 'actions',
+  //       header: 'Action',
+  //       render: (_, row) => (
+  //         <Button variant="icon" size="sm" onClick={() => openEdit(row)} title="Edit">
+  //           <Pencil className="h-4 w-4" />
+  //         </Button>
+  //       ),
+  //     },
+  //   ],
+  //   []
+  // );
 
   /* ---------- UI ---------- */
   if (formState.isOpen) {
@@ -174,6 +471,7 @@ const Rate = () => {
           onSubmit={handleSubmit}
           onCancel={closeForm}
           showToast={pushToast}
+          linkTypes={linkTypes}  // PASS LINK TYPES TO FORM
         />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>

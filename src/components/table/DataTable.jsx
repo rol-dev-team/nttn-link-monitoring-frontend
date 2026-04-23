@@ -176,7 +176,6 @@
 //   // Reset client-side page on data/query/pageSize change
 //   useEffect(() => { if (!isBackendPagination) setPage(1); }, [query, pageSize, data, isBackendPagination]);
 
-
 //   // ---- Pagination Handlers (Directs to internal state or external prop function) ----
 //   const handlePageChange = (newPage) => {
 //     if (isBackendPagination && setPageProp) {
@@ -245,13 +244,11 @@
 //     }
 //   }, [data, query, inferredCols, sort, isBackendPagination, page, pageSize, totalRowsProp]);
 
-
 //   // 🔑 3. DEFINE FINAL PAGINATION CONTROLS
 //   const totalRows = isBackendPagination ? totalRowsProp : totalClientRows;
 //   // Use Math.max(1, ...) to ensure totalPages is always at least 1, even if totalRows is 0
 //   const totalPages = Math.max(1, Math.ceil(totalRows / currentPageSize));
 //   const pageSafe = Math.min(Math.max(currentPage, 1), totalPages);
-
 
 //   // ---- selection ----
 //   const [selected, setSelected] = useState(() => new Set());
@@ -293,7 +290,6 @@
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [selected, onSelectionChange, data]);
 
-
 //   // ---- Column Menu / Details Modal (UNCHANGED) ----
 //   const [colMenuOpen, setColMenuOpen] = useState(false);
 //   const colBtnRef = useRef(null);
@@ -309,7 +305,6 @@
 //   }, [detailsOpen]);
 
 //   const importStats = useMemo(() => formatImportMeta(importMeta), [importMeta]);
-
 
 //   return (
 //     <div className="w-full">
@@ -582,7 +577,7 @@
 // }
 // src/components/table/DataTable.jsx (FIXED COLUMN INFERENCE AND CELL KEY)
 
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   Search,
   SlidersHorizontal,
@@ -597,8 +592,8 @@ import {
   AlertCircle,
   Clock,
   Pencil,
-} from "lucide-react";
-import clsx from "clsx";
+} from 'lucide-react';
+import clsx from 'clsx';
 
 /* -------------------------------------------------
    Helper Functions (UNCHANGED)
@@ -606,20 +601,20 @@ import clsx from "clsx";
 
 function humanize(key) {
   return String(key)
-    .replace(/[_\-]+/g, " ")
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
+    .replace(/[_\-]+/g, ' ')
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
     .replace(/^./, (c) => c.toUpperCase());
 }
 
 function safeCell(v) {
   if (v === null || v === undefined) return <span className="text-gray-400">—</span>;
-  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
   return String(v);
 }
 
 function num(n) {
-  return typeof n === "number" ? n : 0;
+  return typeof n === 'number' ? n : 0;
 }
 
 function formatImportMeta(meta) {
@@ -638,25 +633,30 @@ function useOutside(ref, onOutside) {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) onOutside?.();
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [ref, onOutside]);
 }
 
-function StatChip({ icon, label, value, tone = "default" }) {
+function StatChip({ icon, label, value, tone = 'default' }) {
   const toneClass =
-    tone === "success"
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-      : tone === "warning"
-        ? "bg-amber-50 text-amber-700 ring-amber-200"
-        : tone === "error"
-          ? "bg-rose-50 text-rose-700 ring-rose-200"
-          : tone === "secondary"
-            ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
-            : "bg-gray-50 text-gray-700 ring-gray-200";
+    tone === 'success'
+      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+      : tone === 'warning'
+      ? 'bg-amber-50 text-amber-700 ring-amber-200'
+      : tone === 'error'
+      ? 'bg-rose-50 text-rose-700 ring-rose-200'
+      : tone === 'secondary'
+      ? 'bg-indigo-50 text-indigo-700 ring-indigo-200'
+      : 'bg-gray-50 text-gray-700 ring-gray-200';
 
   return (
-    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ring-1", toneClass)}>
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ring-1',
+        toneClass
+      )}
+    >
       {icon ? icon : null}
       <span className="font-medium">{label}</span>
       {value !== undefined ? <span className="opacity-80">{value}</span> : null}
@@ -675,7 +675,7 @@ export default function DataTable({
   searchable = true,
   selection = true,
   showId = false,
-  pageSizeOptions = [5, 10, 25, 50],
+  pageSizeOptions = [5, 10, 25, 50,100, 250, 500, 1000, 2500, 5000, 10000],
   initialPageSize = 5,
   initialSort,
   stickyHeader = true,
@@ -696,7 +696,7 @@ export default function DataTable({
     let cols = [];
     if (columns && columns.length > 0) {
       cols = columns.map((c) =>
-        typeof c === "string" ? { key: c, header: humanize(c) } : { header: humanize(c.key), ...c }
+        typeof c === 'string' ? { key: c, header: humanize(c) } : { header: humanize(c.key), ...c }
       );
     } else {
       const first = data?.[0] || {};
@@ -704,22 +704,28 @@ export default function DataTable({
     }
 
     // 🔑 FIX 1: Prevent duplicate ID column key
-    const hasExistingIdColumn = cols.some(c => c.key === 'id');
-    
+    const hasExistingIdColumn = cols.some((c) => c.key === 'id');
+
     if (showId && !hasExistingIdColumn) {
       // Use an internal key, '__index', that won't clash with data keys like 'id'
-      cols = [{ 
-          key: '__index', 
-          header: 'ID', 
-          render: (val, row, index) => (isBackendPagination ? (pageProp - 1) * pageSizeProp + index + 1 : index + 1), 
-          isSortable: false 
-      }, ...cols];
+      cols = [
+        {
+          key: '__index',
+          header: 'ID',
+          render: (val, row, index) =>
+            isBackendPagination ? (pageProp - 1) * pageSizeProp + index + 1 : index + 1,
+          isSortable: false,
+        },
+        ...cols,
+      ];
     }
     return cols;
   }, [columns, data, showId, isBackendPagination, pageProp, pageSizeProp]);
 
   const [visibleCols, setVisibleCols] = useState(() => new Set(inferredCols.map((c) => c.key)));
-  useEffect(() => { setVisibleCols(new Set(inferredCols.map((c) => c.key))); }, [inferredCols]);
+  useEffect(() => {
+    setVisibleCols(new Set(inferredCols.map((c) => c.key)));
+  }, [inferredCols]);
   // ... (rest of column logic)
 
   const allColumnsVisible = useMemo(() => {
@@ -730,13 +736,13 @@ export default function DataTable({
     if (allColumnsVisible) {
       setVisibleCols(new Set());
     } else {
-      setVisibleCols(new Set(inferredCols.map(c => c.key)));
+      setVisibleCols(new Set(inferredCols.map((c) => c.key)));
     }
   };
 
   // ---- search & sort ----
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState(() => initialSort || { key: inferredCols[0]?.key, dir: "asc" });
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState(() => initialSort || { key: inferredCols[0]?.key, dir: 'asc' });
 
   const handleQueryChange = (newQuery) => {
     setQuery(newQuery);
@@ -750,7 +756,7 @@ export default function DataTable({
     setSort((prev) => {
       const newSort = {
         key,
-        dir: (!prev || prev.key !== key) ? "asc" : (prev.dir === "asc" ? "desc" : "asc")
+        dir: !prev || prev.key !== key ? 'asc' : prev.dir === 'asc' ? 'desc' : 'asc',
       };
 
       if (isBackendPagination && onFilterChange) {
@@ -767,8 +773,9 @@ export default function DataTable({
   const [page, setPage] = useState(1);
 
   // Reset client-side page on data/query/pageSize change
-  useEffect(() => { if (!isBackendPagination) setPage(1); }, [query, pageSize, data, isBackendPagination]);
-
+  useEffect(() => {
+    if (!isBackendPagination) setPage(1);
+  }, [query, pageSize, data, isBackendPagination]);
 
   // ---- Pagination Handlers (Directs to internal state or external prop function) ----
   const handlePageChange = (newPage) => {
@@ -804,28 +811,35 @@ export default function DataTable({
       // Filtering (unchanged)
       const filtered = query.trim()
         ? data.filter((row) => {
-          const q = query.toLowerCase();
-          const keys = inferredCols.map((c) => c.key);
-          return keys.some((k) => String(row?.[k] ?? "").toLowerCase().includes(q));
-        })
+            const q = query.toLowerCase();
+            const keys = inferredCols.map((c) => c.key);
+            return inferredCols.some((col) => {
+              const value = col.searchValue
+                ? col.searchValue(row)
+                : String(row?.[col.key] ?? '');
+              return value.toLowerCase().includes(q);
+            });
+          })
         : data;
 
       // Sorting (unchanged)
-      const sorted = sort?.key ? [...filtered].sort((a, b) => {
-        const av = a?.[sort.key];
-        const bv = b?.[sort.key];
-        if (av == null && bv == null) return 0;
-        if (av == null) return sort.dir === "asc" ? -1 : 1;
-        if (bv == null) return sort.dir === "asc" ? 1 : -1;
-        if (typeof av === "number" && typeof bv === "number") {
-          return sort.dir === "asc" ? av - bv : bv - av;
-        }
-        const as = String(av).toLowerCase();
-        const bs = String(bv).toLowerCase();
-        if (as < bs) return sort.dir === "asc" ? -1 : 1;
-        if (as > bs) return sort.dir === "asc" ? 1 : -1;
-        return 0;
-      }) : filtered;
+      const sorted = sort?.key
+        ? [...filtered].sort((a, b) => {
+            const av = a?.[sort.key];
+            const bv = b?.[sort.key];
+            if (av == null && bv == null) return 0;
+            if (av == null) return sort.dir === 'asc' ? -1 : 1;
+            if (bv == null) return sort.dir === 'asc' ? 1 : -1;
+            if (typeof av === 'number' && typeof bv === 'number') {
+              return sort.dir === 'asc' ? av - bv : bv - av;
+            }
+            const as = String(av).toLowerCase();
+            const bs = String(bv).toLowerCase();
+            if (as < bs) return sort.dir === 'asc' ? -1 : 1;
+            if (as > bs) return sort.dir === 'asc' ? 1 : -1;
+            return 0;
+          })
+        : filtered;
 
       // Slicing (unchanged)
       const clientTotalRows = sorted.length;
@@ -838,13 +852,11 @@ export default function DataTable({
     }
   }, [data, query, inferredCols, sort, isBackendPagination, page, pageSize, totalRowsProp]);
 
-
   // 3. DEFINE FINAL PAGINATION CONTROLS
   const totalRows = isBackendPagination ? totalRowsProp : totalClientRows;
   // Use Math.max(1, ...) to ensure totalPages is always at least 1, even if totalRows is 0
   const totalPages = Math.max(1, Math.ceil(totalRows / currentPageSize));
   const pageSafe = Math.min(Math.max(currentPage, 1), totalPages);
-
 
   // ---- selection ----
   const [selected, setSelected] = useState(() => new Set());
@@ -853,7 +865,8 @@ export default function DataTable({
     return (pageSafe - 1) * currentPageSize + relativeIndex;
   };
 
-  const allVisibleSelected = pageRows.every((_, idx) => selected.has(getAbsoluteIndex(idx))) && pageRows.length > 0;
+  const allVisibleSelected =
+    pageRows.every((_, idx) => selected.has(getAbsoluteIndex(idx))) && pageRows.length > 0;
 
   const toggleSelectAll = () => {
     const next = new Set(selected);
@@ -880,12 +893,11 @@ export default function DataTable({
       const selectedIndices = Array.from(selected);
       // NOTE: This selection logic assumes the full, unfiltered data is stable outside the table.
       // If the selection needs to work on the paginated/filtered set, this logic requires a different approach.
-      const rows = selectedIndices.map(absIndex => data[absIndex]).filter(r => r);
+      const rows = selectedIndices.map((absIndex) => data[absIndex]).filter((r) => r);
       onSelectionChange(rows);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, onSelectionChange, data]);
-
 
   // ---- Column Menu / Details Modal (UNCHANGED) ----
   const [colMenuOpen, setColMenuOpen] = useState(false);
@@ -896,13 +908,14 @@ export default function DataTable({
   const detailsRef = useRef(null);
   useOutside(detailsRef, () => setDetailsOpen(false));
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") setDetailsOpen(false); };
-    if (detailsOpen) document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDetailsOpen(false);
+    };
+    if (detailsOpen) document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [detailsOpen]);
 
   const importStats = useMemo(() => formatImportMeta(importMeta), [importMeta]);
-
 
   return (
     <div className="w-full">
@@ -922,7 +935,7 @@ export default function DataTable({
                 {query && (
                   <button
                     className="btn btn-ghost btn-xs absolute right-1 top-1/2 -translate-y-1/2"
-                    onClick={() => handleQueryChange("")}
+                    onClick={() => handleQueryChange('')}
                     type="button"
                   >
                     ✕
@@ -962,8 +975,11 @@ export default function DataTable({
                   <div className="max-h-64 overflow-auto">
                     {inferredCols.map((c) => {
                       const checked = visibleCols.has(c.key);
-                      return ( 
-                        <label key={c.key} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+                      return (
+                        <label
+                          key={c.key}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+                        >
                           <input
                             type="checkbox"
                             className="checkbox checkbox-success checkbox-sm"
@@ -991,7 +1007,7 @@ export default function DataTable({
         {/* Table */}
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <table className="table table-auto w-full">
-            <thead className={clsx(stickyHeader && "sticky top-0 ", "bg-gray-100")}>
+            <thead className={clsx(stickyHeader && 'sticky top-0 ', 'bg-gray-100')}>
               <tr className="text-gray-700 uppercase text-xs leading-normal">
                 {selection && (
                   <th className="py-3 px-4 w-10">
@@ -1006,15 +1022,28 @@ export default function DataTable({
                 )}
                 {inferredCols.map((col) =>
                   !visibleCols.has(col.key) ? null : (
-                    <th 
-                      key={col.key} 
-                      className={clsx("py-3 px-4 text-left select-none", col.align === "right" && "text-right", col.align === "center" && "text-center")}
+                    <th
+                      key={col.key}
+                      className={clsx(
+                        'py-3 px-4 text-left select-none',
+                        col.align === 'right' && 'text-right',
+                        col.align === 'center' && 'text-center'
+                      )}
                     >
-                      <button className="inline-flex items-center gap-1 hover:opacity-80" onClick={() => toggleSort(col.key)} type="button">
+                      <button
+                        className="inline-flex items-center gap-1 hover:opacity-80"
+                        onClick={() => toggleSort(col.key)}
+                        type="button"
+                      >
                         <span>{col.header ?? humanize(col.key)}</span>
                         {/* Only display sort control if it's active or if client-side */}
                         {(!isBackendPagination || sort?.key === col.key) && (
-                          <ArrowUpDown className={clsx("h-3.5 w-3.5", sort?.key === col.key && "text-gray-900")} />
+                          <ArrowUpDown
+                            className={clsx(
+                              'h-3.5 w-3.5',
+                              sort?.key === col.key && 'text-gray-900'
+                            )}
+                          />
                         )}
                       </button>
                     </th>
@@ -1026,14 +1055,17 @@ export default function DataTable({
             <tbody className="text-gray-800 text-sm">
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={(selection ? 1 : 0) + Array.from(visibleCols).length} className="py-8 text-center text-gray-500">
+                  <td
+                    colSpan={(selection ? 1 : 0) + Array.from(visibleCols).length}
+                    className="py-8 text-center text-gray-500"
+                  >
                     No data
                   </td>
                 </tr>
               ) : (
                 pageRows.map((row, i) => {
                   const relativeIndex = i;
-                  const absIndex = getAbsoluteIndex(i); 
+                  const absIndex = getAbsoluteIndex(i);
                   const isSelected = selected.has(absIndex);
                   return (
                     // Row Key: Use the unique absolute index
@@ -1042,7 +1074,7 @@ export default function DataTable({
                         <td className="py-3 px-4">
                           <input
                             type="checkbox"
-                            className="checkbox checkbox-success checkbox-sm"
+                            className="checkbox checkbox-success checkbox-sm border border-gray-300"
                             checked={isSelected}
                             onChange={() => toggleSelectRow(relativeIndex)}
                           />
@@ -1052,11 +1084,17 @@ export default function DataTable({
                         !visibleCols.has(col.key) ? null : (
                           <td
                             // 🔑 FIX 2: Use a COMPOSITE KEY combining row index and column key
-                            key={`${absIndex}-${col.key}`} 
-                            className={clsx("py-3 px-4", col.align === "right" && "text-right", col.align === "center" && "text-center")}
+                            key={`${absIndex}-${col.key}`}
+                            className={clsx(
+                              'py-3 px-4',
+                              col.align === 'right' && 'text-right',
+                              col.align === 'center' && 'text-center'
+                            )}
                             style={{ width: col.width }}
                           >
-                            {col.render ? col.render(row[col.key], row, relativeIndex) : safeCell(row[col.key])}
+                            {col.render
+                              ? col.render(row[col.key], row, relativeIndex)
+                              : safeCell(row[col.key])}
                           </td>
                         )
                       )}
@@ -1072,17 +1110,24 @@ export default function DataTable({
         <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="text-sm text-gray-600">
             Showing <b>{pageRows.length}</b> of <b>{totalRows}</b> rows
-            {!isBackendPagination && query ? <> (filtered from <b>{data.length}</b>)</> : null}
+            {!isBackendPagination && query ? (
+              <>
+                {' '}
+                (filtered from <b>{data.length}</b>)
+              </>
+            ) : null}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <select
-              className="select select-bordered select-sm"
+              className="select select-bordered select-sm text-sm border"
               value={currentPageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
             >
               {pageSizeOptions.map((n) => (
-                <option key={n} value={n}>{n} / page</option>
+                <option key={n} value={n}>
+                  {n} / page
+                </option>
               ))}
             </select>
 
@@ -1094,7 +1139,7 @@ export default function DataTable({
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <button className="btn btn-sm join-item pointer-events-none">
+              <button className="btn btn-sm join-item pointer-events-none text-sm">
                 Page {pageSafe} / {totalPages}
               </button>
               <button
@@ -1108,7 +1153,7 @@ export default function DataTable({
 
             {/* Bottom-right Table details */}
             <button
-              className="ml-4 btn btn-ghost btn-sm inline-flex items-center gap-2"
+              className="ml-4 btn btn-ghost btn-sm inline-flex items-center gap-2 text-sm"
               onClick={() => setDetailsOpen(true)}
               type="button"
               title="View table details"
@@ -1125,22 +1170,72 @@ export default function DataTable({
           <div ref={detailsRef} className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Table details</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => setDetailsOpen(false)} type="button">✕</button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setDetailsOpen(false)}
+                type="button"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <StatChip icon={<Database className="h-3.5 w-3.5" />} label="Rows" value={totalRows} />
-                <StatChip icon={<Columns className="h-3.5 w-3.5" />} label="Cols" value={inferredCols.length} />
-                {query ? <StatChip icon={<Filter className="h-3.5 w-3.5" />} label="Filtered" value={!isBackendPagination ? totalClientRows : totalRows} /> : null}
-                {selected.size > 0 ? <StatChip icon={<CheckSquare className="h-3.5 w-3.5" />} label="Selected" value={selected.size} /> : null}
+                <StatChip
+                  icon={<Database className="h-3.5 w-3.5" />}
+                  label="Rows"
+                  value={totalRows}
+                />
+                <StatChip
+                  icon={<Columns className="h-3.5 w-3.5" />}
+                  label="Cols"
+                  value={inferredCols.length}
+                />
+                {query ? (
+                  <StatChip
+                    icon={<Filter className="h-3.5 w-3.5" />}
+                    label="Filtered"
+                    value={!isBackendPagination ? totalClientRows : totalRows}
+                  />
+                ) : null}
+                {selected.size > 0 ? (
+                  <StatChip
+                    icon={<CheckSquare className="h-3.5 w-3.5" />}
+                    label="Selected"
+                    value={selected.size}
+                  />
+                ) : null}
                 {importStats ? (
                   <>
-                    {importStats.duration && <StatChip icon={<Clock className="h-3.5 w-3.5" />} label="Duration" value={importStats.duration} />}
-                    {num(importStats.added) > 0 && <StatChip label="Added" tone="success" value={importStats.added} icon={<UploadCloud className="h-3.5 w-3.5" />} />}
-                    {num(importStats.updated) > 0 && <StatChip label="Updated" tone="warning" value={importStats.updated} />}
-                    {num(importStats.skipped) > 0 && <StatChip label="Skipped" tone="secondary" value={importStats.skipped} />}
-                    {num(importStats.errors) > 0 && <StatChip label="Errors" tone="error" value={importStats.errors} icon={<AlertCircle className="h-3.5 w-3.5" />} />}
+                    {importStats.duration && (
+                      <StatChip
+                        icon={<Clock className="h-3.5 w-3.5" />}
+                        label="Duration"
+                        value={importStats.duration}
+                      />
+                    )}
+                    {num(importStats.added) > 0 && (
+                      <StatChip
+                        label="Added"
+                        tone="success"
+                        value={importStats.added}
+                        icon={<UploadCloud className="h-3.5 w-3.5" />}
+                      />
+                    )}
+                    {num(importStats.updated) > 0 && (
+                      <StatChip label="Updated" tone="warning" value={importStats.updated} />
+                    )}
+                    {num(importStats.skipped) > 0 && (
+                      <StatChip label="Skipped" tone="secondary" value={importStats.skipped} />
+                    )}
+                    {num(importStats.errors) > 0 && (
+                      <StatChip
+                        label="Errors"
+                        tone="error"
+                        value={importStats.errors}
+                        icon={<AlertCircle className="h-3.5 w-3.5" />}
+                      />
+                    )}
                   </>
                 ) : null}
               </div>
@@ -1148,15 +1243,48 @@ export default function DataTable({
               <div className="overflow-x-auto">
                 <table className="table w-full">
                   <tbody className="text-sm">
-                    <tr><td className="font-medium w-40">Total rows</td><td>{totalRows}</td></tr>
-                    <tr><td className="font-medium">Visible columns</td><td>{Array.from(visibleCols).length} / {inferredCols.length}</td></tr>
-                    <tr><td className="font-medium">Current page</td><td>{pageSafe} / {totalPages} (size {currentPageSize})</td></tr>
-                    {query && <tr><td className="font-medium">Search query</td><td><code className="px-1.5 py-0.5 bg-gray-100 rounded">{query}</code></td></tr>}
+                    <tr>
+                      <td className="font-medium w-40">Total rows</td>
+                      <td>{totalRows}</td>
+                    </tr>
+                    <tr>
+                      <td className="font-medium">Visible columns</td>
+                      <td>
+                        {Array.from(visibleCols).length} / {inferredCols.length}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="font-medium">Current page</td>
+                      <td>
+                        {pageSafe} / {totalPages} (size {currentPageSize})
+                      </td>
+                    </tr>
+                    {query && (
+                      <tr>
+                        <td className="font-medium">Search query</td>
+                        <td>
+                          <code className="px-1.5 py-0.5 bg-gray-100 rounded">{query}</code>
+                        </td>
+                      </tr>
+                    )}
                     {importStats && (
                       <>
-                        <tr><td className="font-medium">Duration</td><td>{importStats.duration ?? "—"}</td></tr>
-                        <tr><td className="font-medium">Added / Updated</td><td>{num(importStats.added)} / {num(importStats.updated)}</td></tr>
-                        <tr><td className="font-medium">Skipped / Errors</td><td>{num(importStats.skipped)} / {num(importStats.errors)}</td></tr>
+                        <tr>
+                          <td className="font-medium">Duration</td>
+                          <td>{importStats.duration ?? '—'}</td>
+                        </tr>
+                        <tr>
+                          <td className="font-medium">Added / Updated</td>
+                          <td>
+                            {num(importStats.added)} / {num(importStats.updated)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="font-medium">Skipped / Errors</td>
+                          <td>
+                            {num(importStats.skipped)} / {num(importStats.errors)}
+                          </td>
+                        </tr>
                       </>
                     )}
                   </tbody>
@@ -1164,7 +1292,11 @@ export default function DataTable({
               </div>
 
               <div className="text-right">
-                <button className="btn btn-primary btn-sm" onClick={() => setDetailsOpen(false)} type="button">
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setDetailsOpen(false)}
+                  type="button"
+                >
                   Close
                 </button>
               </div>

@@ -131,75 +131,74 @@
 //     </QueryClientProvider>
 //   );
 // }
-import React, { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./app/AuthContext";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './app/AuthContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Styling imports
-import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
-import "@fortawesome/fontawesome-free/css/solid.min.css";
-import "@fortawesome/fontawesome-free/css/brands.min.css";
+import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+import '@fortawesome/fontawesome-free/css/solid.min.css';
+import '@fortawesome/fontawesome-free/css/brands.min.css';
 
 // 1. Static Imports (Layouts, Contexts, non-page components)
-import MainLayout from "./layouts/MainLayout";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import NasInterface from "./pages/NasInterface";
-import NasDropDevice from "./pages/NasDropDevice";
+import MainLayout from './layouts/MainLayout';
+import ProtectedRoute from './routes/ProtectedRoute';
+import NasInterface from './pages/NasInterface';
+import NasDropDevice from './pages/NasDropDevice';
+// import WorkOrderForm from './components/work-order/WorkOrderForm';
+// import WorkOrderForm from "./components/workorder/WorkOrderForm";
 
 // 2. Lazy Imports for all Page Components
 // Public Pages
-const Login = lazy(() => import("./pages/Login"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const NotAuthorized = lazy(() => import("./pages/NotAuthorized"));
+const Login = lazy(() => import('./pages/Login'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const NotAuthorized = lazy(() => import('./pages/NotAuthorized'));
 
 // Partner-Link Project Routes
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const CapacityAlertDashboard = lazy(() =>
-  import("./pages/CapacityAlertDashboard")
-);
-const TechnicalKAMDashboard = lazy(() =>
-  import("./pages/TechnicalKAMDashboard")
-);
-const PartnerInfoDashboard = lazy(() => import("./pages/PartnerInfoDashboard"));
-const PartnerActivationDashboard = lazy(() =>
-  import("./pages/PartnerActivationDashboard")
-);
-const IcmpAlertDashboard = lazy(() => import("./pages/IcmpAlertDashboard"));
-const ResourceMonitor = lazy(() => import("./pages/ResourceMonitor"));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const CapacityAlertDashboard = lazy(() => import('./pages/CapacityAlertDashboard'));
+const TechnicalKAMDashboard = lazy(() => import('./pages/TechnicalKAMDashboard'));
+const PartnerInfoDashboard = lazy(() => import('./pages/PartnerInfoDashboard'));
+const PartnerActivationDashboard = lazy(() => import('./pages/PartnerActivationDashboard'));
+const IcmpAlertDashboard = lazy(() => import('./pages/IcmpAlertDashboard'));
+const ResourceMonitor = lazy(() => import('./pages/ResourceMonitor'));
 
 // NTTN Project Routes
-const Reports = lazy(() => import("./pages/Reports"));
-const Survey = lazy(() => import("./pages/Survey"));
-const WorkOrder = lazy(() => import("./pages/WorkOrder"));
-const BWModify = lazy(() => import("./pages/BWModify"));
-const ShiftingCapacity = lazy(() => import("./pages/ShiftingCapacity"));
+const Reports = lazy(() => import('./pages/Reports'));
+const Survey = lazy(() => import('./pages/Survey'));
+const WorkOrder = lazy(() => import('./pages/WorkOrder'));
+// const WorkOrderForm = lazy(() => import('./pages/WorkOrderForm'));
+const BWModify = lazy(() => import('./pages/BWModify'));
+const ShiftingCapacity = lazy(() => import('./pages/ShiftingCapacity'));
 // const Users = lazy(() => import("./pages/Users")); // Assuming Users is a component that needs lazy loading
 
 // Settings Pages
-const SBU = lazy(() => import("./pages/settings/SBU"));
-const Category = lazy(() => import("./pages/settings/Category"));
-const Aggregator = lazy(() => import("./pages/settings/Aggregator"));
-const NTTN = lazy(() => import("./pages/settings/NTTN"));
-const KAM = lazy(() => import("./pages/settings/KAM"));
-const LinkType = lazy(() => import("./pages/settings/LinkType"));
-const Reason = lazy(() => import("./pages/settings/Reason"));
-const Rate = lazy(() => import("./pages/settings/Rate"));
-const BwRanges = lazy(() => import("./pages/settings/BwRanges"));
-const Client = lazy(() => import("./pages/settings/Client"));
+const SBU = lazy(() => import('./pages/settings/SBU'));
+const Category = lazy(() => import('./pages/settings/Category'));
+const Aggregator = lazy(() => import('./pages/settings/Aggregator'));
+const NTTN = lazy(() => import('./pages/settings/NTTN'));
+const KAM = lazy(() => import('./pages/settings/KAM'));
+const LinkType = lazy(() => import('./pages/settings/LinkType'));
+const Reason = lazy(() => import('./pages/settings/Reason'));
+const Rate = lazy(() => import('./pages/settings/Rate'));
+const BwRanges = lazy(() => import('./pages/settings/BwRanges'));
+const Client = lazy(() => import('./pages/settings/Client'));
+const AggLandmark = lazy(() => import('./pages/settings/AggLandmark'));
 
 // Protected Pages
-const UserManagement = lazy(() => import("./components/users/UserManagement"));
-const RolesPermissionsPage = lazy(() => import("./pages/RolesPermissionsPage"));
-const PermissionsPage = lazy(() => import("./pages/PermissionsPage"));
-const MenuAndPageManagement = lazy(() =>
-  import("./pages/MenuAndPageManagement")
-);
+const UserManagement = lazy(() => import('./components/users/UserManagement'));
+const RolesPermissionsPage = lazy(() => import('./pages/RolesPermissionsPage'));
+const PermissionsPage = lazy(() => import('./pages/PermissionsPage'));
+const MenuAndPageManagement = lazy(() => import('./pages/MenuAndPageManagement'));
 
-const NasInterfacePage = lazy(() => import("./pages/NasInterface"));
-const NasDropDevicePage = lazy(() => import("./pages/NasDropDevice"));
+const NasInterfacePage = lazy(() => import('./pages/NasInterface'));
+const NasDropDevicePage = lazy(() => import('./pages/NasDropDevice'));
+const NttnDashboard = lazy(() => import('./pages/NTTDashboard'));
+const Dashboard2 = lazy(() => import('./pages/Dashboard2'));
+const AlertLog = lazy(() => import('./pages/AlertLog'));
 
 // React Query Client Setup
 const queryClient = new QueryClient({
@@ -218,17 +217,18 @@ const queryClient = new QueryClient({
 const LoadingFallback = () => (
   <div
     style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh", // Takes up the full height of the viewport
-      width: "100vw", // Takes up the full width of the viewport
-      position: "fixed", // Fixed position ensures it covers the whole screen
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh', // Takes up the full height of the viewport
+      width: '100vw', // Takes up the full width of the viewport
+      position: 'fixed', // Fixed position ensures it covers the whole screen
       top: 0,
       left: 0,
-      backgroundColor: "rgba(255, 255, 255, 0.8)", // Semi-transparent background
+      backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent background
       zIndex: 9999, // Ensure it's on top of everything
-    }}>
+    }}
+  >
     {/* Pure CSS Spinner */}
     <style>
       {`
@@ -246,7 +246,7 @@ const LoadingFallback = () => (
         }
       `}
     </style>
-    <div className='spinner'></div>
+    <div className="spinner"></div>
   </div>
 );
 
@@ -256,7 +256,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <ToastContainer
-            position='top-right'
+            position="top-right"
             autoClose={5000}
             hideProgressBar={false}
             newestOnTop={false}
@@ -265,78 +265,66 @@ export default function App() {
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme='light'
+            theme="light"
           />
           {/* 3. Wrap all Routes in Suspense */}
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               {/* Root decides where to go */}
-              <Route path='/' element={<Navigate to='/login' replace />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
 
               {/* Public routes */}
 
-              <Route path='login' element={<Login />} />
-              <Route path='403' element={<NotAuthorized />} />
-              <Route path='*' element={<NotFound />} />
+              <Route path="login" element={<Login />} />
+              <Route path="403" element={<NotAuthorized />} />
+              <Route path="*" element={<NotFound />} />
 
               {/* Protected routes WITH MainLayout */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
                   {/* Partner-Link project routes */}
-                  <Route path='dashboard' element={<Dashboard />} />
-                  <Route
-                    path='capacity-alert'
-                    element={<CapacityAlertDashboard />}
-                  />
-                  <Route
-                    path='technical-kam'
-                    element={<TechnicalKAMDashboard />}
-                  />
-                  <Route
-                    path='partner-form'
-                    element={<PartnerInfoDashboard />}
-                  />
-                  <Route
-                    path='activation-form'
-                    element={<PartnerActivationDashboard />}
-                  />
-                  <Route path='icmp-alert' element={<IcmpAlertDashboard />} />
-                  <Route path='resource' element={<ResourceMonitor />} />
-                  <Route path='nas-interface' element={<NasInterface />} />
-                  <Route path='nas-drop-device' element={<NasDropDevice />} />
+                  <Route path="nttn/dashboard" element={<NttnDashboard />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="alert-log" element={<AlertLog />} />
+                  <Route path="test" element={<Dashboard2 />} />
+                  <Route path="capacity-alert" element={<CapacityAlertDashboard />} />
+                  <Route path="technical-kam" element={<TechnicalKAMDashboard />} />
+                  <Route path="partner-form" element={<PartnerInfoDashboard />} />
+                  <Route path="activation-form" element={<PartnerActivationDashboard />} />
+                  <Route path="icmp-alert" element={<IcmpAlertDashboard />} />
+                  <Route path="resource" element={<ResourceMonitor />} />
+                  <Route path="nas-interface" element={<NasInterface />} />
+                  <Route path="nas-drop-device" element={<NasDropDevice />} />
                   {/* Partner-Link project routes end */}
 
                   {/* NTTN project routes */}
-                  <Route path='/reports' element={<Reports />} />
-                  <Route path='/survey' element={<Survey />} />
-                  <Route path='/work-order' element={<WorkOrder />} />
-                  <Route path='/bw-modify' element={<BWModify />} />
-                  <Route
-                    path='/capacity-shifting'
-                    element={<ShiftingCapacity />}
-                  />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/survey" element={<Survey />} />
+                  <Route path="/work-order" element={<WorkOrder />} />
+                  {/* <Route path="/work-order-form" element={<WorkOrderForm />} /> */}
+                  <Route path="/bw-modify" element={<BWModify />} />
+                  <Route path="/capacity-shifting" element={<ShiftingCapacity />} />
                   {/* <Route path='/users' element={<Users />} /> */}
 
                   {/* Nested settings routes */}
-                  <Route path='/settings/sbu' element={<SBU />} />
-                  <Route path='/settings/category' element={<Category />} />
-                  <Route path='/settings/aggregator' element={<Aggregator />} />
-                  <Route path='/settings/nttn' element={<NTTN />} />
-                  <Route path='/settings/kam' element={<KAM />} />
-                  <Route path='/settings/link-type' element={<LinkType />} />
-                  <Route path='/settings/reason' element={<Reason />} />
-                  <Route path='/settings/rate' element={<Rate />} />
-                  <Route path='/settings/bwranges' element={<BwRanges />} />
-                  <Route path='/settings/client' element={<Client />} />
+                  <Route path="/settings/sbu" element={<SBU />} />
+                  <Route path="/settings/category" element={<Category />} />
+                  <Route path="/settings/aggregator" element={<Aggregator />} />
+                  <Route path="/settings/nttn" element={<NTTN />} />
+                  <Route path="/settings/kam" element={<KAM />} />
+                  <Route path="/settings/link-type" element={<LinkType />} />
+                  <Route path="/settings/reason" element={<Reason />} />
+                  <Route path="/settings/rate" element={<Rate />} />
+                  <Route path="/settings/bwranges" element={<BwRanges />} />
+                  <Route path="/settings/client" element={<Client />} />
+                  <Route path="/settings/aggregation-landmarks" element={<AggLandmark />} />
+                  
 
                   {/* NTTN project routes */}
-                  <Route
-                    path='page-management'
-                    element={<MenuAndPageManagement />}
-                  />
-                  <Route path='users' element={<UserManagement />} />
-                  <Route path='roles' element={<RolesPermissionsPage />} />
-                  <Route path='permissions' element={<PermissionsPage />} />
+                  <Route path="page-management" element={<MenuAndPageManagement />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="roles" element={<RolesPermissionsPage />} />
+                  <Route path="permissions" element={<PermissionsPage />} />
                 </Route>
               </Route>
             </Routes>

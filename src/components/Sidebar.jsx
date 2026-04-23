@@ -247,7 +247,6 @@ import { useMemo, useState, useEffect } from "react";
 import Fuse from "fuse.js";
 import { useFormik, FormikProvider } from "formik";
 import InputField from "./fields/InputField";
-import { menuTree as staticMenu } from "../lib/menu";
 import { useDynamicMenu } from "../hooks/useDynamicMenu";
 import {
     ChevronLeft,

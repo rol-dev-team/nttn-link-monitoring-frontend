@@ -402,6 +402,7 @@ const Survey = () => {
           columns={surveyColumns}
           onFilterChange={handleFilterChange}
           dynamicOptions={dynamicOptions}
+          searchKeys={['client_lat', 'client_long', 'client_name']}
           isBackendPagination={true}
           totalRows={totalRows}
           page={page}

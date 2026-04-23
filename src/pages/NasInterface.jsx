@@ -4,7 +4,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { Trash2, PlusCircle, Plus, FileSpreadsheet, ArrowLeft } from 'lucide-react';
+import { Trash2, PlusCircle, Plus, FileSpreadsheet, ArrowLeft, Pencil } from 'lucide-react';
 
 import TextInputField from '../components/fields/TextInputField';
 import Button from '../components/ui/Button';
@@ -15,7 +15,9 @@ import { useToast } from '../hooks/useToast';
 
 import {
   createPartnerInterfaceConfig,
-  fetchPartnerInterfaceConfigs
+  fetchPartnerInterfaceConfigs,
+  fetchPartnerInterfaceConfig,
+  updatePartnerInterfaceConfig,
 } from '../services/partner-link/partnerInterfaceConfig';
 import { fetchCategoryWiseClientPartnerWithNas } from '../services/partner-link/txToPartner';
 
@@ -36,6 +38,8 @@ const NasInterface = () => {
   const [loading, setLoading] = useState(false);
   const [existingConfigs, setExistingConfigs] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingConfig, setEditingConfig] = useState(null);
 
   // Fetch NAS IPs from API on component mount
   useEffect(() => {
@@ -104,41 +108,83 @@ const NasInterface = () => {
   }, [viewMode, fetchExistingConfigs]);
 
   // Formik setup
+  const emptyFormValues = {
+    activation_plan_id: '',
+    new_interface_name: '',
+    interface_configs: [],
+  };
+
+  const formInitialValues = editingConfig
+    ? {
+        activation_plan_id: String(editingConfig.activation_plan_id || ''),
+        new_interface_name: editingConfig.interface_name || '',
+        interface_configs: [
+          {
+            id: editingConfig.id,
+            interface_name: editingConfig.interface_name || '',
+            interface_port: editingConfig.interface_port || '',
+          },
+        ],
+      }
+    : emptyFormValues;
+
   const formik = useFormik({
-    initialValues: {
-      activation_plan_id: '',
-      new_interface_name: '',
-      interface_configs: [],
-    },
+    initialValues: formInitialValues,
+    enableReinitialize: true,
     validationSchema: NasSchema,
     onSubmit: async (values) => {
       try {
         setLoading(true);
         console.log('Submitting values:', values); // Debug log
 
-        // Submit each interface configuration individually
-        const promises = values.interface_configs.map((interfaceConfig) =>
-          createPartnerInterfaceConfig({
+        if (isEditMode && editingConfig) {
+          const interfaceConfig = values.interface_configs[0];
+
+          if (!interfaceConfig) {
+            throw new Error('No interface configuration found to update.');
+          }
+
+          const result = await updatePartnerInterfaceConfig(editingConfig.id, {
             activation_plan_id: values.activation_plan_id,
             interface_name: interfaceConfig.interface_name,
             interface_port: interfaceConfig.interface_port || '',
-          })
-        );
+          });
 
-        const results = await Promise.all(promises);
-
-        // Check if all requests were successful
-        const allSuccess = results.every((result) => result.status === true);
-
-        if (allSuccess) {
-          addToast('All interface configurations submitted successfully!', 'success');
-          formik.resetForm();
-          setViewMode('table');
-
-          // Refresh the table data
-          fetchExistingConfigs();
+          if (result?.status === false) {
+            addToast(result?.message || 'Failed to update interface configuration', 'error');
+          } else {
+            addToast('Interface configuration updated successfully!', 'success');
+            formik.resetForm();
+            setEditingConfig(null);
+            setIsEditMode(false);
+            setViewMode('table');
+            fetchExistingConfigs();
+          }
         } else {
-          addToast('Some configurations failed to submit', 'error');
+          // Submit each interface configuration individually
+          const promises = values.interface_configs.map((interfaceConfig) =>
+            createPartnerInterfaceConfig({
+              activation_plan_id: values.activation_plan_id,
+              interface_name: interfaceConfig.interface_name,
+              interface_port: interfaceConfig.interface_port || '',
+            })
+          );
+
+          const results = await Promise.all(promises);
+
+          // Check if all requests were successful
+          const allSuccess = results.every((result) => result.status === true);
+
+          if (allSuccess) {
+            addToast('All interface configurations submitted successfully!', 'success');
+            formik.resetForm();
+            setViewMode('table');
+
+            // Refresh the table data
+            fetchExistingConfigs();
+          } else {
+            addToast('Some configurations failed to submit', 'error');
+          }
         }
       } catch (err) {
         addToast('Failed to submit configurations: ' + err.message, 'error');
@@ -154,28 +200,70 @@ const NasInterface = () => {
     formik.setFieldValue('activation_plan_id', selectedOption ? selectedOption.value : '');
   };
 
-  // Add interface
+  const handleOpenInterfaceEdit = useCallback(
+    async (id) => {
+      setLoading(true);
+      setIsEditMode(true);
+      setEditingConfig(null);
+      setViewMode('form');
+
+      try {
+        const response = await fetchPartnerInterfaceConfig(id);
+        const config = response?.data || response;
+
+        if (!config?.id) {
+          throw new Error('Interface configuration not found.');
+        }
+
+        setEditingConfig(config);
+        addToast('Loaded interface configuration for editing', 'success');
+      } catch (error) {
+        console.error('Error loading interface config for edit:', error);
+        addToast('Failed to load interface configuration', 'error');
+        setViewMode('table');
+        setIsEditMode(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [addToast]
+  );
+
+  const handleCancelForm = useCallback(() => {
+    setViewMode('table');
+    setIsEditMode(false);
+    setEditingConfig(null);
+    formik.resetForm();
+  }, [formik]);
+
+  // Add or update interface in the current form session
   const handleAddInterface = useCallback(() => {
-    const newInterface = {
+    const nextInterface = {
+      id: isEditMode && editingConfig ? editingConfig.id : Date.now(),
       interface_name: formik.values.new_interface_name,
-      interface_port: '',
-      id: Date.now(),
+      interface_port: formik.values.interface_configs[0]?.interface_port || '',
     };
 
-    InterfaceSchema.validate(newInterface, { abortEarly: false })
+    InterfaceSchema.validate(nextInterface, { abortEarly: false })
       .then(() => {
-        formik.setFieldValue('interface_configs', [
-          ...formik.values.interface_configs,
-          newInterface,
-        ]);
+        if (isEditMode && editingConfig) {
+          formik.setFieldValue('interface_configs', [nextInterface]);
+          addToast('Interface updated successfully!', 'success');
+        } else {
+          formik.setFieldValue('interface_configs', [
+            ...formik.values.interface_configs,
+            nextInterface,
+          ]);
+          addToast('Interface added successfully!', 'success');
+        }
+
         formik.setFieldValue('new_interface_name', '');
-        addToast('Interface added successfully!', 'success');
       })
       .catch((err) => {
         const msg = err.errors?.[0] || 'Please fill all fields correctly.';
         addToast(msg, 'error');
       });
-  }, [formik, addToast]);
+  }, [formik, addToast, editingConfig, isEditMode]);
 
   // Remove interface individually
   const handleRemoveInterface = useCallback(
@@ -258,8 +346,24 @@ const NasInterface = () => {
         header: 'Updated At',
         render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A',
       },
+      {
+        key: 'actions',
+        header: 'Actions',
+        align: 'center',
+        width: '5rem',
+        render: (v, row) => (
+          <button
+            type="button"
+            onClick={() => handleOpenInterfaceEdit(row.id)}
+            className="btn btn-ghost btn-xs"
+            title="Edit Interface"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        ),
+      },
     ],
-    []
+    [handleOpenInterfaceEdit]
   );
 
   // Table view
@@ -316,6 +420,14 @@ const NasInterface = () => {
     );
   }
 
+  if (loading && isEditMode && !editingConfig) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[40vh] text-gray-500">
+        <p>Loading interface configuration...</p>
+      </div>
+    );
+  }
+
   // Form view
   return (
     <form onSubmit={formik.handleSubmit} className="p-6 space-y-8">
@@ -325,13 +437,15 @@ const NasInterface = () => {
             <Button
               variant="ghost"
               leftIcon={ArrowLeft}
-              onClick={() => setViewMode('table')}
+              onClick={handleCancelForm}
               className="-ml-4 text-lg font-semibold"
               type="button"
-            ></Button>
-            NAS Interface Configuration
+            />
+            {isEditMode ? 'Edit NAS Interface Configuration' : 'NAS Interface Configuration'}
           </h1>
-          <p className="text-sm text-gray-500 ml-10">Create nas interface configuration</p>
+          <p className="text-sm text-gray-500 ml-10">
+            {isEditMode ? 'Update the selected interface configuration' : 'Create nas interface configuration'}
+          </p>
         </div>
       </header>
 
@@ -342,7 +456,7 @@ const NasInterface = () => {
           formik={formik}
           options={nasIpOptions}
           label="Select Partner Name / NAS IP"
-          isDisabled={formik.values.interface_configs.length > 0 || loading}
+          isDisabled={(!isEditMode && formik.values.interface_configs.length > 0) || loading}
           isSearchable={true}
           isClearable={true}
           isLoading={loading}
@@ -378,7 +492,13 @@ const NasInterface = () => {
             !formik.values.activation_plan_id || !formik.values.new_interface_name || loading
           }
         >
-          {loading ? 'Adding...' : 'Add Interface'}
+          {loading
+            ? isEditMode
+              ? 'Loading...'
+              : 'Adding...'
+            : isEditMode
+              ? 'Update Interface'
+              : 'Add Interface'}
         </Button>
       </div>
 
@@ -408,7 +528,11 @@ const NasInterface = () => {
           size="md"
           disabled={loading || formik.isSubmitting || formik.values.interface_configs.length === 0}
         >
-          {loading ? 'Submitting...' : 'Submit All Configurations'}
+          {loading
+            ? 'Submitting...'
+            : isEditMode
+              ? 'Save Changes'
+              : 'Submit All Configurations'}
         </Button>
       </div>
     </form>

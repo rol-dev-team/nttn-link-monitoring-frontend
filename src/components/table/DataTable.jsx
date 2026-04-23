@@ -690,6 +690,7 @@ export default function DataTable({
   setPage: setPageProp,
   setPageSize: setPageSizeProp,
   onFilterChange,
+  searchKeys = null,
 }) {
   // ---- columns ----
   const inferredCols = useMemo(() => {
@@ -746,7 +747,7 @@ export default function DataTable({
 
   const handleQueryChange = (newQuery) => {
     setQuery(newQuery);
-    if (isBackendPagination && onFilterChange) {
+    if (isBackendPagination && onFilterChange && !(searchKeys && searchKeys.length > 0)) {
       // Must reset page to 1 on search
       onFilterChange({ page: 1, search: newQuery });
     }
@@ -804,7 +805,17 @@ export default function DataTable({
   const [pageRows, sortedData, totalClientRows] = useMemo(() => {
     if (isBackendPagination) {
       // BACKEND PAGINATION: 'data' prop is already the correct slice.
-      return [data, data, totalRowsProp];
+      // When searchKeys are provided, apply a local instant search over the loaded rows.
+      const filtered = query.trim() && searchKeys?.length
+        ? data.filter((row) => {
+            const q = query.toLowerCase();
+            return searchKeys.some((key) =>
+              String(row?.[key] ?? '').toLowerCase().includes(q)
+            );
+          })
+        : data;
+
+      return [filtered, filtered, searchKeys?.length ? filtered.length : totalRowsProp];
     } else {
       // CLIENT-SIDE PAGINATION: Apply filtering, sorting, and internal slicing.
 
@@ -850,7 +861,7 @@ export default function DataTable({
       const end = start + pageSize;
       return [sorted.slice(start, end), sorted, clientTotalRows];
     }
-  }, [data, query, inferredCols, sort, isBackendPagination, page, pageSize, totalRowsProp]);
+  }, [data, query, inferredCols, sort, isBackendPagination, page, pageSize, totalRowsProp, searchKeys]);
 
   // 3. DEFINE FINAL PAGINATION CONTROLS
   const totalRows = isBackendPagination ? totalRowsProp : totalClientRows;

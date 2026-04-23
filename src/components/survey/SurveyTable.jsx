@@ -7,6 +7,7 @@ const SurveyTable = ({
   columns,
   onFilterChange,
   dynamicOptions,
+  searchKeys,
   // 🔑 ACCEPT PAGINATION PROPS
   isBackendPagination,
   totalRows,
@@ -39,6 +40,7 @@ const SurveyTable = ({
       setPage={setPage}
       setPageSize={setPageSize}
       onFilterChange={onFilterChange}
+      searchKeys={searchKeys}
     />
   );
 };

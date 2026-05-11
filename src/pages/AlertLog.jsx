@@ -22,6 +22,12 @@ const alertTypeOptions = [
   { label: 'ICMP Latency', value: 'icmp_latency' },
   { label: 'ICMP Timeout', value: 'icmp_timeout' },
 ];
+
+const utilizationOptions = [
+  { label: 'All Utilization', value: 'all_utilization' },
+  { label: 'Over Utilization', value: 'over_utilization' },
+  { label: 'Under Utilization', value: 'under_utilization' },
+];
 /* =============================================================================
    CONSTANTS
    ============================================================================= */
@@ -151,6 +157,7 @@ const AlertLog = () => {
     initialValues: {
       nttnId: '',
       alertType: '',
+      utilizationFilter: 'over_utilization',
       dateRange: [null, null],
     },
     validationSchema,
@@ -164,7 +171,9 @@ const AlertLog = () => {
         setPartnerInfos(partnerData);
         const payload = {
           activation_plan_id: partnerData?.activation_plan_id,
+          work_order_id: values.nttnId,
           alertType: values.alertType,
+          utilization_filter: values.utilizationFilter,
           startDate: values.dateRange[0] ? values.dateRange[0].toISOString() : null,
           endDate: values.dateRange[1] ? values.dateRange[1].toISOString() : null,
         };
@@ -196,7 +205,10 @@ const AlertLog = () => {
       { key: 'client_name', header: 'Partner Name' },
       { key: 'nas_ip', header: 'NAS IP' },
       { key: 'interface_port', header: 'Interface Port' },
-      { key: 'max_utilization_percent', header: 'Max Download %' },
+      { key: 'request_capacity', header: 'Request Capacity' },
+      { key: 'max_threshold_mbps', header: 'Max Threshold (Mbps)' },
+      { key: 'max_download_mbps', header: 'Max Download (Mbps)' },
+      { key: 'utilization_percent', header: 'Utilization %' },
       { key: 'collected_at', header: 'Collected At' },
     ],
 
@@ -204,7 +216,10 @@ const AlertLog = () => {
       { key: 'client_name', header: 'Partner Name' },
       { key: 'nas_ip', header: 'NAS IP' },
       { key: 'interface_port', header: 'Interface Port' },
-      { key: 'max_utilization_percent', header: 'Max Upload %' },
+      { key: 'request_capacity', header: 'Request Capacity' },
+      { key: 'max_threshold_mbps', header: 'Max Threshold (Mbps)' },
+      { key: 'max_upload_mbps', header: 'Max Upload (Mbps)' },
+      { key: 'utilization_percent', header: 'Utilization %' },
       { key: 'collected_at', header: 'Collected At' },
     ],
 
@@ -212,7 +227,10 @@ const AlertLog = () => {
       { key: 'client_name', header: 'Partner Name' },
       { key: 'nas_ip', header: 'NAS IP' },
       { key: 'interface_port', header: 'Interface Port' },
-      { key: 'max_utilization_percent', header: 'Min Download %' },
+      { key: 'request_capacity', header: 'Request Capacity' },
+      { key: 'min_threshold_mbps', header: 'Min Threshold (Mbps)' },
+      { key: 'min_download_mbps', header: 'Min Download (Mbps)' },
+      { key: 'utilization_percent', header: 'Utilization %' },
       { key: 'collected_at', header: 'Collected At' },
     ],
 
@@ -220,7 +238,10 @@ const AlertLog = () => {
       { key: 'client_name', header: 'Partner Name' },
       { key: 'nas_ip', header: 'NAS IP' },
       { key: 'interface_port', header: 'Interface Port' },
-      { key: 'max_utilization_percent', header: 'Min Upload %' },
+      { key: 'request_capacity', header: 'Request Capacity' },
+      { key: 'min_threshold_mbps', header: 'Min Threshold (Mbps)' },
+      { key: 'min_upload_mbps', header: 'Min Upload (Mbps)' },
+      { key: 'utilization_percent', header: 'Utilization %' },
       { key: 'collected_at', header: 'Collected At' },
     ],
 
@@ -247,7 +268,6 @@ const AlertLog = () => {
   }, [alertData]);
 
   const chartValueKey = {
-    max_download: 'max_utilization_percent',
     max_upload: 'max_utilization_percent',
     min_download: 'max_utilization_percent',
     min_upload: 'max_utilization_percent',
@@ -277,6 +297,47 @@ const AlertLog = () => {
     }));
   }, [alertData]);
 
+  const maxDownloadChartData = useMemo(() => {
+    if (formik.values.alertType !== 'max_download' || !alertData.length) return null;
+
+    const sortedData = [...alertData].sort(
+      (a, b) => new Date(a.collected_at).getTime() - new Date(b.collected_at).getTime()
+    );
+
+    return {
+      labels: sortedData.map((item) =>
+        new Date(item.collected_at).toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      ),
+      datasets: [
+        {
+          label: 'Max Download (Mbps)',
+          data: sortedData.map((item) => Number(item.max_download_mbps) || 0),
+          borderColor: '#2563eb',
+          backgroundColor: '#2563eb33',
+          tension: 0.3,
+          fill: false,
+          pointRadius: 3,
+        },
+        {
+          label: 'Utilization (%)',
+          data: sortedData.map((item) => Number(item.utilization_percent) || 0),
+          borderColor: '#ef4444',
+          backgroundColor: '#ef444433',
+          tension: 0.3,
+          fill: false,
+          pointRadius: 3,
+        },
+      ],
+    };
+  }, [alertData, formik.values.alertType]);
+
   // const alertChartData = useMemo(() => {
   //   return alertData.map((item) => ({
   //     x: new Date(item.collected_at).toLocaleString('en-US', {
@@ -296,7 +357,11 @@ const AlertLog = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false, position: 'top', labels: { font: { size: 14 } } },
+      legend: {
+        display: formik.values.alertType === 'max_download',
+        position: 'top',
+        labels: { font: { size: 14 } },
+      },
       tooltip: { enabled: true, mode: 'index', intersect: false },
     },
     interaction: { mode: 'nearest', axis: 'x', intersect: false },
@@ -322,7 +387,7 @@ const AlertLog = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <form
             onSubmit={formik.handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 justify-center"
+            className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4 justify-center"
           >
             {/* NTTN Link Selector */}
             <div>
@@ -342,11 +407,25 @@ const AlertLog = () => {
                 value={formik.values.alertType}
                 onChange={(value) => formik.setFieldValue('alertType', value)}
                 options={alertTypeOptions}
-                placeholder="Select Alert Type*"
+                placeholder="Select Type*"
               />
               {formik.touched.alertType && formik.errors.alertType && (
                 <p className="text-xs text-red-500 mt-1">{formik.errors.alertType}</p>
               )}
+            </div>
+
+            <div>
+              <Select
+                value={formik.values.utilizationFilter}
+                onChange={(value) => formik.setFieldValue('utilizationFilter', value)}
+                options={utilizationOptions}
+                placeholder="Utilization Filter"
+                disabled={
+                  !['max_download', 'max_upload', 'min_download', 'min_upload'].includes(
+                    formik.values.alertType
+                  )
+                }
+              />
             </div>
 
             {/* Date Range Picker */}
@@ -420,7 +499,11 @@ const AlertLog = () => {
               <div className="h-[300px]">
                 <Chart
                   type="line"
-                  data={createLineChartData('Alert Count', alertChartData, '#ef4444')}
+                  data={
+                    formik.values.alertType === 'max_download' && maxDownloadChartData
+                      ? maxDownloadChartData
+                      : createLineChartData('Alert Count', alertChartData, '#ef4444')
+                  }
                   options={chartOptions}
                 />
               </div>

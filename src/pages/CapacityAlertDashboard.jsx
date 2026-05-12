@@ -36,7 +36,7 @@ export default function CapacityAlertDashboard() {
       if (response.status) {
         // FIXED: Using correct field names from PartnerActivationPlan
         const ips = response.data.map((plan) => ({
-          value: plan.id,
+          // value: plan.id,
           label: plan.nas_ip ? `${plan.work_order_id} (${plan.nas_ip})` : plan.work_order_id,
           nas_ip: plan.nas_ip,
         }));
@@ -244,12 +244,14 @@ const handleFormSubmit = async (values, { resetForm }) => {
         header: 'NAS IP Address',
         render: (_, row) => row.activation_plan?.nas_ip || 'N/A', // FIXED FIELD NAME
         className: 'min-w-[150px]',
+        searchValue: (row) => row.activation_plan?.nas_ip || '',
       },
       {
-        key: 'nas_ip',
+        key: 'client_name',
         header: 'Client Name',
         render: (_, row) => row.activation_plan?.client?.client_name || 'N/A',
         className: 'min-w-[150px]',
+        searchValue: (row) => row.activation_plan?.client?.client_name || '',
       },
       {
         key: 'work_order_id',

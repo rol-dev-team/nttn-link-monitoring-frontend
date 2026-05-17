@@ -326,15 +326,20 @@ const NasInterface = () => {
         render: (_, row) => row.activation_plan?.nas_ip || 'N/A',
         searchValue: (row) => row.activation_plan?.nas_ip || '', 
       },
-      // {
-      //   key: 'client_name',
-      //   header: 'Client Name',
-      //   render: (_, row) => row.activation_plan?.client?.client_name || 'N/A',
-      // },
       {
-        key: 'work_order_id',
-        header: 'Work Order ID',
-        render: (_, row) => row.activation_plan?.work_order_id || 'N/A',
+        key: 'client_name',
+        header: 'Client Name',
+        render: (_, row) => row.activation_plan?.client?.client_name || 'N/A',
+      },
+      {
+        key: 'nttn_work_order_id',
+        header: 'Link ID',
+        render: (_, row) => row.activation_plan?.work_order?.nttn_work_order_id || 'N/A',
+      },
+      {
+        key: 'request_capacity',
+        header: 'Request Capacity',
+        render: (_, row) => row.activation_plan?.work_order?.request_capacity || 'N/A',
       },
       {
         key: 'created_at',

@@ -51,6 +51,8 @@ const ActivationPlanSchema = Yup.object().shape({
         .oneOf(MOCK_STATUS_OPTIONS.map((o) => o.value), 'Invalid status')
         .required('Status is required'),
     note: Yup.string().max(255).notRequired(),
+    backup: Yup.boolean().notRequired(),
+    log: Yup.boolean().notRequired(),
 });
 
 // ================================================================
@@ -81,12 +83,15 @@ const getInitialValues = (initialData) => {
             nic_no: initialData.nic_no || '',
             status: initialData.status || MOCK_STATUS_OPTIONS[0].value,
             note: initialData.note || '',
+            backup: Boolean(initialData.backup),
+            log: Boolean(initialData.log),
         };
     }
 
     return {
         nttn_work_order_id: '',
         client_id: '',
+        nttn_work_order_id: '',
         nttn_vlan: '',
         int_peering_ip: '',
         ggc_peering_ip: '',
@@ -107,6 +112,8 @@ const getInitialValues = (initialData) => {
         nic_no: '',
         status: MOCK_STATUS_OPTIONS[0].value,
         note: '',
+        backup: false,
+        log: false,
     };
 };
 
@@ -550,6 +557,30 @@ export default function PartnerActivationForm({
                                         formik={formik}
                                     />
                                 </div>
+                            </div>
+
+                            {/* ── Flags ── */}
+                            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-x-14 gap-y-4 pt-2">
+                                <label className="inline-flex items-center gap-3 text-sm font-medium text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        name="backup"
+                                        checked={formik.values.backup}
+                                        onChange={formik.handleChange}
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    Backup: {formik.values.backup ? 'Yes' : 'No'}
+                                </label>
+                                <label className="inline-flex items-center gap-3 text-sm font-medium text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        name="log"
+                                        checked={formik.values.log}
+                                        onChange={formik.handleChange}
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    Log: {formik.values.log ? 'Yes' : 'No'}
+                                </label>
                             </div>
 
                             {/* ── Action Buttons ── */}

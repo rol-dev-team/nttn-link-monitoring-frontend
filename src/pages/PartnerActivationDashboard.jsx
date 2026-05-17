@@ -119,6 +119,8 @@ export default function PartnerActivationDashboard() {
             const mappedActivationData = {
                 work_order_id: values.nttn_work_order_id || '',
                 client_id: values.client_id || '',
+                nttn_work_order_id: values.nttn_work_order_id || '',
+                request_capacity: values.request_capacity || '',
                 nttn_vlan: values.nttn_vlan || '',
                 int_routing_ip: values.int_peering_ip || '',
                 ggc_routing_ip: values.ggc_peering_ip || '',
@@ -139,6 +141,8 @@ export default function PartnerActivationDashboard() {
                 asn: values.asn || '',
                 status: values.status || 'active',
                 note: values.note || '',
+                backup: values.backup ? 1 : 0,
+                log: values.log ? 1 : 0,
             };
 
             let response;
@@ -198,6 +202,8 @@ export default function PartnerActivationDashboard() {
                     asn: 'asn',
                     status: 'status',
                     note: 'note',
+                    backup: 'backup',
+                    log: 'log',
                 };
 
                 const formikErrors = {};
@@ -256,6 +262,18 @@ export default function PartnerActivationDashboard() {
                 render: (_, row) => row.client?.client_name || "N/A",
                 searchValue: (row) => row.client?.client_name || "",
             },
+            {
+                key: "nttn_work_order_id",
+                header: "Link ID",
+                render: (_, row) => row.work_order?.nttn_work_order_id || "N/A",
+                searchValue: (row) => row.work_order?.nttn_work_order_id || "",
+            },
+            {
+                key: "request_capacity",
+                header: "Request Capacity",
+                render: (_, row) => row.work_order?.request_capacity || "N/A",
+                searchValue: (row) => row.work_order?.request_capacity || "",
+            },
             { key: "asn", header: "ASN" },
             { key: "nas_ip", header: "NAS IP" },
             { key: "nat_ip", header: "NAT IP" },
@@ -269,6 +287,16 @@ export default function PartnerActivationDashboard() {
             { key: "connected_ws_name", header: "Switch" },
             { key: "sw_port", header: "Port" },
             { key: "chr_server", header: "CHR Server" },
+            {
+                key: "backup",
+                header: "Backup",
+                render: (val) => (Number(val) === 1 || val === true ? "Yes" : "No"),
+            },
+            {
+                key: "log",
+                header: "Log",
+                render: (val) => (Number(val) === 1 || val === true ? "Yes" : "No"),
+            },
             {
                 key: "devices_count",
                 header: "Devices",

@@ -163,6 +163,36 @@ export default function CapacityAlertDashboard() {
   // Form Submission Handler - UPDATED with better error handling
 const handleFormSubmit = async (values, { resetForm }) => {
   try {
+    if (isEditMode) {
+      const selectedActivationPlanId =
+        values.nas_ip_manual_select?.[0] ?? editingAlert?.activation_plan_id;
+
+      if (!selectedActivationPlanId) {
+        throw new Error('No NAS IP selected for update');
+      }
+
+      const dataToUpdate = {
+        activation_plan_id: Number(selectedActivationPlanId),
+        max_threshold_mbps: values.max_value_mbps,
+        max_frequency_per_day: values.max_frequency,
+        max_consecutive_days: values.max_affected_days,
+        min_threshold_mbps: values.min_value_mbps,
+        min_frequency_per_day: values.min_frequency,
+        min_consecutive_days: values.min_affected_days,
+      };
+
+      const response = await updateCapacityAleart(editingAlert.id, dataToUpdate);
+      if (!response.status) {
+        throw new Error(response.message || 'Failed to update configuration');
+      }
+
+      addToast('Configuration updated successfully', 'success');
+      fetchAlerts();
+      resetForm();
+      setViewMode('table');
+      return;
+    }
+
     let nasIpsToCreate = [];
 
     if (values.select_all_nas) {
@@ -254,6 +284,18 @@ const handleFormSubmit = async (values, { resetForm }) => {
         searchValue: (row) => row.activation_plan?.client?.client_name || '',
       },
       {
+        key: 'nttn_work_order_id',
+        header: 'NTTN Work Order ID',
+        render: (_, row) => row.activation_plan?.work_order?.nttn_work_order_id || 'N/A',
+        className: 'min-w-[150px]',
+        searchValue: (row) => row.activation_plan?.work_order?.nttn_work_order_id || '',
+      },
+      {
+        key: 'request_capacity',
+        header: 'Requested Capacity (Mbps)',
+        render: (_, row) => row.activation_plan?.work_order?.request_capacity || 'N/A',  
+      },
+      {
         key: 'work_order_id',
         header: 'Work Order ID',
         render: (_, row) => row.activation_plan?.work_order_id || 'N/A',
@@ -307,7 +349,7 @@ const handleFormSubmit = async (values, { resetForm }) => {
           min_frequency: editingAlert.min_frequency_per_day,
           min_affected_days: editingAlert.min_consecutive_days,
           select_all_nas: false,
-          nas_ip_manual_select: [editingAlert.activation_plan_id],
+          nas_ip_manual_select: [String(editingAlert.activation_plan_id)],
         }
       : null;
 

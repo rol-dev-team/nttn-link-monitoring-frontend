@@ -78,3 +78,43 @@ input.input-bordered {
 .prose {
   @apply leading-7 md:leading-8;
 }
+
+/* Custom Status Toggle component for premium SaaS styling */
+.status-toggle-custom {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 3.5rem;
+  height: 2rem;
+  background-color: #E5E7EB; /* Light gray track background always */
+  border-radius: 9999px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 2px solid #E5E7EB;
+  outline: none;
+}
+
+.status-toggle-custom:checked {
+  background-color: #E5E7EB; /* Keep track background light gray when checked */
+  border-color: #E5E7EB;
+}
+
+/* The sliding circle button handle */
+.status-toggle-custom::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background-color: #EF4444; /* Default Inactive state: Red circle button */
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* Active state: Green circle button + Slide to right */
+.status-toggle-custom:checked::after {
+  transform: translateX(1.5rem);
+  background-color: #22C55E; /* Active state: Green circle button */
+}

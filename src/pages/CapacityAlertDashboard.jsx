@@ -179,6 +179,7 @@ const handleFormSubmit = async (values, { resetForm }) => {
         min_threshold_mbps: values.min_value_mbps,
         min_frequency_per_day: values.min_frequency,
         min_consecutive_days: values.min_affected_days,
+        status: values.is_active ? 1 : 0,
       };
 
       const response = await updateCapacityAleart(editingAlert.id, dataToUpdate);
@@ -223,6 +224,7 @@ const handleFormSubmit = async (values, { resetForm }) => {
           min_threshold_mbps: values.min_value_mbps,
           min_frequency_per_day: values.min_frequency,
           min_consecutive_days: values.min_affected_days,
+          status: values.is_active ? 1 : 0,
         };
 
         console.log('Creating configuration for:', nasIp.value, dataToSave); // Debug log
@@ -320,6 +322,29 @@ const handleFormSubmit = async (values, { resetForm }) => {
         render: (val) => (val ? new Date(val).toLocaleDateString() : 'N/A'),
       },
       {
+        key: 'status',
+        header: 'Status',
+        render: (val) => {
+          const isActive = Number(val) === 1;
+          return (
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                isActive
+                  ? 'bg-green-100 text-green-800 border-green-300  dark:text-green-400 dark:border-green-900/30'
+                  : 'bg-red-100 text-red-800 border-red-400 dark:text-red-500 dark:border-red-900/30'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isActive ? 'bg-green-600 animate-pulse' : 'bg-red-600'
+                }`}
+              />
+              {isActive ? 'Active' : 'Inactive'}
+            </span>
+          );
+        },
+      },
+      {
         key: 'actions',
         header: 'Actions',
         render: (_, row) => (
@@ -350,6 +375,7 @@ const handleFormSubmit = async (values, { resetForm }) => {
           min_affected_days: editingAlert.min_consecutive_days,
           select_all_nas: false,
           nas_ip_manual_select: [String(editingAlert.activation_plan_id)],
+          is_active: Number(editingAlert.status) === 1,
         }
       : null;
 

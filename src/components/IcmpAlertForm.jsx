@@ -323,7 +323,7 @@ const StatusToggleField = ({ name, label, className, ...props }) => {
         </label>
         <input
           id={`${name}-status`}
-          className="toggle toggle-lg toggle-primary ml-3"
+          className="status-toggle-custom ml-3"
           {...fieldProps}
         />
       </div>

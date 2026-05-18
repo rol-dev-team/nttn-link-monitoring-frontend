@@ -44,6 +44,38 @@ const ToggleField = ({ name, label, className, ...props }) => {
   );
 };
 
+// Status Toggle Component
+const StatusToggleField = ({ name, label, className, ...props }) => {
+  const [field] = useField(name);
+
+  const fieldProps = {
+    ...field,
+    checked: field.value,
+    type: 'checkbox',
+  };
+
+  return (
+    <div className={clsx('flex flex-col', className)} {...props}>
+      <div className="flex items-center">
+        <label
+          htmlFor={`${name}-status`}
+          className="text-base font-medium text-gray-700 select-none"
+        >
+          {label}
+        </label>
+        <input
+          id={`${name}-status`}
+          className="status-toggle-custom ml-3"
+          {...fieldProps}
+        />
+      </div>
+      <p className="text-sm text-gray-500 mt-1">
+        {field.value ? 'Configuration will be active' : 'Configuration will be inactive'}
+      </p>
+    </div>
+  );
+};
+
 // Validation Schema
 const CapacityAlertSchema = Yup.object().shape({
   select_all_nas: Yup.boolean(),
@@ -77,6 +109,7 @@ const CapacityAlertSchema = Yup.object().shape({
     .min(0, 'Days cannot be negative')
     .integer('Days must be an integer')
     .required('Min Affected Days is required'),
+  is_active: Yup.boolean().required('Status is required.'),
 });
 
 // Initial Values Helper
@@ -90,12 +123,14 @@ const getInitialValues = (initialData) => {
     min_value_mbps: '',
     min_frequency: '',
     min_affected_days: '',
+    is_active: true,
   };
 
   if (initialData) {
     return {
       ...base,
       ...initialData,
+      is_active: initialData.is_active !== undefined ? initialData.is_active : (initialData.status === 1 || initialData.status === undefined),
     };
   }
   return base;
@@ -295,6 +330,18 @@ export default function CapacityAlertForm({
                     formik={formik}
                   />
                 </div>
+              </div>
+
+              {/* Status Section */}
+              <div className="md:col-span-2 mb-8">
+                <hr className="border-gray-200 my-6" />
+                <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+                  Configuration Status
+                </h3>
+                <StatusToggleField
+                  name="is_active"
+                  label="Enable Configuration"
+                />
               </div>
 
               {/* Actions */}

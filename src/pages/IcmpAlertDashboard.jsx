@@ -390,11 +390,14 @@ export default function IcmpAlertDashboard() {
   }, [alerts]);
 
   const STATUS_OPTIONS = useMemo(() => {
-    const uniqueStatuses = Array.from(new Set(alerts.map((alert) => alert.is_active)));
-    return uniqueStatuses.map((isActive) => ({
-      value: String(isActive),
-      label: isActive ? 'Active' : 'Inactive',
-    }));
+    const uniqueStatuses = Array.from(new Set(alerts.map((alert) => alert.status)));
+    return uniqueStatuses.map((statusVal) => {
+      const isActive = Number(statusVal) === 1;
+      return {
+        value: String(statusVal),
+        label: isActive ? 'Active' : 'Inactive',
+      };
+    });
   }, [alerts]);
 
   // Filter Logic
@@ -405,8 +408,9 @@ export default function IcmpAlertDashboard() {
     return alerts.filter((alert) => {
       let matches = true;
       if (filters.is_active) {
-        const filterActive = filters.is_active === 'true';
-        if (alert.is_active !== filterActive) matches = false;
+        const filterActive = filters.is_active === '1' || filters.is_active === 'true';
+        const isAlertActive = Number(alert.status) === 1;
+        if (isAlertActive !== filterActive) matches = false;
       }
       if (filters.nas_ip_filter && alert.activation_plan?.nas_ip) {
         if (alert.activation_plan.nas_ip !== filters.nas_ip_filter) matches = false;
@@ -451,9 +455,10 @@ export default function IcmpAlertDashboard() {
         nasIpsToCreate = values.nasOptions || [];
       } else {
         // Use the nasOptions from the form to map selected IDs
-        nasIpsToCreate = (values.nasOptions || []).filter((option) => 
-          values.nas_ip_manual_select.includes(option.value)
-        );
+        nasIpsToCreate = (values.nasOptions || []).filter((option) => {
+          const manualSelect = values.nas_ip_manual_select || [];
+          return manualSelect.map(String).includes(String(option.value));
+        });
       }
 
       console.log('NAS IPs to create:', nasIpsToCreate); // Debug log
@@ -469,7 +474,7 @@ export default function IcmpAlertDashboard() {
           const dataToSave = {
             activation_plan_id: nasIp.value,
             latency_threshold_ms: values.latency_threshold_ms,
-            is_active: values.is_active,
+            status: values.is_active ? 1 : 0,
           };
 
           let response;
@@ -541,21 +546,29 @@ export default function IcmpAlertDashboard() {
         render: (_, row) => row.activation_plan?.work_order_id || 'N/A',
       },
       { key: 'latency_threshold_ms', header: 'Latency Threshold (ms)' },
-      // {
-      //   key: "is_active",
-      //   header: "Status",
-      //   render: (_, row) => (
-      //     <span
-      //       className={`px-2 py-1 rounded-full text-xs font-medium ${
-      //         row.is_active
-      //           ? "bg-green-100 text-green-800"
-      //           : "bg-red-100 text-red-800"
-      //       }`}
-      //     >
-      //       {row.is_active ? "Active" : "Inactive"}
-      //     </span>
-      //   ),
-      // },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (val) => {
+          const isActive = Number(val) === 1;
+          return (
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                isActive
+                  ? 'bg-green-100 text-green-800 border-green-300  dark:text-green-400 dark:border-green-900/30'
+                  : 'bg-red-100 text-red-800 border-red-400 dark:text-red-500 dark:border-red-900/30'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isActive ? 'bg-green-600 animate-pulse' : 'bg-red-600'
+                }`}
+              />
+              {isActive ? 'Active' : 'Inactive'}
+            </span>
+          );
+        },
+      },
       {
         key: 'created_at',
         header: 'Last Updated',
@@ -582,9 +595,9 @@ export default function IcmpAlertDashboard() {
       ? {
           ...editingAlert,
           select_all_nas: false,
-          nas_ip_manual_select: [editingAlert.activation_plan_id],
+          nas_ip_manual_select: [String(editingAlert.activation_plan_id)],
           latency_threshold_ms: editingAlert.latency_threshold_ms,
-          is_active: editingAlert.is_active,
+          is_active: Number(editingAlert.status) === 1,
         }
       : null;
 

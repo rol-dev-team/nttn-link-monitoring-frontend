@@ -823,11 +823,9 @@ export default function DataTable({
       const filtered = query.trim()
         ? data.filter((row) => {
             const q = query.toLowerCase();
-            const keys = inferredCols.map((c) => c.key);
             return inferredCols.some((col) => {
-              const value = col.searchValue
-                ? col.searchValue(row)
-                : String(row?.[col.key] ?? '');
+              const rawValue = col.searchValue ? col.searchValue(row) : row?.[col.key];
+              const value = String(rawValue ?? '');
               return value.toLowerCase().includes(q);
             });
           })
